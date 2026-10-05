@@ -2,7 +2,7 @@
 
 Kleine Webseite, die zeigt, wo in Kärnten zu einer bestimmten Zeit noch ein Padel-Court frei ist.
 
-**→ https://seburgi.github.io/padel-kaernten/**
+**→ https://padel.burgstaller.me/**
 
 Abgedeckte Anlagen: Padelbase Annenheim, Padel Ten Villach, Sportunion Klagenfurt, Arena One Klagenfurt, smash Pörtschach.
 
