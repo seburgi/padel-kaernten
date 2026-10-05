@@ -1,0 +1,43 @@
+name: Daten aktualisieren & veröffentlichen
+
+on:
+  schedule:
+    # alle 30 Minuten zwischen ca. 06 und 24 Uhr Wiener Zeit (Cron läuft in UTC);
+    # Minute 7/37 statt 0/30, weil GitHub zur vollen Stunde oft stark verzögert
+    - cron: "7,37 4-22 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Freie Zeiten abfragen
+        run: uv run scraper/snapshot.py --days 14 --out site/data.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

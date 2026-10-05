@@ -1,0 +1,56 @@
+{
+  "_hinweis": "Anlagen für snapshot.py. Neue Anlage: Eintrag mit passender platform ergänzen; enabled=false schaltet sie aus.",
+  "venues": [
+    {
+      "name": "Padelbase Annenheim",
+      "ort": "Annenheim (Ossiacher See)",
+      "platform": "etennis",
+      "base_url": "https://www.buchung-padelbase.at",
+      "category_id": 4793,
+      "enabled": true,
+      "id": "padelbase-annenheim"
+    },
+    {
+      "name": "Padel Ten Villach",
+      "ort": "Villach",
+      "platform": "etennis",
+      "base_url": "https://villach-padel.tennisplatz.info",
+      "category_id": 5191,
+      "enabled": true,
+      "id": "padel-ten-villach"
+    },
+    {
+      "name": "Sportunion Klagenfurt",
+      "ort": "Klagenfurt",
+      "platform": "etennis",
+      "base_url": "https://sportunion-klagenfurt-tennis.tennisplatz.info",
+      "category_id": 2900,
+      "enabled": true,
+      "id": "sportunion-klagenfurt"
+    },
+    {
+      "name": "Arena One",
+      "ort": "Klagenfurt (Südring 211)",
+      "platform": "wansport",
+      "base_url": "https://arenaone.wansport.com",
+      "sport_id": 15,
+      "enabled": true,
+      "id": "arena-one"
+    },
+    {
+      "name": "smash Pörtschach",
+      "ort": "Pörtschach am Wörthersee",
+      "platform": "eversports",
+      "facility_id": 84669,
+      "facility_slug": "smash-poertschach",
+      "sport": {
+        "id": 978,
+        "slug": "padel",
+        "name": "Padel",
+        "uuid": "b388f5e3-69de-11e8-bdc6-02bd505aa7b2"
+      },
+      "enabled": true,
+      "id": "smash-poertschach"
+    }
+  ]
+}

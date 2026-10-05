@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Kärnten – freie Plätze</title>
+<meta name="description" content="Wo ist in Kärnten noch ein Padel-Platz frei? Freie Courts in Klagenfurt, Villach, Annenheim und Pörtschach auf einen Blick.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='3' y='3' width='26' height='26' rx='7' fill='%230f6b4f'/><circle cx='20.5' cy='11.5' r='4' fill='%23d4f53c'/></svg>">
+<style>
+  :root {
+    --bg: #f4f5f0;
+    --surface: #ffffff;
+    --ink: #17211c;
+    --muted: #5d6a63;
+    --line: #dfe3dc;
+    --accent: #0f6b4f;
+    --accent-ink: #ffffff;
+    --chip: #e3f1e9;
+    --chip-ink: #0b4a37;
+    --chip-hover: #cfe8da;
+    --ball: #d4f53c;
+    --warn: #8a5a00;
+    --warn-bg: #fff4d6;
+    --radius: 14px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1311;
+      --surface: #161d19;
+      --ink: #e6ede8;
+      --muted: #96a59c;
+      --line: #27322c;
+      --accent: #5fd0a2;
+      --accent-ink: #08130e;
+      --chip: #1d3329;
+      --chip-ink: #b9f0d6;
+      --chip-hover: #25443a;
+      --warn: #f1c869;
+      --warn-bg: #2d2611;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1311; --surface: #161d19; --ink: #e6ede8; --muted: #96a59c; --line: #27322c;
+    --accent: #5fd0a2; --accent-ink: #08130e; --chip: #1d3329; --chip-ink: #b9f0d6; --chip-hover: #25443a;
+    --warn: #f1c869; --warn-bg: #2d2611; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+
+  header { padding: 28px 0 8px; }
+  h1 { font-size: clamp(1.6rem, 5vw, 2.1rem); line-height: 1.1; margin: 0; letter-spacing: -0.02em; }
+  h1 .dot { display: inline-block; width: .42em; height: .42em; border-radius: 50%; background: var(--ball);
+            box-shadow: 0 0 0 2px var(--accent) inset; vertical-align: .32em; margin-left: .12em; }
+  .sub { color: var(--muted); margin: 6px 0 0; }
+
+  /* Filter */
+  .filters { background: var(--bg); padding: 14px 0 12px; border-bottom: 1px solid var(--line); }
+  @media (min-width: 600px) and (min-height: 600px) { .filters { position: sticky; top: 0; z-index: 5; } }
+  .days { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
+          scroll-snap-type: x proximity; margin: 0 -16px; padding-inline: 16px; }
+  .days::-webkit-scrollbar { display: none; }
+  .day { flex: 0 0 auto; scroll-snap-align: start; border: 1px solid var(--line); background: var(--surface);
+         color: var(--ink); border-radius: 12px; padding: 7px 12px; font: inherit; font-size: .9rem;
+         cursor: pointer; text-align: center; min-width: 64px; }
+  .day small { display: block; color: var(--muted); font-size: .75rem; }
+  .day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .day[aria-pressed="true"] small { color: inherit; opacity: .8; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
+  label.f { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; color: var(--muted); }
+  select { font: inherit; font-size: .95rem; color: var(--ink); background: var(--surface);
+           border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; min-width: 92px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+  .seg button { font: inherit; font-size: .95rem; border: 0; background: transparent; color: var(--ink);
+                padding: 7px 12px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Ergebnisse */
+  .summary { margin: 18px 0 10px; font-weight: 600; }
+  .summary .muted { font-weight: 400; color: var(--muted); }
+  .venue { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+           padding: 14px 16px; margin-bottom: 12px; }
+  .vhead { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .vname { font-weight: 650; font-size: 1.05rem; margin: 0; }
+  .vort { color: var(--muted); font-size: .85rem; }
+  .book { flex: 0 0 auto; font-size: .85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
+  .book:hover { text-decoration: underline; }
+  .court { display: grid; grid-template-columns: minmax(96px, 150px) 1fr; gap: 6px 12px; padding-top: 10px;
+           margin-top: 10px; border-top: 1px dashed var(--line); }
+  .cname { font-size: .88rem; color: var(--muted); padding-top: 5px; overflow-wrap: anywhere; }
+  .slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .slot { display: inline-flex; flex-direction: column; align-items: center; text-decoration: none;
+          background: var(--chip); color: var(--chip-ink); border-radius: 9px; padding: 4px 9px; min-width: 56px;
+          font-variant-numeric: tabular-nums; font-weight: 600; font-size: .92rem; line-height: 1.2; }
+  .slot small { font-weight: 400; font-size: .72rem; opacity: .8; }
+  .slot:hover { background: var(--chip-hover); }
+  .note { font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  .warn { color: var(--warn); background: var(--warn-bg); border-radius: 8px; padding: 6px 10px; font-size: .85rem; margin-top: 8px; }
+
+  .none { color: var(--muted); font-size: .92rem; margin: 6px 0 18px; }
+  .none b { color: var(--ink); font-weight: 600; }
+  .empty { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+           padding: 18px 16px; margin-bottom: 12px; }
+  .empty p { margin: 0 0 10px; }
+  .btn { font: inherit; font-size: .9rem; font-weight: 600; border: 1px solid var(--accent); color: var(--accent);
+         background: transparent; border-radius: 10px; padding: 7px 12px; cursor: pointer; margin: 4px 6px 0 0; }
+  .btn:hover { background: var(--chip); }
+
+  footer { color: var(--muted); font-size: .8rem; padding: 18px 0 40px; border-top: 1px solid var(--line); margin-top: 24px; }
+  footer p { margin: 0 0 6px; }
+  footer a { color: inherit; }
+  .skeleton { height: 120px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line);
+              margin-bottom: 12px; opacity: .6; }
+
+  @media (max-width: 480px) {
+    .court { grid-template-columns: 1fr; gap: 6px; }
+    .cname { padding-top: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Padel Kärnten<span class="dot" aria-hidden="true"></span></h1>
+    <p class="sub">Wo ist noch ein Platz frei? Alle Anlagen auf einen Blick.</p>
+  </header>
+
+  <section class="filters" aria-label="Suche">
+    <div class="days" id="days" role="group" aria-label="Tag"></div>
+    <div class="row">
+      <label class="f">Beginn ab
+        <select id="from"></select>
+      </label>
+      <label class="f">Ende bis
+        <select id="to"></select>
+      </label>
+      <div class="f">
+        <span style="font-size:.78rem;color:var(--muted)">Spieldauer</span>
+        <div class="seg" id="dur" role="group" aria-label="Spieldauer">
+          <button type="button" data-v="60">1 h</button>
+          <button type="button" data-v="90">1,5 h</button>
+          <button type="button" data-v="120">2 h</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main id="out" aria-live="polite">
+    <div class="skeleton"></div><div class="skeleton"></div>
+  </main>
+
+  <footer>
+    <p id="stand"></p>
+    <p>Die Daten kommen von den öffentlichen Buchungsseiten der Anlagen und werden etwa alle 30 Minuten aktualisiert.
+       Bis du buchst, kann ein Platz schon weg sein. Gebucht wird direkt bei der Anlage, dafür brauchst du dort ein Konto.</p>
+    <p>Kein offizielles Angebot der Anlagen. Preise zeigt nur smash Pörtschach vorab an (Preis für den ganzen Platz).</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const TZ = "Europe/Vienna";
+  const WD = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+  const $ = (id) => document.getElementById(id);
+  const state = { d: null, from: 17 * 60, to: 22 * 60, dur: 90 };
+  let data = null;
+
+  const hm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const parseHm = (s) => { const m = /^(\d{1,2}):(\d{2})$/.exec(s || ""); return m ? Math.min(1440, Number(m[1]) * 60 + Number(m[2])) : null; };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // Aktuelles Datum + Minute in Wien, unabhängig von der Zeitzone des Geräts
+  function viennaNow() {
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit",
+      day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+    return { date: `${p.year}-${p.month}-${p.day}`, min: Number(p.hour) * 60 + Number(p.minute) };
+  }
+
+  function dayLabel(iso, today) {
+    const d = new Date(iso + "T12:00:00Z");
+    const diff = Math.round((d - new Date(today + "T12:00:00Z")) / 864e5);
+    const top = diff === 0 ? "Heute" : diff === 1 ? "Morgen" : WD[d.getUTCDay()];
+    return { top, sub: `${d.getUTCDate()}.${d.getUTCMonth() + 1}.` };
+  }
+
+  // Mögliche Startzeiten eines Platzes: durchgehend frei für `dur`, Beginn >= from, Ende <= to
+  function options(units, step, from, to, dur, notBefore) {
+    const blocks = [];
+    for (const [b, e, p] of units) {
+      const last = blocks[blocks.length - 1];
+      if (last && last.e === b) { last.e = e; last.parts.push([b, e, p]); }
+      else blocks.push({ b, e, parts: [[b, e, p]] });
+    }
+    const out = [];
+    for (const blk of blocks) {
+      for (let t = blk.b; t + dur <= blk.e; t += step) {
+        if (t < from || t + dur > to || t < notBefore) continue;
+        let price = 0, known = true;
+        for (const [b, e, p] of blk.parts) {
+          const ov = Math.min(e, t + dur) - Math.max(b, t);
+          if (ov <= 0) continue;
+          if (p == null) { known = false; break; }
+          price += (p / step) * ov; // Preis gilt je Raster-Einheit
+        }
+        out.push({ t, price: known ? Math.round(price * 100) / 100 : null });
+      }
+    }
+    return out;
+  }
+
+  function render() {
+    if (!data) return;
+    const now = viennaNow();
+    const notBefore = state.d === now.date ? now.min : -1;
+    const hits = [], misses = [], broken = [];
+
+    for (const v of data.venues) {
+      if (v.error) { broken.push(v); continue; }
+      const courts = [];
+      for (const c of v.courts) {
+        const opts = options(c.free[state.d] || [], v.step || 30, state.from, state.to, state.dur, notBefore);
+        if (opts.length) courts.push({ name: c.name, opts });
+      }
+      (courts.length ? hits : misses).push({ v, courts });
+    }
+
+    const total = data.venues.length;
+    let html = `<p class="summary">${hits.length ? `${hits.length} von ${total} Anlagen haben was frei` : "Leider nichts frei"}
+      <span class="muted"> · ${hm(state.from)}–${hm(state.to)}, ${state.dur} min</span></p>`;
+
+    if (!hits.length) {
+      html += `<div class="empty"><p>In diesem Zeitfenster ist kein Platz für ${state.dur} Minuten frei.</p>
+        <button class="btn" data-act="widen">Fenster um je 1 h erweitern</button>
+        ${state.dur > 60 ? `<button class="btn" data-act="shorter">Nur 1 h spielen</button>` : ""}
+        <button class="btn" data-act="nextday">Nächsten Tag zeigen</button></div>`;
+    }
+
+    for (const { v, courts } of hits) {
+      const link = v.links[state.d] || Object.values(v.links)[0] || "#";
+      html += `<article class="venue"><div class="vhead"><div><h2 class="vname">${esc(v.name)}</h2>
+        <div class="vort">${esc(v.ort)}</div></div>
+        <a class="book" href="${esc(link)}" target="_blank" rel="noopener">Zur Buchung ↗</a></div>`;
+      for (const c of courts) {
+        html += `<div class="court"><div class="cname">${esc(c.name)}</div><div class="slots">` +
+          c.opts.map((o) => `<a class="slot" href="${esc(link)}" target="_blank" rel="noopener"
+             title="${esc(c.name)} · ${hm(o.t)}–${hm(o.t + state.dur)}">${hm(o.t)}${o.price != null ? `<small>${o.price.toLocaleString("de-AT")} €</small>` : ""}</a>`).join("") +
+          `</div></div>`;
+      }
+      if (v.platform === "eversports") html += `<p class="note">Startzeiten nur zur vollen Stunde.</p>`;
+      html += `</article>`;
+    }
+
+    if (misses.length) {
+      html += `<p class="none"><b>Ausgebucht:</b> ${misses.map(({ v }) => esc(v.name)).join(", ")}</p>`;
+    }
+    for (const v of broken) {
+      html += `<div class="warn">${esc(v.name)}: gerade nicht abrufbar – <a href="${esc(Object.values(v.links || {})[0] || "#")}" target="_blank" rel="noopener">${v.platform === "eversports" ? "direkt nachsehen" : "Buchungsseite"}</a></div>`;
+    }
+    $("out").innerHTML = html;
+  }
+
+  function syncControls() {
+    for (const b of $("days").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.d === state.d));
+    for (const b of $("dur").querySelectorAll("button")) b.setAttribute("aria-pressed", String(Number(b.dataset.v) === state.dur));
+    $("from").value = String(state.from);
+    $("to").value = String(state.to);
+    try { history.replaceState(null, "", `#tag=${state.d}&ab=${hm(state.from)}&bis=${hm(state.to)}&dauer=${state.dur}`); } catch {}
+  }
+
+  function update(patch) {
+    Object.assign(state, patch);
+    if (state.to - state.from < state.dur) state.to = Math.min(24 * 60, state.from + state.dur);
+    syncControls();
+    render();
+  }
+
+  function buildControls() {
+    const now = viennaNow();
+    const days = data.days.filter((d) => d >= now.date);
+    $("days").innerHTML = days.map((d) => {
+      const l = dayLabel(d, now.date);
+      return `<button type="button" class="day" data-d="${d}">${l.top}<small>${l.sub}</small></button>`;
+    }).join("");
+    const opt = (m) => `<option value="${m}">${hm(m)}</option>`;
+    let f = "", t = "";
+    for (let m = 6 * 60; m <= 23 * 60; m += 30) f += opt(m);
+    for (let m = 7 * 60; m <= 24 * 60; m += 30) t += opt(m);
+    $("from").innerHTML = f;
+    $("to").innerHTML = t;
+
+    // Startzustand: Link-Parameter > sinnvolle Vorgabe (heute, oder morgen wenn es schon spät ist)
+    const readHash = () => {
+      const q = new URLSearchParams(location.hash.slice(1));
+      state.d = days.includes(q.get("tag")) ? q.get("tag") : state.d || (now.min > 21 * 60 && days[1] ? days[1] : days[0]);
+      state.from = parseHm(q.get("ab")) ?? state.from;
+      state.to = parseHm(q.get("bis")) ?? state.to;
+      state.dur = [60, 90, 120].includes(Number(q.get("dauer"))) ? Number(q.get("dauer")) : state.dur;
+    };
+    readHash();
+    window.addEventListener("hashchange", () => { readHash(); update({}); });
+
+    $("days").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) update({ d: b.dataset.d }); });
+    $("dur").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) update({ dur: Number(b.dataset.v) }); });
+    $("from").addEventListener("change", (e) => update({ from: Number(e.target.value) }));
+    $("to").addEventListener("change", (e) => update({ to: Number(e.target.value) }));
+    $("out").addEventListener("click", (e) => {
+      const a = e.target.closest("[data-act]")?.dataset.act;
+      if (a === "widen") update({ from: Math.max(360, state.from - 60), to: Math.min(1440, state.to + 60) });
+      if (a === "shorter") update({ dur: 60 });
+      if (a === "nextday") { const i = days.indexOf(state.d); if (days[i + 1]) update({ d: days[i + 1] }); }
+    });
+    const pressed = $("days").querySelector(`[data-d="${state.d}"]`);
+    pressed?.scrollIntoView({ inline: "center", block: "nearest" });
+  }
+
+  function showStand() {
+    const g = new Date(data.generated);
+    const ageMin = Math.round((Date.now() - g) / 60000);
+    const t = g.toLocaleString("de-AT", { timeZone: TZ, weekday: "short", hour: "2-digit", minute: "2-digit" });
+    $("stand").textContent = `Stand: ${t}` + (ageMin > 90 ? ` – die Daten sind ${Math.round(ageMin / 60)} h alt.` : "");
+  }
+
+  fetch("data.json", { cache: "no-store" })
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((d) => { data = d; buildControls(); showStand(); syncControls(); render(); })
+    .catch(() => { $("out").innerHTML = `<div class="warn">Die Daten konnten nicht geladen werden. Bitte später nochmal probieren.</div>`; });
+
+  // Startzeiten von heute laufen ab – beim Zurückkehren zum Tab neu filtern
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
