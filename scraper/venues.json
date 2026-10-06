@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Anlagen für snapshot.py. area: halle | freiluft | ueberdacht (area_by_court für gemischte Anlagen). price_classes: fehlende eTennis-Preisklassen (€/h). price_rules: feste Platzpreise in €/h, wenn die Buchungsseite keine liefert (weekdays 0=Mo..6=So, from/to HH:MM). Quellen in sources.",
+  "_hinweis": "Anlagen für snapshot.py. area: halle | freiluft | ueberdacht (area_by_court für gemischte Anlagen). price_classes: fehlende eTennis-Preisklassen (€/h). price_rules: feste Platzpreise in €/h, wenn die Buchungsseite keine liefert (weekdays 0=Mo..6=So, from/to HH:MM). address: für den Google-Maps-Link. Quellen in sources.",
   "venues": [
     {
       "name": "Padelbase Annenheim",
@@ -13,7 +13,8 @@
       "sources": [
         "https://www.padelbase.at (Outdoor-Plätze: 4 | Indoor-Plätze: 0)",
         "https://www.padelbase.at/standort/annenheim (Preis pro Court / Stunde für 4 Personen)"
-      ]
+      ],
+      "address": "Lindenhofweg 6, 9520 Annenheim"
     },
     {
       "name": "Padel Ten Villach",
@@ -29,7 +30,8 @@
       },
       "sources": [
         "https://padelten.at (alle Courts in wettergeschützter Halle; Fr 16–23 Uhr 34 € pro Court und Stunde)"
-      ]
+      ],
+      "address": "Maria-Gailer-Straße 30a, 9500 Villach"
     },
     {
       "name": "Sportunion Klagenfurt",
@@ -43,7 +45,8 @@
       "sources": [
         "https://sportunion-tennis.at/padel-preise-und-buchung/ (Gäste 22 €/h bis 16 Uhr, 30 €/h ab 16 Uhr)",
         "https://padel-austria.at/locations/sportunion-klagenfurt (3 Outdoor)"
-      ]
+      ],
+      "address": "Universitätsstraße 100a, 9020 Klagenfurt"
     },
     {
       "name": "Arena One",
@@ -93,7 +96,8 @@
       "sources": [
         "https://www.arenaone.at/#preise (10 €/Person bis 16 Uhr, 12 € sonst; gilt bei 4 Spielern)",
         "https://www.arenaone.at (wetterunabhängig)"
-      ]
+      ],
+      "address": "Südring 211, 9020 Klagenfurt"
     },
     {
       "name": "smash Pörtschach",
@@ -111,7 +115,8 @@
       "id": "smash-poertschach",
       "sources": [
         "https://www.eversports.at/s/smash-poertschach (Drei moderne Outdoor Panorama-Courts)"
-      ]
+      ],
+      "address": "Leonsteinerstraße 4, 9210 Pörtschach am Wörthersee"
     },
     {
       "id": "padel-campus-moosburg",
@@ -123,7 +128,8 @@
       "sources": [
         "https://www.padelcampus.at/clubs/moosburg/ (2 Outdoor Padel)",
         "Padelmates-API: court_type_enum OUTDOOR, Preise je Slot"
-      ]
+      ],
+      "address": "Kirchenplatz 1, 9062 Moosburg"
     },
     {
       "id": "padel-campus-st-veit",
@@ -135,7 +141,8 @@
       "sources": [
         "https://www.padelcampus.at/clubs/sankt-veit/ (3 Outdoor Courts)",
         "Padelmates-API: court_type_enum OUTDOOR, Preise je Slot"
-      ]
+      ],
+      "address": "Völkermarkter Straße 54, 9300 St. Veit an der Glan"
     }
   ]
 }

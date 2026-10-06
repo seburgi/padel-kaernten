@@ -271,7 +271,7 @@ def area_of(venue: dict, court: str) -> str | None:
 
 
 def run(venue: dict, days: list[dt.date]) -> dict:
-    entry = {k: venue.get(k) for k in ("id", "name", "ort", "platform", "price_note")}
+    entry = {k: venue.get(k) for k in ("id", "name", "ort", "address", "platform", "price_note")}
     try:
         free, links, step = FETCHERS[venue["platform"]](venue, days)
         apply_price_rules(venue, free)

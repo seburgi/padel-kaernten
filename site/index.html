@@ -99,7 +99,9 @@
   .badge.freiluft { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
   .cname .badge { margin-left: 0; margin-top: 3px; }
   .book { flex: 0 0 auto; font-size: .85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
-  .book:hover { text-decoration: underline; }
+  .book:hover, .map:hover { text-decoration: underline; }
+  .map { color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .map::before { content: "⌖ "; }
   .court { display: grid; grid-template-columns: minmax(96px, 150px) 1fr; gap: 6px 12px; padding-top: 10px;
            margin-top: 10px; border-top: 1px dashed var(--line); }
   .cname { font-size: .88rem; color: var(--muted); padding-top: 5px; overflow-wrap: anywhere; }
@@ -188,6 +190,8 @@
   const $ = (id) => document.getElementById(id);
   const state = { d: null, from: 17 * 60, to: 22 * 60, dur: 90, area: "alle" };
   const AREA = { halle: "Halle", freiluft: "Freiluft", ueberdacht: "Überdacht" };
+  // Name + Adresse, damit Google den Ort (nicht nur die Straße) findet
+  const mapLink = (v) => v.address ? ` · <a class="map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.name + ", " + v.address)}" target="_blank" rel="noopener" title="${esc(v.address)}">Karte</a>` : "";
   const badge = (a) => a ? `<span class="badge ${esc(a)}">${esc(AREA[a] || a)}</span>` : "";
   let data = null;
 
@@ -269,7 +273,7 @@
     for (const { v, courts, mixed, area } of hits) {
       const link = v.links[state.d] || Object.values(v.links)[0] || "#";
       html += `<article class="venue"><div class="vhead"><div><h2 class="vname">${esc(v.name)}${badge(area)}</h2>
-        <div class="vort">${esc(v.ort)}</div></div>
+        <div class="vort">${esc(v.ort)}${mapLink(v)}</div></div>
         <a class="book" href="${esc(link)}" target="_blank" rel="noopener">Zur Buchung ↗</a></div>`;
       for (const c of courts) {
         html += `<div class="court"><div class="cname">${esc(c.name)}${mixed ? "<br>" + badge(c.area) : ""}</div><div class="slots">` +
