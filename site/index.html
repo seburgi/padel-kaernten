@@ -238,10 +238,11 @@
     if (!data) return;
     const now = viennaNow();
     const notBefore = state.d === now.date ? now.min : -1;
-    const hits = [], misses = [], broken = [];
+    const hits = [], misses = [], broken = [], early = [];
 
     for (const v of data.venues) {
       if (v.error) { broken.push(v); continue; }
+      if ((v.not_bookable || []).includes(state.d)) { early.push(v); continue; }
       const courts = [];
       for (const c of v.courts) {
         // "Überdacht" zählt beim Filter als wettergeschützt, also zur Halle
@@ -283,6 +284,9 @@
 
     if (misses.length) {
       html += `<p class="none"><b>Ausgebucht:</b> ${misses.map(({ v }) => esc(v.name)).join(", ")}</p>`;
+    }
+    if (early.length) {
+      html += `<p class="none"><b>Noch nicht buchbar:</b> ${early.map((v) => esc(v.name)).join(", ")} – dort kann man nur wenige Tage im Voraus buchen.</p>`;
     }
     for (const v of broken) {
       html += `<div class="warn">${esc(v.name)}: gerade nicht abrufbar – <a href="${esc(Object.values(v.links || {})[0] || "#")}" target="_blank" rel="noopener">${v.platform === "eversports" ? "direkt nachsehen" : "Buchungsseite"}</a></div>`;

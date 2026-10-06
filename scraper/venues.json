@@ -112,6 +112,30 @@
       "sources": [
         "https://www.eversports.at/s/smash-poertschach (Drei moderne Outdoor Panorama-Courts)"
       ]
+    },
+    {
+      "id": "padel-campus-moosburg",
+      "name": "Padel Campus Moosburg",
+      "ort": "Moosburg (Kaiser-Arnulf-Sportzentrum)",
+      "platform": "padelmates",
+      "club_id": "8b4adf309a5b484eb594598f0cbabca4",
+      "enabled": true,
+      "sources": [
+        "https://www.padelcampus.at/clubs/moosburg/ (2 Outdoor Padel)",
+        "Padelmates-API: court_type_enum OUTDOOR, Preise je Slot"
+      ]
+    },
+    {
+      "id": "padel-campus-st-veit",
+      "name": "Padel Campus St. Veit",
+      "ort": "St. Veit an der Glan (SCA, Völkermarkter Str. 54)",
+      "platform": "padelmates",
+      "club_id": "e727d2862d0c442e98d1f79a11755ee9",
+      "enabled": true,
+      "sources": [
+        "https://www.padelcampus.at/clubs/sankt-veit/ (3 Outdoor Courts)",
+        "Padelmates-API: court_type_enum OUTDOOR, Preise je Slot"
+      ]
     }
   ]
 }

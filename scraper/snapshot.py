@@ -185,7 +185,54 @@ def eversports(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
     return free, {d.isoformat(): link for d in days}, step
 
 
-FETCHERS = {"etennis": etennis, "wansport": wansport, "eversports": eversports}
+# --------------------------------------------------------------------------- Padelmates
+def padelmates(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
+    """Öffentliche Slot-API der Padelmates-Webseite (padelmates.se/club/<id>).
+    allSlots enthält jede mögliche Buchung (30/60/90/120 min) mit Preis und reservedIntersection.
+    Ein 30-min-Abschnitt ist frei, wenn ihn mindestens eine nicht reservierte Buchungsoption abdeckt."""
+    api = "https://fastapi-production-fargate.padelmates.io/player/player_booking/all_courts_slot_prices_v3"
+    free: Free = {}
+    s = session()
+    for day in days:
+        start = dt.datetime.combine(day, dt.time(0), TZ)
+        data = s.get(api, params={"club_id": v["club_id"], "lang": "de",
+                                  "start_datetime": int(start.timestamp() * 1000),
+                                  "end_datetime": int((start + dt.timedelta(days=1)).timestamp() * 1000)}).json()
+        if data.get("too_early_for_advance_booking"):
+            v.setdefault("_not_bookable", []).append(day.isoformat())
+        courts = {c["name"]: c for c in data.get("originalCourts", [])}
+        for c in courts.values():
+            if c.get("sport_type") == "PADEL":
+                free.setdefault(c["name"], {}).setdefault(day.isoformat(), [])
+                area = {"INDOOR": "halle", "OUTDOOR": "freiluft"}.get(c.get("court_type_enum"))
+                if area:
+                    v.setdefault("_areas", {})[c["name"]] = area
+        # Tarif-Zeitfenster je Platz: available_slots[] mit interval_prices (Preis je Dauer).
+        # Der 60-min-Preis ist der Stundentarif; ist er nicht gesetzt, wird hochgerechnet.
+        tariffs: dict[str, list[tuple[int, int, float]]] = {}
+        for c in courts.values():
+            for w in c.get("available_slots", []):
+                prices = {int(ip["duration"]): float(ip["price"]) for ip in w.get("interval_prices", []) if ip.get("price")}
+                eur_h = prices.get(60) or next((p * 60 / d for d, p in sorted(prices.items())), None)
+                if eur_h:
+                    tariffs.setdefault(c["name"], []).append((w["start_datetime"], w["end_datetime"], round(eur_h, 2)))
+
+        covered: set[tuple[str, int]] = set()
+        for sl in data.get("allSlots", []):
+            if sl.get("reservedIntersection") or courts.get(sl["courtName"], {}).get("sport_type") != "PADEL":
+                continue
+            b = dt.datetime.fromtimestamp(sl["startTimestamp"] / 1000, TZ)
+            if b.date() == day:
+                covered.update((sl["courtName"], minutes(b) + off) for off in range(0, int(sl["duration"]), 30))
+        for court, m in covered:
+            ts = int(dt.datetime.combine(day, dt.time(m // 60, m % 60), TZ).timestamp() * 1000)
+            eur_h = next((p for b_, e_, p in tariffs.get(court, []) if b_ <= ts < e_), None)
+            free[court][day.isoformat()].append((m, min(m + 30, 24 * 60), eur_h))
+    link = f"https://padelmates.se/club/{v['club_id']}"
+    return free, {d.isoformat(): link for d in days}, 30
+
+
+FETCHERS = {"etennis": etennis, "wansport": wansport, "eversports": eversports, "padelmates": padelmates}
 
 
 def merge(units):
@@ -228,6 +275,7 @@ def run(venue: dict, days: list[dt.date]) -> dict:
     try:
         free, links, step = FETCHERS[venue["platform"]](venue, days)
         apply_price_rules(venue, free)
+        entry["not_bookable"] = sorted(set(venue.get("_not_bookable", [])))  # Datum noch außerhalb des Buchungsfensters
         entry["error"] = None
         entry["step"] = step
         entry["links"] = links

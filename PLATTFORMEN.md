@@ -32,3 +32,13 @@ Italienisches System, Domain `<anlage>.wansport.com`.
 - Belegte Slots: `GET /api/slot?facilityId=…&startDate=YYYY-MM-DD&courts[]=…` → `{"slots":[{"date","start","court"}]}`. Frei = Raster minus diese Liste.
 - IDs finden: Buchungsplan `/sb/<slug>` im Browser öffnen, auf "nächste Woche" klicken und den Request-Body von `calendar/update` mitlesen (enthält alle Sport-Felder). Die Court-IDs ermittelt das Skript selbst aus dem HTML.
 - Maximal 21 Tage im Voraus (`data-max-calendar-days`).
+
+## Padelmates (`"platform": "padelmates"`)
+
+Club-Seite im Web: `https://padelmates.se/club/<club_id>` (die `club_id` steht in Share-Links wie `padelmates.co/share/app/club_info/<club_id>`).
+
+- Abruf: `GET https://fastapi-production-fargate.padelmates.io/player/player_booking/all_courts_slot_prices_v3?club_id=…&start_datetime=<ms>&end_datetime=<ms>&lang=de` → JSON, ohne Login.
+- `originalCourts[]`: Plätze mit `sport_type` (PADEL/PICKLEBALL …), `court_type_enum` (INDOOR/OUTDOOR) und Tarif-Zeitfenstern `available_slots[].interval_prices` (Preis je Dauer).
+- `allSlots[]`: jede buchbare Option (30/60/90/120 min) mit `reservedIntersection` = belegt. Frei = von einer nicht belegten Option abgedeckt.
+- `reservedBookings` enthält Buchungsdetails und wird bewusst nicht gelesen.
+- Buchungsfenster meist 9 Tage (`future_booking_days`); danach `too_early_for_advance_booking: true`.

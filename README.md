@@ -4,7 +4,7 @@ Kleine Webseite, die zeigt, wo in Kärnten zu einer bestimmten Zeit noch ein Pad
 
 **→ https://padel.burgstaller.me/**
 
-Abgedeckte Anlagen: Padelbase Annenheim, Padel Ten Villach, Sportunion Klagenfurt, Arena One Klagenfurt, smash Pörtschach.
+Abgedeckte Anlagen: Padelbase Annenheim, Padel Ten Villach, Sportunion Klagenfurt, Arena One Klagenfurt, smash Pörtschach, Padel Campus Moosburg und St. Veit.
 
 ## Wie es funktioniert
 
@@ -13,7 +13,8 @@ GitHub Actions (alle 30 min) ──► scraper/snapshot.py ──► site/data.j
                                      │
                                      ├─ eTennis     (Padelbase, Padel Ten, Sportunion)  1 Abruf / Woche
                                      ├─ Wansport    (Arena One)                         1 Abruf / Tag
-                                     └─ Eversports  (smash)                             2 Abrufe / Woche
+                                     ├─ Eversports  (smash)                             2 Abrufe / Woche
+                                     └─ Padelmates  (Padel Campus Moosburg, St. Veit)   1 Abruf / Tag
 ```
 
 Die Buchungsseiten erlauben keine direkten Abfragen aus dem Browser (kein CORS, Eversports hinter Cloudflare).
@@ -32,7 +33,7 @@ python3 -m http.server -d site 8765 # dann http://localhost:8765
 
 ## Anlage hinzufügen
 
-Eintrag in `scraper/venues.json` ergänzen. Unterstützt werden die Plattformen `etennis`, `wansport` und `eversports`;
+Eintrag in `scraper/venues.json` ergänzen. Unterstützt werden die Plattformen `etennis`, `wansport`, `eversports` und `padelmates`;
 welche IDs man jeweils braucht und wie die Abfrage funktioniert, steht in [PLATTFORMEN.md](PLATTFORMEN.md).
 
 Zusätzliche Felder pro Anlage:
@@ -52,6 +53,8 @@ Zusätzliche Felder pro Anlage:
 | Sportunion Klagenfurt | 3 × Freiluft | 22 € / 30 € ab 16 Uhr | Buchungsseite |
 | Arena One | 6 × Halle | 40 € / 48 € (10–12 € pro Person) | arenaone.at |
 | smash Pörtschach | 3 × Freiluft | 28 € / 36 € | Buchungsplan |
+| Padel Campus Moosburg | 2 × Freiluft | 28 € / 32 € | Padelmates (nur 9 Tage im Voraus buchbar) |
+| Padel Campus St. Veit | 3 × Freiluft | 28 € / 32 € | Padelmates (nur 9 Tage im Voraus buchbar) |
 
 ## Hinweise
 
