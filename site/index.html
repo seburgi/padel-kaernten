@@ -93,6 +93,11 @@
   .vhead { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
   .vname { font-weight: 650; font-size: 1.05rem; margin: 0; }
   .vort { color: var(--muted); font-size: .85rem; }
+  .badge { display: inline-block; font-size: .72rem; font-weight: 600; letter-spacing: .02em; border-radius: 6px;
+           padding: 1px 7px; margin-left: 6px; vertical-align: .12em; border: 1px solid var(--line); color: var(--muted); }
+  .badge.halle { background: var(--chip); color: var(--chip-ink); border-color: transparent; }
+  .badge.freiluft { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+  .cname .badge { margin-left: 0; margin-top: 3px; }
   .book { flex: 0 0 auto; font-size: .85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
   .book:hover { text-decoration: underline; }
   .court { display: grid; grid-template-columns: minmax(96px, 150px) 1fr; gap: 6px 12px; padding-top: 10px;
@@ -152,6 +157,14 @@
           <button type="button" data-v="120">2 h</button>
         </div>
       </div>
+      <div class="f">
+        <span style="font-size:.78rem;color:var(--muted)">Plätze</span>
+        <div class="seg" id="area" role="group" aria-label="Halle oder Freiluft">
+          <button type="button" data-v="alle">Alle</button>
+          <button type="button" data-v="halle">Halle</button>
+          <button type="button" data-v="freiluft">Freiluft</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -163,7 +176,8 @@
     <p id="stand"></p>
     <p>Die Daten kommen von den öffentlichen Buchungsseiten der Anlagen und werden etwa alle 30 Minuten aktualisiert.
        Bis du buchst, kann ein Platz schon weg sein. Gebucht wird direkt bei der Anlage, dafür brauchst du dort ein Konto.</p>
-    <p>Kein offizielles Angebot der Anlagen. Preise zeigt nur smash Pörtschach vorab an (Preis für den ganzen Platz).</p>
+    <p>Kein offizielles Angebot der Anlagen. Preise gelten für den ganzen Platz (bis 4 Spieler) und die gewählte Spieldauer,
+       laut Buchungsseite bzw. Preisliste der Anlage – ohne Gewähr, Mitglieder- und Abo-Tarife können abweichen.</p>
   </footer>
 </div>
 
@@ -172,7 +186,9 @@
   const TZ = "Europe/Vienna";
   const WD = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
   const $ = (id) => document.getElementById(id);
-  const state = { d: null, from: 17 * 60, to: 22 * 60, dur: 90 };
+  const state = { d: null, from: 17 * 60, to: 22 * 60, dur: 90, area: "alle" };
+  const AREA = { halle: "Halle", freiluft: "Freiluft", ueberdacht: "Überdacht" };
+  const badge = (a) => a ? `<span class="badge ${esc(a)}">${esc(AREA[a] || a)}</span>` : "";
   let data = null;
 
   const hm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -210,7 +226,7 @@
           const ov = Math.min(e, t + dur) - Math.max(b, t);
           if (ov <= 0) continue;
           if (p == null) { known = false; break; }
-          price += (p / step) * ov; // Preis gilt je Raster-Einheit
+          price += (p / 60) * ov; // p = Platzpreis in € pro Stunde
         }
         out.push({ t, price: known ? Math.round(price * 100) / 100 : null });
       }
@@ -228,13 +244,17 @@
       if (v.error) { broken.push(v); continue; }
       const courts = [];
       for (const c of v.courts) {
+        // "Überdacht" zählt beim Filter als wettergeschützt, also zur Halle
+        if (state.area !== "alle" && (c.area === "ueberdacht" ? "halle" : c.area) !== state.area) continue;
         const opts = options(c.free[state.d] || [], v.step || 30, state.from, state.to, state.dur, notBefore);
-        if (opts.length) courts.push({ name: c.name, opts });
+        if (opts.length) courts.push({ name: c.name, area: c.area, opts });
       }
-      (courts.length ? hits : misses).push({ v, courts });
+      const areas = new Set(v.courts.map((c) => c.area));
+      if (state.area !== "alle" && !v.courts.some((c) => (c.area === "ueberdacht" ? "halle" : c.area) === state.area)) continue;
+      (courts.length ? hits : misses).push({ v, courts, mixed: areas.size > 1, area: areas.size === 1 ? [...areas][0] : null });
     }
 
-    const total = data.venues.length;
+    const total = hits.length + misses.length;
     let html = `<p class="summary">${hits.length ? `${hits.length} von ${total} Anlagen haben was frei` : "Leider nichts frei"}
       <span class="muted"> · ${hm(state.from)}–${hm(state.to)}, ${state.dur} min</span></p>`;
 
@@ -245,18 +265,19 @@
         <button class="btn" data-act="nextday">Nächsten Tag zeigen</button></div>`;
     }
 
-    for (const { v, courts } of hits) {
+    for (const { v, courts, mixed, area } of hits) {
       const link = v.links[state.d] || Object.values(v.links)[0] || "#";
-      html += `<article class="venue"><div class="vhead"><div><h2 class="vname">${esc(v.name)}</h2>
+      html += `<article class="venue"><div class="vhead"><div><h2 class="vname">${esc(v.name)}${badge(area)}</h2>
         <div class="vort">${esc(v.ort)}</div></div>
         <a class="book" href="${esc(link)}" target="_blank" rel="noopener">Zur Buchung ↗</a></div>`;
       for (const c of courts) {
-        html += `<div class="court"><div class="cname">${esc(c.name)}</div><div class="slots">` +
+        html += `<div class="court"><div class="cname">${esc(c.name)}${mixed ? "<br>" + badge(c.area) : ""}</div><div class="slots">` +
           c.opts.map((o) => `<a class="slot" href="${esc(link)}" target="_blank" rel="noopener"
              title="${esc(c.name)} · ${hm(o.t)}–${hm(o.t + state.dur)}">${hm(o.t)}${o.price != null ? `<small>${o.price.toLocaleString("de-AT")} €</small>` : ""}</a>`).join("") +
           `</div></div>`;
       }
       if (v.platform === "eversports") html += `<p class="note">Startzeiten nur zur vollen Stunde.</p>`;
+      if (v.price_note) html += `<p class="note">${esc(v.price_note)}</p>`;
       html += `</article>`;
     }
 
@@ -272,9 +293,10 @@
   function syncControls() {
     for (const b of $("days").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.d === state.d));
     for (const b of $("dur").querySelectorAll("button")) b.setAttribute("aria-pressed", String(Number(b.dataset.v) === state.dur));
+    for (const b of $("area").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.v === state.area));
     $("from").value = String(state.from);
     $("to").value = String(state.to);
-    try { history.replaceState(null, "", `#tag=${state.d}&ab=${hm(state.from)}&bis=${hm(state.to)}&dauer=${state.dur}`); } catch {}
+    try { history.replaceState(null, "", `#tag=${state.d}&ab=${hm(state.from)}&bis=${hm(state.to)}&dauer=${state.dur}${state.area !== "alle" ? `&plaetze=${state.area}` : ""}`); } catch {}
   }
 
   function update(patch) {
@@ -305,12 +327,14 @@
       state.from = parseHm(q.get("ab")) ?? state.from;
       state.to = parseHm(q.get("bis")) ?? state.to;
       state.dur = [60, 90, 120].includes(Number(q.get("dauer"))) ? Number(q.get("dauer")) : state.dur;
+      state.area = ["halle", "freiluft"].includes(q.get("plaetze")) ? q.get("plaetze") : "alle";
     };
     readHash();
     window.addEventListener("hashchange", () => { readHash(); update({}); });
 
     $("days").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) update({ d: b.dataset.d }); });
     $("dur").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) update({ dur: Number(b.dataset.v) }); });
+    $("area").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) update({ area: b.dataset.v }); });
     $("from").addEventListener("change", (e) => update({ from: Number(e.target.value) }));
     $("to").addEventListener("change", (e) => update({ to: Number(e.target.value) }));
     $("out").addEventListener("click", (e) => {

@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Anlagen für snapshot.py. Neue Anlage: Eintrag mit passender platform ergänzen; enabled=false schaltet sie aus.",
+  "_hinweis": "Anlagen für snapshot.py. area: halle | freiluft | ueberdacht (area_by_court für gemischte Anlagen). price_classes: fehlende eTennis-Preisklassen (€/h). price_rules: feste Platzpreise in €/h, wenn die Buchungsseite keine liefert (weekdays 0=Mo..6=So, from/to HH:MM). Quellen in sources.",
   "venues": [
     {
       "name": "Padelbase Annenheim",
@@ -8,7 +8,12 @@
       "base_url": "https://www.buchung-padelbase.at",
       "category_id": 4793,
       "enabled": true,
-      "id": "padelbase-annenheim"
+      "id": "padelbase-annenheim",
+      "area": "freiluft",
+      "sources": [
+        "https://www.padelbase.at (Outdoor-Plätze: 4 | Indoor-Plätze: 0)",
+        "https://www.padelbase.at/standort/annenheim (Preis pro Court / Stunde für 4 Personen)"
+      ]
     },
     {
       "name": "Padel Ten Villach",
@@ -17,7 +22,14 @@
       "base_url": "https://villach-padel.tennisplatz.info",
       "category_id": 5191,
       "enabled": true,
-      "id": "padel-ten-villach"
+      "id": "padel-ten-villach",
+      "area": "halle",
+      "price_classes": {
+        "price38510": 34
+      },
+      "sources": [
+        "https://padelten.at (alle Courts in wettergeschützter Halle; Fr 16–23 Uhr 34 € pro Court und Stunde)"
+      ]
     },
     {
       "name": "Sportunion Klagenfurt",
@@ -26,7 +38,12 @@
       "base_url": "https://sportunion-klagenfurt-tennis.tennisplatz.info",
       "category_id": 2900,
       "enabled": true,
-      "id": "sportunion-klagenfurt"
+      "id": "sportunion-klagenfurt",
+      "area": "freiluft",
+      "sources": [
+        "https://sportunion-tennis.at/padel-preise-und-buchung/ (Gäste 22 €/h bis 16 Uhr, 30 €/h ab 16 Uhr)",
+        "https://padel-austria.at/locations/sportunion-klagenfurt (3 Outdoor)"
+      ]
     },
     {
       "name": "Arena One",
@@ -35,7 +52,48 @@
       "base_url": "https://arenaone.wansport.com",
       "sport_id": 15,
       "enabled": true,
-      "id": "arena-one"
+      "id": "arena-one",
+      "area": "halle",
+      "price_rules": [
+        {
+          "weekdays": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "00:00",
+          "to": "16:00",
+          "eur_h": 40
+        },
+        {
+          "weekdays": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "from": "16:00",
+          "to": "24:00",
+          "eur_h": 48
+        },
+        {
+          "weekdays": [
+            5,
+            6
+          ],
+          "from": "00:00",
+          "to": "24:00",
+          "eur_h": 48
+        }
+      ],
+      "price_note": "Arena One rechnet pro Person: 10 € (Mo–Fr bis 16 Uhr) bzw. 12 €/h, bei 4 Spielern. Hier auf den Platz umgerechnet; an Feiertagen gilt 12 €.",
+      "sources": [
+        "https://www.arenaone.at/#preise (10 €/Person bis 16 Uhr, 12 € sonst; gilt bei 4 Spielern)",
+        "https://www.arenaone.at (wetterunabhängig)"
+      ]
     },
     {
       "name": "smash Pörtschach",
@@ -50,7 +108,10 @@
         "uuid": "b388f5e3-69de-11e8-bdc6-02bd505aa7b2"
       },
       "enabled": true,
-      "id": "smash-poertschach"
+      "id": "smash-poertschach",
+      "sources": [
+        "https://www.eversports.at/s/smash-poertschach (Drei moderne Outdoor Panorama-Courts)"
+      ]
     }
   ]
 }

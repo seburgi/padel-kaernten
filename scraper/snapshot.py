@@ -30,7 +30,7 @@ TZ = ZoneInfo("Europe/Vienna")
 HERE = Path(__file__).resolve().parent
 TIMEOUT = 25
 
-# Ergebnis je Anlage: {platz_name: {datum_iso: [(start_min, end_min, preis|None), ...]}}
+# Ergebnis je Anlage: {platz_name: {datum_iso: [(start_min, end_min, eur_pro_stunde|None), ...]}}
 Free = dict[str, dict[str, list[tuple[int, int, float | None]]]]
 # Fetcher liefern (free, links, step): step = Raster der möglichen Startzeiten in Minuten
 
@@ -66,6 +66,11 @@ def etennis(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
             (h1, m1), (h2, m2) = times[0], times[1]
             unit = (int(h2) * 60 + int(m2)) - (int(h1) * 60 + int(m1)) or 30
 
+        # Legende "Preise/h": <div class="price price34378"> &euro; 16</div>; jeder Slot trägt die Klasse
+        legend = {cls: float(eur.replace(",", ".")) for cls, eur in re.findall(
+            r'<div class="price (price[-\d]+)">\s*(?:&euro;|€)\s*([\d.,]+)', page.split('class="pricebox"', 1)[-1])}
+        legend.update(v.get("price_classes", {}))  # Klassen, die in der Legende fehlen (aus venues.json)
+
         day_dates = [dt.datetime.fromtimestamp(int(t), TZ).date()
                      for t in re.findall(r'<div class="day[^"]*"[^>]*data-dt="(\d+)"', page)]
         parts = page.split('class="day-body"')
@@ -81,9 +86,11 @@ def etennis(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
             for i, col in enumerate(columns):
                 court = htmllib.unescape(names[i]).strip() if i < len(names) else f"Platz {i + 1}"
                 free.setdefault(court, {}).setdefault(day.isoformat(), [])
-                for m in re.finditer(r'<div\s+class="slot av[^"]*"[^>]*data-begin="(\d+)"\s+data-size="(\d+)"', col):
-                    b = dt.datetime.fromtimestamp(int(m.group(1)), TZ)
-                    add(free, court, day, b, b + dt.timedelta(minutes=unit * int(m.group(2))))
+                for m in re.finditer(r'<div\s+class="slot av([^"]*)"[^>]*data-begin="(\d+)"\s+data-size="(\d+)"', col):
+                    b = dt.datetime.fromtimestamp(int(m.group(2)), TZ)
+                    cls = re.search(r"price[-\d]+", m.group(1))
+                    price = legend.get(cls.group(0)) if cls else None
+                    add(free, court, day, b, b + dt.timedelta(minutes=unit * int(m.group(3))), price)
             midnight = dt.datetime.combine(day, dt.time(0), TZ)
             links[day.isoformat()] = f"{v['base_url']}/reservierung?c={v['category_id']}&d={int(midnight.timestamp())}"
     return free, links, unit
@@ -129,6 +136,7 @@ def wansport(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
 def eversports(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
     base = "https://www.eversports.at"
     free: Free = {}
+    areas: dict[str, str] = {}
     step = 60
     s = session()
     sp = v["sport"]
@@ -144,6 +152,10 @@ def eversports(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
         page = s.post(f"{base}/api/booking/calendar/update", data=form, headers=hdr).text
         names = {cid: htmllib.unescape(n).strip() for cid, n in re.findall(
             r'<td data-court="(\d+)"[^>]*>\s*<div class="court-name[^"]*">([^<]*)<', page)}
+        # <tr data-area="outdoor" data-surface="Kunstrasen" class="court"> ... <td data-court="115472">
+        for row_area, cid in re.findall(r'<tr[^>]*data-area="(\w+)"[^>]*>\s*<td data-court="(\d+)"', page):
+            if cid in names:
+                areas[names[cid]] = {"indoor": "halle", "outdoor": "freiluft"}.get(row_area, row_area)
         cells = []
         for tag in re.findall(r"<td [^>]*data-state=[^>]*>", page):
             # Eversports mischt "..." und '...' bei Attributen
@@ -164,10 +176,12 @@ def eversports(v: dict, days: list[dt.date]) -> tuple[Free, dict, int]:
                     continue
                 b, e = c["data-start"], c["data-end"]
                 step = (int(e[:2]) * 60 + int(e[2:])) - (int(b[:2]) * 60 + int(b[2:])) or step
-                price = float(c["data-price"]) if c.get("data-price") else None
-                free[court][day_iso].append((int(b[:2]) * 60 + int(b[2:]), int(e[:2]) * 60 + int(e[2:]), price))
+                bm, em = int(b[:2]) * 60 + int(b[2:]), int(e[:2]) * 60 + int(e[2:])
+                price = float(c["data-price"]) * 60 / (em - bm) if c.get("data-price") and em > bm else None
+                free[court][day_iso].append((bm, em, price))
         start += dt.timedelta(days=7)
     link = f"{base}/sb/{v['facility_slug']}"
+    v.setdefault("_areas", {}).update(areas)  # vom Buchungsplan gemeldet; venues.json hat Vorrang (area_of)
     return free, {d.isoformat(): link for d in days}, step
 
 
@@ -185,14 +199,40 @@ def merge(units):
     return out
 
 
+def apply_price_rules(venue: dict, free: Free) -> None:
+    """Feste Platzpreise (€/h) aus venues.json für Anlagen, deren Buchungsseite keine Preise zeigt.
+    Einheiten werden an Regelgrenzen nicht geteilt – die Plattform-Raster (30 min) liegen ohnehin darauf."""
+    rules = venue.get("price_rules")
+    if not rules:
+        return
+    hm = lambda s: int(s[:2]) * 60 + int(s[3:5])
+    for per_day in free.values():
+        for day_iso, units in per_day.items():
+            wd = dt.date.fromisoformat(day_iso).weekday()
+            for i, (b, e, p) in enumerate(units):
+                if p is None:
+                    for r in rules:
+                        if wd in r["weekdays"] and hm(r["from"]) <= b < hm(r["to"]):
+                            units[i] = (b, e, float(r["eur_h"]))
+                            break
+
+
+def area_of(venue: dict, court: str) -> str | None:
+    """halle / freiluft / überdacht – aus venues.json (pro Platz oder Anlage), sonst vom Buchungsplan."""
+    return (venue.get("area_by_court", {}).get(court) or venue.get("area")
+            or venue.get("_areas", {}).get(court))
+
+
 def run(venue: dict, days: list[dt.date]) -> dict:
-    entry = {k: venue.get(k) for k in ("id", "name", "ort", "platform")}
+    entry = {k: venue.get(k) for k in ("id", "name", "ort", "platform", "price_note")}
     try:
         free, links, step = FETCHERS[venue["platform"]](venue, days)
+        apply_price_rules(venue, free)
         entry["error"] = None
         entry["step"] = step
         entry["links"] = links
-        entry["courts"] = [{"name": name, "free": {d: merge(u) for d, u in sorted(per_day.items())}}
+        entry["courts"] = [{"name": name, "area": area_of(venue, name),
+                            "free": {d: merge(u) for d, u in sorted(per_day.items())}}
                            for name, per_day in free.items()]
     except Exception as exc:  # eine kaputte Anlage soll die anderen nicht blockieren
         entry.update(error=f"{type(exc).__name__}: {exc}"[:300], step=30, links={}, courts=[])
