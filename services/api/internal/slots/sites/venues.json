@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Anlagen für snapshot.py. area: halle | freiluft | ueberdacht (area_by_court für gemischte Anlagen). price_classes: fehlende eTennis-Preisklassen (€/h). price_rules: feste Platzpreise in €/h, wenn die Buchungsseite keine liefert (weekdays 0=Mo..6=So, from/to HH:MM). address: für den Google-Maps-Link. Quellen in sources.",
+  "_hinweis": "Anlagen für internal/slots/sites (docs/design/booking-sites.md). area: halle | freiluft | ueberdacht (area_by_court für gemischte Anlagen). price_classes: fehlende eTennis-Preisklassen (€/h). price_rules: feste Platzpreise in €/h, wenn die Buchungsseite keine liefert (weekdays 0=Mo..6=So, from/to HH:MM). address: für den Google-Maps-Link. Quellen in sources.",
   "venues": [
     {
       "name": "Padelbase Annenheim",

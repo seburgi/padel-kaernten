@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Every commit message says what a pull request did (CLAUDE.md, "Commit
+# messages"): tools/checks.py --message.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+exec python3 tools/checks.py --message "$1"

@@ -1,0 +1,19 @@
+# Subject: what this commit does, at most 72 characters, no full stop.
+#   e.g. "Courts show the price per hour"
+
+Why: The problem or Seb's ask, in a sentence or two. Name the feedback
+note if there is one (its id).
+
+What: What changed, what Seb notices first, then how it works. A list is
+fine:
+- the page, route or job that changed
+- a migration and what it does to existing rows
+- anything left for later
+
+Checked: How it was verified: the gate (always), tests added or changed,
+a look at the running app (screenshots go to the project's shared files).
+
+Thread: https://claude.ai/code/project/chan_...?thread=cmsg_...
+
+# Lines starting with # are dropped. No Co-Authored-By, Claude-Session or
+# "Generated with" lines: the thread link says where the change came from.

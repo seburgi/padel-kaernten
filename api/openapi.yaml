@@ -1,0 +1,350 @@
+openapi: 3.0.3
+info:
+  title: Padel Kärnten
+  version: "1"
+  description: >-
+    Where in Carinthia a padel court is free (docs/design/). The app's React
+    client is its one client; everything sits behind the platform's sign-in
+    gateway, and every path but client-config and version needs the
+    gateway's note.
+servers:
+  - url: /
+paths:
+  /api/v1/client-config:
+    get:
+      operationId: getClientConfig
+      summary: Feature flags for the app
+      description: Public, and the deploy's smoke test calls it.
+      responses:
+        "200":
+          description: The flags.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientConfig"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/version:
+    get:
+      operationId: getVersion
+      summary: Which build is running
+      description: >-
+        Public, so the app can tell a new release and the deploy's smoke
+        test can check it runs the commit it deployed.
+      responses:
+        "200":
+          description: The running build.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Version"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/me:
+    get:
+      operationId: getMe
+      summary: Who is signed in, and what they may do
+      responses:
+        "200":
+          description: The signed-in person.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/slots:
+    get:
+      operationId: getSlots
+      summary: The latest free slots
+      description: >-
+        The snapshot as the booking sites showed it at takenAt. 503 with type
+        no-snapshot before the first refresh. Answers 304 to If-None-Match.
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The latest snapshot.
+          headers:
+            ETag:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+        "304":
+          description: The snapshot the client has is the latest.
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/slots/refresh:
+    post:
+      operationId: refreshSlots
+      summary: Ask the booking sites again, at most every five minutes
+      description: >-
+        When the latest snapshot is older than five minutes, asks every
+        booking site again (about ten seconds) and answers the new snapshot;
+        otherwise answers the latest without asking (docs/design/slots.md).
+        Calls that arrive while one is asking wait for its answer. 502 with
+        type sites-failed when every site failed; the last snapshot stays.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: The latest snapshot, fresh or under five minutes old.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Snapshot"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/invitations:
+    get:
+      operationId: listInvitations
+      summary: Who Seb invited
+      description: Only the owner (OWNER_EMAIL); anyone else gets 403 with type not-owner.
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: A page of invitations, by email.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationPage"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: invite
+      summary: Invite someone
+      description: >-
+        Only the owner. Puts the person into the Rauthy group padel through
+        the platform service, which creates them in Rauthy when it does not
+        know them (Rauthy then mails them a link to set a password).
+        Inviting someone already invited answers their invitation. 502 with
+        type platform-failed when the platform service failed; nothing is
+        recorded.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewInvitation"
+      responses:
+        "201":
+          description: Invited.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invitation"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/invitations/{email}:
+    parameters:
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: withdrawInvitation
+      summary: Take an invitation back
+      description: >-
+        Only the owner. Takes the person out of the group padel again, unless
+        they were in it before Padel invited them. Safe to repeat.
+      responses:
+        "204":
+          description: Withdrawn.
+        default:
+          $ref: "#/components/responses/Problem"
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Problem:
+      description: An RFC 9457 problem.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+  schemas:
+    ClientConfig:
+      type: object
+      required: [features]
+      properties:
+        features:
+          type: object
+          additionalProperties:
+            type: boolean
+    Version:
+      type: object
+      required: [revision]
+      properties:
+        revision:
+          type: string
+          description: The commit the image was built from, or "dev".
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    Me:
+      type: object
+      required: [email, canInvite]
+      properties:
+        email:
+          type: string
+        canInvite:
+          type: boolean
+    Snapshot:
+      type: object
+      required: [takenAt, days, venues]
+      properties:
+        takenAt:
+          type: string
+          format: date-time
+        days:
+          type: array
+          description: The calendar days asked for, from today in Vienna.
+          items:
+            type: string
+            format: date
+        venues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Venue"
+    Venue:
+      type: object
+      required: [id, name, place, platform, failed, notBookable, step, links, courts]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        place:
+          type: string
+        address:
+          type: string
+        platform:
+          type: string
+          description: etennis, wansport, eversports or padelmates; clients tolerate others.
+        priceNote:
+          type: string
+        failed:
+          type: boolean
+          description: The booking site did not answer as expected; courts is empty.
+        notBookable:
+          type: array
+          description: Days the site does not take bookings for yet.
+          items:
+            type: string
+            format: date
+        step:
+          type: integer
+          description: The grid of start times, in minutes.
+        links:
+          type: object
+          description: The booking page per day (YYYY-MM-DD).
+          additionalProperties:
+            type: string
+        courts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Court"
+    Court:
+      type: object
+      required: [name, free]
+      properties:
+        name:
+          type: string
+        area:
+          type: string
+          description: halle, freiluft or ueberdacht; absent when unknown. Clients tolerate others.
+        free:
+          type: array
+          items:
+            $ref: "#/components/schemas/Slot"
+    Slot:
+      type: object
+      required: [day, from, to]
+      description: A free stretch on one day, in minutes after midnight in Vienna.
+      properties:
+        day:
+          type: string
+          format: date
+        from:
+          type: integer
+        to:
+          type: integer
+          description: At most 1440.
+        pricePerHour:
+          $ref: "#/components/schemas/Money"
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: integer
+          description: Minor units (cents).
+        currency:
+          type: string
+          description: ISO 4217, EUR.
+    NewInvitation:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          maxLength: 254
+    Invitation:
+      type: object
+      required: [email, invitedAt]
+      properties:
+        email:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+    InvitationPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+        nextCursor:
+          type: string
+          nullable: true

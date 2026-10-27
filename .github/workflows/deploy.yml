@@ -1,0 +1,185 @@
+name: deploy
+
+# Every push to main checks, tests and, when the image changed, deploys it
+# (burgstaller-platform standards/ci-cd/deploy-workflow.md). The tests live
+# in this workflow because `needs` does not cross workflows. Terraform in
+# seburgi/burgstaller-platform (infra/platform/app-padel.tf) owns the
+# service and every setting but its image.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation, no keys
+
+env:
+  PROJECT_ID: burgstaller-platform
+  REGION: europe-west1
+  WIF_PROVIDER: projects/380479130740/locations/global/workloadIdentityPools/github/providers/apps
+  DEPLOY_ACCOUNT: padel-deploy@burgstaller-platform.iam.gserviceaccount.com
+  SERVICE: padel-api
+  IMAGE: europe-west1-docker.pkg.dev/burgstaller-platform/apps/padel-api
+  # The service's stable run.app address (project number 380479130740).
+  RUN_URL: https://padel-api-380479130740.europe-west1.run.app
+
+# A deploy is never cancelled; pushes that land meanwhile queue, and only
+# the newest queued run is kept.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  # The gate again, every part, so a commit pushed without hooks stops here.
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: services/api/go.mod
+          cache-dependency-path: services/api/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: services/app/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: services/app/pnpm-lock.yaml
+      - id: kit
+        uses: ./.github/actions/kit-access
+        with:
+          app-id: ${{ secrets.KIT_APP_ID }}
+          private-key: ${{ secrets.KIT_APP_KEY }}
+      # pnpm's lockfile names the kit by its SSH address.
+      - name: The kit for pnpm
+        env:
+          TOKEN: ${{ steps.kit.outputs.token }}
+        run: |
+          git config --global --add url."https://x-access-token:${TOKEN}@github.com/seburgi/burgstaller-platform".insteadOf "git@github.com:seburgi/burgstaller-platform"
+      - name: golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+      - name: Postgres for the tests
+        run: docker pull -q postgres:18 >/dev/null
+      # The checks see the commits this push brought; a first push or a
+      # forced one has no before, so they see everything.
+      - name: The gate
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          base="$BEFORE"
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="$(git hash-object -t tree /dev/null)"
+          fi
+          python3 tools/gate.py --all "$base"
+
+  # Which commit runs now, and whether anything the image is built from
+  # changed since. When that cannot be told, it deploys.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.plan.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - id: plan
+        run: |
+          image="$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(spec.template.spec.containers[0].image)' 2>/dev/null || true)"
+          running="${image##*:}"
+          if [ "${image%:*}" != "$IMAGE" ] || ! git cat-file -e "$running^{commit}" 2>/dev/null; then
+            echo "Cannot tell what runs ($image): deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            python3 tools/parts.py "$running" "$GITHUB_SHA" | grep '^deploy=' >> "$GITHUB_OUTPUT"
+          fi
+          cat "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [gate, plan]
+    if: needs.plan.outputs.deploy == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - id: kit
+        uses: ./.github/actions/kit-access
+        with:
+          app-id: ${{ secrets.KIT_APP_ID }}
+          private-key: ${{ secrets.KIT_APP_KEY }}
+      - name: Build and push the image
+        env:
+          KIT_TOKEN: ${{ steps.kit.outputs.token }}
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --build-arg "BUILD_REVISION=${GITHUB_SHA}" \
+            --secret id=kit_token,env=KIT_TOKEN -t "${IMAGE}:${GITHUB_SHA}" .
+          docker push "${IMAGE}:${GITHUB_SHA}"
+
+      # The revision serving now, to go back to (standards/ci-cd/smoke-test.md).
+      - name: Record the serving revision
+        run: |
+          echo "PREV=$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --format='value(status.traffic[0].revisionName)')" >> "$GITHUB_ENV"
+
+      # No migration step: the new revision migrates at start-up and does not
+      # start when a migration fails, so Cloud Run keeps the one before it.
+      - name: Deploy
+        run: |
+          gcloud run deploy "$SERVICE" --image "${IMAGE}:${GITHUB_SHA}" --project "$PROJECT_ID" --region "$REGION" --quiet
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --to-latest --quiet
+
+      - id: smoke-token
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_ACCOUNT }}
+          token_format: id_token
+          id_token_audience: ${{ env.RUN_URL }}
+          id_token_include_email: true
+          create_credentials_file: false
+
+      # Not /healthz, which Cloud Run's front end keeps for itself. The
+      # version must name the commit just deployed, client-config must
+      # answer and a page of the app must be HTML.
+      - name: Smoke test
+        env:
+          TOKEN: ${{ steps.smoke-token.outputs.id_token }}
+        run: |
+          get() { curl -fsS --retry 6 --retry-delay 5 --retry-all-errors -H "Authorization: Bearer $TOKEN" "$@"; }
+          body="$(get "$RUN_URL/api/v1/version")"
+          echo "$body"
+          case "$body" in
+            *"\"$GITHUB_SHA\""*) ;;
+            *) echo "::error::the service does not run $GITHUB_SHA"; exit 1 ;;
+          esac
+          get "$RUN_URL/api/v1/client-config"
+          type="$(get -o /dev/null -w '%{content_type}' "$RUN_URL/einladen")"
+          case "$type" in
+            text/html*) ;;
+            *) echo "::error::/einladen is $type, not the app"; exit 1 ;;
+          esac
+
+      - name: Roll back on failure
+        if: failure() && env.PREV != ''
+        run: |
+          echo "::error::rolling $SERVICE back to $PREV"
+          gcloud run services update-traffic "$SERVICE" --project "$PROJECT_ID" --region "$REGION" \
+            --to-revisions "$PREV=100" --quiet

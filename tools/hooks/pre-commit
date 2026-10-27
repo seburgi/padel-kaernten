@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Before every commit (burgstaller-platform standards/workflow/hooks-and-gate.md):
+# format what is staged, then the scripted checks (tools/checks.py) on what
+# main would get. Takes seconds.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
+go=() py=() web=()
+for path in "${staged[@]}"; do
+  case "$path" in
+    services/api/internal/transport/gen/*) ;;
+    *.go) go+=("$path") ;;
+    tools/*.py|.claude/hooks/*.py) py+=("$path") ;;
+    services/app/src/api/schema.d.ts) ;;
+    services/app/*.ts|services/app/*.tsx|services/app/*.css|services/app/*.json) web+=("${path#services/app/}") ;;
+  esac
+done
+
+# A file with changes both staged and not would have the unstaged ones
+# committed by the re-add below: format those by hand.
+partly=()
+for path in "${go[@]}" "${py[@]}" "${web[@]/#/services/app/}"; do
+  [ -n "$path" ] && ! git diff --quiet -- "$path" && partly+=("$path")
+done
+if [ ${#partly[@]} -gt 0 ]; then
+  echo "✗ Partly staged, so not formatted here: ${partly[*]}"
+  echo "  Stage all of each file (git add), or run the formatter yourself first."
+  exit 1
+fi
+
+if [ ${#go[@]} -gt 0 ]; then gofmt -w "${go[@]}"; git add -- "${go[@]}"; fi
+if [ ${#py[@]} -gt 0 ]; then
+  ruff="ruff"; [ -x .venv/bin/ruff ] && ruff=.venv/bin/ruff
+  "$ruff" format -q "${py[@]}" && "$ruff" check -q --fix "${py[@]}"
+  git add -- "${py[@]}"
+fi
+
+if [ ${#web[@]} -gt 0 ]; then
+  (cd services/app && pnpm -s prettier --write --log-level warn "${web[@]}")
+  git add -- "${web[@]/#/services/app/}"
+fi
+
+exec python3 tools/checks.py --staged

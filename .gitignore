@@ -1,3 +1,8 @@
-site/data.json
+.venv/
 __pycache__/
+.env
+*.cover
+node_modules/
+dist/
+coverage/
 .DS_Store

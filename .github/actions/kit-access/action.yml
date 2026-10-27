@@ -1,0 +1,33 @@
+name: Read the platform's kit
+description: >-
+  Lets go fetch github.com/seburgi/burgstaller-platform/kit/go, which is
+  private: a GitHub App with read access to that repository only hands out a
+  token for this run (burgstaller-platform/standards/architecture/shared-code.md).
+  The token is put out as `token` for the Docker build's secret.
+
+inputs:
+  app-id:
+    required: true
+  private-key:
+    required: true
+
+outputs:
+  token:
+    value: ${{ steps.token.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    - id: token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: seburgi
+        repositories: burgstaller-platform
+    - shell: bash
+      env:
+        TOKEN: ${{ steps.token.outputs.token }}
+      run: |
+        git config --global url."https://x-access-token:${TOKEN}@github.com/seburgi/burgstaller-platform".insteadOf "https://github.com/seburgi/burgstaller-platform"
+        echo "GOPRIVATE=github.com/seburgi/*" >> "$GITHUB_ENV"

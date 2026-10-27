@@ -1,0 +1,11 @@
+# Allow-list: only what the image is built from.
+*
+!api/openapi.yaml
+!services/api/
+!services/app/
+services/api/**/*_test.go
+services/api/**/testdata/
+services/api/cmd/sites/
+services/app/node_modules/
+services/app/dist/
+services/app/coverage/
