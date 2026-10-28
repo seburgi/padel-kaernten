@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ErrKeyReused means the key was already used for a *different* request.
@@ -122,13 +121,4 @@ func Complete(ctx context.Context, tx pgx.Tx, key, resourceID string) error {
 		return fmt.Errorf("idempotency: completing key: %w", err)
 	}
 	return nil
-}
-
-// Reap deletes keys older than 7 days (standards/data/retention.md); a
-// retry comes long before that. The service calls it at start-up.
-func Reap(ctx context.Context, q interface {
-	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
-}) (int64, error) {
-	tag, err := q.Exec(ctx, `DELETE FROM idempotency_keys WHERE created_at < now() - interval '7 days'`)
-	return tag.RowsAffected(), err
 }

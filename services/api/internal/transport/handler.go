@@ -5,6 +5,7 @@
 package transport
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/idempotency"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/problem"
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport/gen"
 )
@@ -29,6 +31,10 @@ type Handler struct {
 	Owner    string
 	Revision string
 	Log      *slog.Logger
+	// Reap is the nightly retention run; ReapCaller the one account that
+	// may start it (POST /reap).
+	Reap       func(ctx context.Context, dry bool) ([]retention.Result, error)
+	ReapCaller string
 }
 
 var _ gen.ServerInterface = (*Handler)(nil)

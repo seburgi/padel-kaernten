@@ -20,8 +20,8 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/config"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/database"
-	"github.com/seburgi/padel-kaernten/services/api/internal/platform/idempotency"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/platformsvc"
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots/sites"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport"
@@ -54,12 +54,6 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
-	if reaped, err := idempotency.Reap(ctx, pool); err != nil {
-		log.Warn("reaping idempotency keys", "error", err)
-	} else if reaped > 0 {
-		log.Info("reaped idempotency keys", "count", reaped)
-	}
-
 	booking := &sites.Client{HTTP: &http.Client{Timeout: 25 * time.Second}}
 	platform := &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
 	h := &transport.Handler{
@@ -72,6 +66,10 @@ func run() error {
 		Owner:    cfg.Owner,
 		Revision: buildRevision,
 		Log:      log,
+		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
+			return retention.Run(ctx, pool, retention.Tables, dry)
+		},
+		ReapCaller: cfg.ReapCaller,
 	}
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

@@ -18,6 +18,7 @@ import (
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway/gatewaytest"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/testdb"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots/sites"
@@ -29,6 +30,7 @@ const (
 	address        = "padel.burgstaller.me"
 	seb            = "seb@example.at"
 	anna           = "anna@example.at"
+	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
 )
 
 type fakeSites struct{ err error }
@@ -75,6 +77,10 @@ func setup(t *testing.T) *app {
 		Owner:    seb,
 		Revision: "abc123",
 		Log:      log,
+		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
+			return retention.Run(ctx, pool, retention.Tables, dry)
+		},
+		ReapCaller: reapAccount,
 	}
 	a.h = transport.Router(h, dist)
 	return a
@@ -289,5 +295,22 @@ func TestTheApp(t *testing.T) {
 	}
 	if w := a.do(httptest.NewRequest("PUT", "/api/v1/me", nil)); w.Code != 405 {
 		t.Errorf("PUT /api/v1/me: %d", w.Code)
+	}
+}
+
+func TestReap_onlyTheScheduler(t *testing.T) {
+	a := setup(t)
+	if w := a.do(gatewaytest.From(gatewayAccount, "POST", "/reap", "")); w.Code != 403 || problemType(w) != "not-the-scheduler" {
+		t.Errorf("the gateway: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(httptest.NewRequest("POST", "/reap", nil)); w.Code != 403 {
+		t.Errorf("nobody: %d", w.Code)
+	}
+	w := a.do(gatewaytest.From(reapAccount, "POST", "/reap?dry_run=true", ""))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"table":"idempotency_keys"`) || !strings.Contains(w.Body.String(), `"dryRun":true`) {
+		t.Errorf("the scheduler: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(gatewaytest.From(reapAccount, "POST", "/reap", "")); w.Code != 200 || !strings.Contains(w.Body.String(), `"dryRun":false`) {
+		t.Errorf("a real run: %d %s", w.Code, w.Body)
 	}
 }

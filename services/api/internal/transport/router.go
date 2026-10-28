@@ -31,6 +31,9 @@ func Router(h *Handler, dist string) http.Handler {
 		}
 		serveApp(w, req, dist)
 	})
+	// The nightly retention run, outside the contract: only Cloud Scheduler
+	// calls it (standards/architecture/background-work.md).
+	r.Post("/reap", h.reap)
 	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
 		problem.Write(w, problem.New(http.StatusMethodNotAllowed, "method-not-allowed", "Method not allowed", ""))
 	})

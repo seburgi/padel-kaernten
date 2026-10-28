@@ -20,6 +20,12 @@
   deployed.
 - **The owner is `OWNER_EMAIL`** (Seb). Only the owner sees and uses the
   invitation page (`invitations.md`).
+- **A nightly `POST /reap`** (03:30 Vienna, Cloud Scheduler) deletes what
+  grows forever, table by table, in chunks under an advisory lock
+  (`internal/platform/retention`; standards/data/retention.md): today the
+  idempotency answers after 7 days. Only `REAP_CALLER`, the scheduler's
+  account `padel-reap`, may call it; the gateway's account is refused like
+  anyone else's. `?dry_run=true` counts and deletes nothing.
 - The service migrates at start-up and does not start on a failed
   migration, so Cloud Run keeps the revision before it.
 - Every request from the app says which build sent it (`X-Client:

@@ -26,6 +26,9 @@ type Config struct {
 	PlatformURL string
 	// Owner is the one address that may invite.
 	Owner string
+	// ReapCaller is the account the Cloud Scheduler job signs POST /reap
+	// with. Nobody else may call it; empty means nobody can.
+	ReapCaller string
 }
 
 // Load reads the environment. It refuses to start without the gateway's
@@ -41,6 +44,7 @@ func Load() (Config, error) {
 		GatewayJWKS:     os.Getenv("GATEWAY_JWKS"),
 		PlatformURL:     os.Getenv("PLATFORM_URL"),
 		Owner:           strings.ToLower(strings.TrimSpace(os.Getenv("OWNER_EMAIL"))),
+		ReapCaller:      strings.ToLower(strings.TrimSpace(os.Getenv("REAP_CALLER"))),
 	}
 	for _, a := range strings.Split(os.Getenv("GATEWAY_AUDIENCES"), ",") {
 		if a = strings.TrimSpace(a); a != "" {

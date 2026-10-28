@@ -10,19 +10,6 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/testdb"
 )
 
-func TestReap_deletesKeysOlderThanAWeek(t *testing.T) {
-	pool := testdb.Pool(t)
-	ctx := t.Context()
-	if _, err := pool.Exec(ctx, `INSERT INTO idempotency_keys (key, owner_uid, operation, request_hash, created_at) VALUES
-		('6c9b2824-b0cd-4c0b-9052-83d9f457e086', 'a', 'op', '\x00', now() - interval '8 days'),
-		('6c9b2824-b0cd-4c0b-9052-83d9f457e087', 'a', 'op', '\x00', now() - interval '6 days')`); err != nil {
-		t.Fatal(err)
-	}
-	if n, err := idempotency.Reap(ctx, pool); err != nil || n != 1 {
-		t.Errorf("reaped %d, %v", n, err)
-	}
-}
-
 func TestBegin_aFirstAttemptStillInFlightIsAConflict(t *testing.T) {
 	pool := testdb.Pool(t)
 	ctx := t.Context()
