@@ -59,6 +59,20 @@ describe("App", () => {
     expect(screen.getByRole("link", { name: "Plätze" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("opens the Hilfe from the head", async () => {
+    serve({
+      "GET /api/v1/me": () =>
+        answer(200, { email: "anna@example.at", name: "Anna", canInvite: false }),
+      "GET /api/v1/slots": () => answer(200, snapshot()),
+      "GET /api/v1/release-notes": () => answer(200, { items: [] }),
+    });
+    const { router } = renderWithQuery(<App />);
+    await userEvent.click(await screen.findByRole("link", { name: "Hilfe" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Hilfe" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/help");
+    expect(screen.queryByRole("link", { name: "Hilfe" })).not.toBeInTheDocument();
+  });
+
   it("takes the old address to the new one", async () => {
     serve({
       "GET /api/v1/me": () => answer(200, { email: "seb@example.at", canInvite: true }),

@@ -102,7 +102,10 @@ export function Fits() {
       <p className="mb-3 text-ink-muted">
         Zeiten, zu denen vier von euch können und ein Platz frei ist.
         {fits.data &&
-          ` Plätze laut Stand ${new Date(fits.data.takenAt).toLocaleTimeString("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" })}.`}
+          ` Plätze laut Stand ${new Date(fits.data.takenAt).toLocaleTimeString("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" })}.`}{" "}
+        <Link to="/help#spiele" className={link}>
+          So geht’s
+        </Link>
       </p>
       <div className="mb-4 flex gap-2" role="group" aria-label="Wie lange?">
         {DURATIONS.map((d) => (

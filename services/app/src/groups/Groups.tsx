@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, call, useWriteKey } from "../api/client";
-import { card, field, pressed, primary, quiet } from "../ui";
+import { card, field, link, pressed, primary, quiet } from "../ui";
 import { errorText, KINDS, kindLabel, useGroups, useJoin } from "./groups";
 
 export function Groups() {
@@ -20,7 +20,10 @@ export function Groups() {
       <h1 className="mt-2 mb-1 text-2xl font-semibold">Gruppen finden</h1>
       <p className="mb-4 text-ink-muted">
         Gruppen, die offen sind oder Leute auf Anfrage hereinlassen. Private Gruppen siehst du nur
-        mit Einladung.
+        mit Einladung.{" "}
+        <Link to="/help#gruppen" className={link}>
+          So geht’s
+        </Link>
       </p>
       <Link to="/groups/new" className={`${primary} mb-6`}>
         Neue Gruppe gründen

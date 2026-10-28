@@ -14,6 +14,7 @@ import {
   type Span,
   type Template,
 } from "../api/client";
+import { Link } from "react-router";
 import { card, danger, field, link, pressed, primary, quiet } from "../ui";
 import {
   clock,
@@ -82,7 +83,10 @@ export function Availability() {
       <h1 className="mt-2 mb-1 text-2xl font-semibold">Wann kannst du?</h1>
       <p className="mb-4 text-ink-muted">
         Für die nächsten zwei Wochen. Tipp auf einen Tag und sag, von wann bis wann. Ein Tag ohne
-        Eintrag heißt: da kann ich nicht.
+        Eintrag heißt: da kann ich nicht.{" "}
+        <Link to="/help#zeiten" className={link}>
+          So geht’s
+        </Link>
       </p>
       {mine.isPending && (
         <div aria-busy="true" aria-label="Lädt">

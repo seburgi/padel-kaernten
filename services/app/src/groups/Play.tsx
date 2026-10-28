@@ -102,7 +102,10 @@ export function Play({ games }: { games?: ReactNode }) {
           </div>
           {mine.length === 0 ? (
             <p className="text-ink-muted">
-              Du bist noch in keiner Gruppe. Gründe eine, oder schau, welche offen sind.
+              Du bist noch in keiner Gruppe. Gründe eine, oder schau, welche offen sind.{" "}
+              <Link to="/help#gruppen" className={link}>
+                So geht’s
+              </Link>
             </p>
           ) : (
             <ul className="space-y-2">

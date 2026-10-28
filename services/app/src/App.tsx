@@ -1,7 +1,8 @@
-// The app's frame: the head with What's new and the feedback button on every
+// The app's frame: the head with What's new, Hilfe and the feedback button on every
 // screen, Plätze and Spielen, and the screens by path (react-router). The
 // page Einladen is Seb's alone; members invite into their groups.
 import { FeedbackButton, FeedbackLayer, YourNotes } from "@burgstaller/web/feedback";
+import { Icon } from "@burgstaller/web/icons";
 import { InstallHint, UpdateNote } from "@burgstaller/web/pwa";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -15,6 +16,7 @@ import { Upcoming } from "./games/Upcoming";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play } from "./groups/Play";
+import { Help } from "./help/Help";
 import { useKeepPush } from "./push/push";
 import { PushCard } from "./push/PushCard";
 import { Invitations } from "./invitations/Invitations";
@@ -44,19 +46,29 @@ export function App() {
         <div className="flex items-start justify-between gap-3">
           <Link
             to="/"
-            className="text-[clamp(1.6rem,5vw,2.1rem)] leading-tight font-semibold tracking-tight"
+            className="text-[clamp(1.4rem,5vw,2.1rem)] leading-tight font-semibold tracking-tight"
           >
             Padel Kärnten
           </Link>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0.5">
             {canInvite && path !== "/invites" && (
-              <Link to="/invites" className={`${link} px-2 text-sm`}>
+              <Link to="/invites" className={`${link} px-1.5 text-sm`}>
                 Einladen
               </Link>
             )}
             {path !== "/whats-new" && (
-              <Link to="/whats-new" className={`${link} px-2 text-sm`}>
+              <Link to="/whats-new" className={`${link} px-1.5 text-sm`}>
                 Neu
+              </Link>
+            )}
+            {path !== "/help" && (
+              <Link
+                to="/help"
+                aria-label="Hilfe"
+                title="Hilfe"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-hover hover:text-ink"
+              >
+                <Icon name="info" size={22} />
               </Link>
             )}
             <FeedbackButton />
@@ -114,6 +126,7 @@ export function App() {
         <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />
         <Route path="/availability" element={<Availability />} />
         <Route path="/whats-new" element={<WhatsNew />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/feedback" element={<YourNotes app={APP} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

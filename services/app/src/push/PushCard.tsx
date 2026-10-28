@@ -2,6 +2,7 @@
 // on a game for whoever just proposed it. Quiet once they are on: Spielen
 // says so in a line with the way to turn them off, a game says nothing.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import { card, link, primary } from "../ui";
 import { turnOff, turnOn, usePush } from "./push";
 
@@ -46,7 +47,10 @@ export function PushCard({ where }: { where: "play" | "game" }) {
       <p className="mb-3 text-sm text-ink-muted">
         {where === "game"
           ? "Die App sagt dir Bescheid, wenn ihr vier seid, wenn gebucht ist und wenn du nachrückst."
-          : "Die App sagt dir Bescheid, wenn jemand ein Spiel vorschlägt, wenn ihr vier seid und wenn gebucht ist."}
+          : "Die App sagt dir Bescheid, wenn jemand ein Spiel vorschlägt, wenn ihr vier seid und wenn gebucht ist."}{" "}
+        <Link to="/help#mitteilungen" className={link}>
+          So geht’s
+        </Link>
       </p>
       {d.can === "home" ? (
         <p className="text-sm">
