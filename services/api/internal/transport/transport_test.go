@@ -18,6 +18,7 @@ import (
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway/gatewaytest"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/testdb"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
@@ -360,5 +361,47 @@ func TestReleaseNotes(t *testing.T) {
 	}
 	if w := a.do(a.as(seb, "GET", "/api/v1/release-notes", "")); strings.Contains(w.Body.String(), `"read":true`) {
 		t.Errorf("seb did not: %s", w.Body)
+	}
+}
+
+func TestLocalSignIn(t *testing.T) {
+	a := setup(t)
+	// Deployed, the stand-in's pages are not there and its cookie counts
+	// for nothing.
+	if w := a.do(httptest.NewRequest("GET", "/dev-gateway/token?as=seb", nil)); strings.HasPrefix(w.Body.String(), "eyJ") {
+		t.Errorf("deployed /dev-gateway/: %d %s", w.Code, w.Body)
+	}
+	local, err := localgateway.New("local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	note, _ := local.Note(seb, time.Now())
+	r := httptest.NewRequest("GET", "/api/v1/me", nil)
+	r.AddCookie(&http.Cookie{Name: localgateway.Cookie, Value: note})
+	if w := a.do(r); w.Code != 403 {
+		t.Errorf("a local cookie deployed: %d %s", w.Code, w.Body)
+	}
+
+	h := &transport.Handler{Gateway: &transport.Gateway{Address: "localhost", Keys: local.Keys(), Local: local},
+		Owner: "seb@local.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+	router := transport.Router(h, "")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest("GET", "/dev-gateway/sign-in?as=seb&next=/invites", nil))
+	if w.Code != 302 {
+		t.Fatalf("sign-in: %d %s", w.Code, w.Body)
+	}
+	r = httptest.NewRequest("GET", "/api/v1/me", nil)
+	for _, c := range w.Result().Cookies() {
+		r.AddCookie(c)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, r)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"canInvite":true`) {
+		t.Errorf("signed in locally: %d %s", w.Code, w.Body)
+	}
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/me", nil))
+	if w.Code != 401 {
+		t.Errorf("no note locally: %d %s", w.Code, w.Body)
 	}
 }

@@ -11,6 +11,9 @@ import (
 
 // Config is everything the API needs to start.
 type Config struct {
+	// Environment is ENVIRONMENT: prod when deployed, local on a laptop,
+	// where the local gateway stands in for sign-in (localgateway).
+	Environment string
 	Port        string
 	DatabaseURL string
 	// Dist is the built app the API serves.
@@ -39,6 +42,7 @@ type Config struct {
 // gateway is not.
 func Load() (Config, error) {
 	c := Config{
+		Environment:     os.Getenv("ENVIRONMENT"),
 		Port:            env("PORT", "8080"),
 		DatabaseURL:     os.Getenv("DATABASE_URL"),
 		Dist:            env("APP_DIST", "/app"),
@@ -54,6 +58,17 @@ func Load() (Config, error) {
 		if a = strings.TrimSpace(a); a != "" {
 			c.GatewayAudiences = append(c.GatewayAudiences, a)
 		}
+	}
+	if c.IsLocal() {
+		// No gateway and no platform service on a laptop: the local
+		// gateway signs the test people in, and Seb's is the owner.
+		if c.Owner == "" {
+			c.Owner = "seb@local.test"
+		}
+		if c.DatabaseURL == "" {
+			return c, errors.New("missing settings: DATABASE_URL")
+		}
+		return c, nil
 	}
 	var missing []string
 	for _, s := range []struct{ name, value string }{
@@ -72,6 +87,9 @@ func Load() (Config, error) {
 	}
 	return c, nil
 }
+
+// IsLocal is a laptop.
+func (c Config) IsLocal() bool { return c.Environment == "local" }
 
 func env(name, fallback string) string {
 	if v := os.Getenv(name); v != "" {

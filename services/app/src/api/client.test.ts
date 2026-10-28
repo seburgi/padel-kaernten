@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { serve, problem } from "../test/fetch";
-import { api, ApiError, call, newKey, reloadOnce } from "./client";
+import { api, ApiError, call, isLocal, newKey, reloadOnce } from "./client";
 
 describe("client", () => {
   it("reloads once for an expired note", () => {
@@ -8,6 +8,17 @@ describe("client", () => {
     expect(reloadOnce(sessionStorage, reload)).toBe(true);
     expect(reloadOnce(sessionStorage, reload)).toBe(false);
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a laptop to the local sign-in, and back", () => {
+    history.replaceState(null, "", "/whats-new?x=1");
+    const go = vi.fn();
+    const reload = vi.fn();
+    expect(reloadOnce(sessionStorage, reload, true, go)).toBe(true);
+    expect(go).toHaveBeenCalledWith("/dev-gateway/?next=%2Fwhats-new%3Fx%3D1");
+    expect(reload).not.toHaveBeenCalled();
+    expect(isLocal("localhost")).toBe(true);
+    expect(isLocal("padel.burgstaller.me")).toBe(false);
   });
 
   it("turns problems and lost connections into ApiError", async () => {

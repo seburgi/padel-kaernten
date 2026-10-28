@@ -34,3 +34,21 @@ func TestLoad(t *testing.T) {
 		t.Error("no audiences passed")
 	}
 }
+
+func TestLoad_local(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "local")
+	t.Setenv("DATABASE_URL", "")
+	if _, err := Load(); err == nil {
+		t.Error("no database passed")
+	}
+	t.Setenv("DATABASE_URL", "postgres://x")
+	c, err := Load()
+	if err != nil || !c.IsLocal() || c.Owner != "seb@local.test" {
+		t.Errorf("local needs no gateway: %+v %v", c, err)
+	}
+	// Anything else is deployed, and needs every setting.
+	t.Setenv("ENVIRONMENT", "Local")
+	if _, err := Load(); err == nil {
+		t.Error("ENVIRONMENT=Local passed as local")
+	}
+}

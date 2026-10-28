@@ -26,9 +26,25 @@ export class ApiError extends Error {
 
 const RELOADED = "padel.reloaded-for-401";
 
+/** A laptop, where the API's stand-in at /dev-gateway/ signs people in.
+ * Deployed, the app is only ever served behind the gateway. */
+export function isLocal(hostname: string = location.hostname): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "[::1]";
+}
+
 /** A 401 means the gateway's note expired: reload once so the gateway signs
- * the person in again (standards/auth/checking-the-note.md). */
-export function reloadOnce(store: Storage = sessionStorage, reload = () => location.reload()) {
+ * the person in again (standards/auth/checking-the-note.md). On a laptop the
+ * local sign-in page asks who, and comes back. */
+export function reloadOnce(
+  store: Storage = sessionStorage,
+  reload = () => location.reload(),
+  local = isLocal(),
+  go = (to: string) => location.assign(to),
+) {
+  if (local) {
+    go(`/dev-gateway/?next=${encodeURIComponent(location.pathname + location.search)}`);
+    return true;
+  }
   if (store.getItem(RELOADED)) return false;
   store.setItem(RELOADED, "1");
   reload();

@@ -8,6 +8,7 @@ import (
 
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway"
 
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/problem"
 )
 
@@ -18,6 +19,10 @@ type Gateway struct {
 	// Address is the app's own, padel.burgstaller.me.
 	Address string
 	Keys    *gateway.Keys
+	// Local is the stand-in on a laptop (ENVIRONMENT=local), nil when
+	// deployed. With it there is no gateway account to check, and the note
+	// comes from its cookie or a plain Authorization: Bearer.
+	Local *localgateway.Gateway
 }
 
 // person is the signed-in address of a request the gateway handed on, or
@@ -25,6 +30,9 @@ type Gateway struct {
 // CSRF check for writes, then the note.
 func (h *Handler) person(w http.ResponseWriter, r *http.Request) (string, bool) {
 	g := h.Gateway
+	if g != nil && g.Local != nil {
+		return h.verified(w, r, localgateway.NoteOf(r))
+	}
 	if g == nil || g.Caller == "" || gateway.CallerOf(r) != g.Caller || r.Header.Get(gateway.ServerlessAuthorization) == "" {
 		problem.Write(w, problem.New(http.StatusForbidden, "not-the-gateway", "Only through the sign-in gateway", ""))
 		return "", false
@@ -33,7 +41,13 @@ func (h *Handler) person(w http.ResponseWriter, r *http.Request) (string, bool) 
 		problem.Write(w, problem.New(http.StatusForbidden, "cross-site", "Only from the app's own pages", ""))
 		return "", false
 	}
-	email, err := g.Keys.Verify(r.Context(), gateway.AssertionOf(r))
+	return h.verified(w, r, gateway.AssertionOf(r))
+}
+
+// verified is the address the note names, once its signature, address
+// and time check out.
+func (h *Handler) verified(w http.ResponseWriter, r *http.Request, note string) (string, bool) {
+	email, err := h.Gateway.Keys.Verify(r.Context(), note)
 	if err != nil {
 		h.Log.WarnContext(r.Context(), "a note the app does not take", "error", err)
 		problem.Write(w, problem.New(http.StatusUnauthorized, "not-signed-in", "Sign in again", ""))

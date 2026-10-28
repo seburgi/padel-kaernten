@@ -22,3 +22,10 @@ cd services/api && go test -race ./...     # the API, against a real Postgres
 cd services/api && go run ./cmd/sites      # ask the booking sites once, print the snapshot
 cd services/app && pnpm check              # the app
 ```
+
+To use it on a laptop, with a Postgres of your own:
+
+```bash
+cd services/api && ENVIRONMENT=local DATABASE_URL=postgres://… APP_DIST= go run ./cmd/api
+cd services/app && pnpm dev                # http://localhost:5173/dev-gateway/ signs you in
+```

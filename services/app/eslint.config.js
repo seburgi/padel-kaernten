@@ -40,6 +40,12 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.serviceworker } },
   },
   {
+    // The agents' browser script (CLAUDE.md): Node, with functions that
+    // Playwright runs inside the page.
+    files: ["tools/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     files: ["vite.config.ts", "eslint.config.js"],
     languageOptions: { globals: { ...globals.node } },
   },

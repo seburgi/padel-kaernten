@@ -20,6 +20,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/config"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/database"
+	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/platformsvc"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
@@ -64,18 +65,30 @@ func run() error {
 		return err
 	}
 	booking := &sites.Client{HTTP: &http.Client{Timeout: 25 * time.Second}}
-	platform := &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
+	var platform invitations.Platform = &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
+	gw := &transport.Gateway{Caller: cfg.GatewayCaller, Address: cfg.GatewayAudience, Keys: &gateway.Keys{
+		Audience: cfg.GatewayAudience, Audiences: cfg.GatewayAudiences, JWKS: cfg.GatewayJWKS,
+		Client: &http.Client{Timeout: 10 * time.Second},
+	}}
+	if cfg.IsLocal() {
+		local, err := localgateway.New(cfg.Environment)
+		if err != nil {
+			return err
+		}
+		gw = &transport.Gateway{Address: "localhost", Keys: local.Keys(), Local: local}
+		if cfg.PlatformURL == "" {
+			platform = loggedPlatform{log}
+		}
+		log.Info("local sign-in", "at", "http://localhost:5173"+localgateway.Path)
+	}
 	h := &transport.Handler{
 		Slots:       slots.NewService(pool, booking, nil, log),
 		Invitations: invitations.NewService(pool, platform),
 		WhatsNew:    news,
-		Gateway: &transport.Gateway{Caller: cfg.GatewayCaller, Address: cfg.GatewayAudience, Keys: &gateway.Keys{
-			Audience: cfg.GatewayAudience, Audiences: cfg.GatewayAudiences, JWKS: cfg.GatewayJWKS,
-			Client: &http.Client{Timeout: 10 * time.Second},
-		}},
-		Owner:    cfg.Owner,
-		Revision: buildRevision,
-		Log:      log,
+		Gateway:     gw,
+		Owner:       cfg.Owner,
+		Revision:    buildRevision,
+		Log:         log,
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
@@ -112,4 +125,18 @@ func logger() *slog.Logger {
 			return a
 		},
 	}))
+}
+
+// loggedPlatform stands in for the platform service on a laptop without
+// PLATFORM_URL: an invitation is only logged, nobody joins a sign-in group.
+type loggedPlatform struct{ log *slog.Logger }
+
+func (p loggedPlatform) Invite(ctx context.Context, email string) error {
+	p.log.InfoContext(ctx, "local: would invite", "email", email)
+	return nil
+}
+
+func (p loggedPlatform) Withdraw(ctx context.Context, email string) error {
+	p.log.InfoContext(ctx, "local: would withdraw", "email", email)
+	return nil
 }

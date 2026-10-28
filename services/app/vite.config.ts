@@ -24,7 +24,13 @@ export default defineConfig({
   // pnpm keeps kit/web in a folder whose name holds a "#", which Vitest
   // reads as the start of a fragment; the link in node_modules has none.
   resolve: { preserveSymlinks: process.env.VITEST === "true" },
-  server: { proxy: { "/api": "http://localhost:8080" } },
+  server: {
+    proxy: {
+      "/api": "http://localhost:8080",
+      // The local sign-in (ENVIRONMENT=local); its cookie is then this origin's.
+      "/dev-gateway": "http://localhost:8080",
+    },
+  },
   test: {
     environment: "jsdom",
     environmentOptions: { jsdom: { url: "https://padel.test/" } },
