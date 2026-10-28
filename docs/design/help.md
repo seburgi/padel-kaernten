@@ -43,7 +43,8 @@
   each screen on an iPhone 13, cut to the part the chapter is about. How
   to run it is at its top.
 - **Reached from** the round "Hilfe" button in the head (kit/web's `info`
-  icon, beside Neu and the feedback button), and from a "So geht's" link
+  icon, beside Neu and the feedback button) on a wide screen, Mehr in
+  the tab bar at the bottom of a phone (`/more`), and from a "So geht's" link
   where people get stuck: "Wann kannst du?" (`#zeiten`), Gruppen finden
   and the empty "Deine Gruppen" (`#gruppen`), "Wann passt es für vier?"
   (`#spiele`) and the Mitteilungen card (`#mitteilungen`). The slices

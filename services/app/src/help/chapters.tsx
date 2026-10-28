@@ -32,8 +32,9 @@ export const CHAPTERS: Chapter[] = [
           Werbung und bucht selbst nichts. Gebucht und bezahlt wird auf der Seite der Anlage.
         </p>
         <p>
-          Oben wechselst du zwischen den zwei Hälften der App. {b("Plätze")} zeigt, was frei ist.{" "}
-          {b("Spielen")} ist für deine Zeiten, deine Gruppen und eure Spiele.
+          Am Handy wechselst du unten zwischen den Bereichen, auf einem größeren Bildschirm oben.{" "}
+          {b("Plätze")} zeigt, was frei ist. {b("Spielen")} ist für deine Zeiten, deine Gruppen und
+          eure Spiele.
         </p>
       </>
     ),
@@ -249,8 +250,9 @@ export const CHAPTERS: Chapter[] = [
     body: (
       <>
         <p>
-          {b("Neu")} oben rechts listet, was sich in der App geändert hat. Gibt es etwas, das du
-          noch nicht gesehen hast, steht einmal eine kleine Karte unter dem Kopf.
+          {b("Neu")} (am Handy unter {b("Mehr")}, sonst oben rechts) listet, was sich in der App
+          geändert hat. Gibt es etwas, das du noch nicht gesehen hast, steht einmal eine kleine
+          Karte unter dem Kopf.
         </p>
         <p>
           Die {b("Sprechblase")} oben rechts öffnet ein Feld für deine Rückmeldung an Seb, zu genau

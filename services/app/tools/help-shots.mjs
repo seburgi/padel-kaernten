@@ -289,8 +289,10 @@ for (const theme of ["light", "dark"]) {
       await s.step(page);
       await page.waitForLoadState("networkidle");
     }
-    // Nor does the iPhone's install hint.
-    await page.addStyleTag({ content: "aside { display: none !important }" });
+    // Nor does the iPhone's install hint, or the tab bar fixed over the page.
+    await page.addStyleTag({
+      content: "aside, [data-kit-tabbar] { display: none !important }",
+    });
     await page.mouse.move(0, 0);
     const png = await page.screenshot({
       clip: await clip(page, s),

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
@@ -48,15 +48,73 @@ describe("App", () => {
       "GET /api/v1/release-notes": () => answer(200, { items: [] }),
     });
     const { router } = renderWithQuery(<App />);
-    await userEvent.click(await screen.findByRole("link", { name: "Spielen" }));
+    // The switch in the head on a wide screen, the tab bar on a phone; CSS
+    // shows one of them, jsdom both.
+    const [head, bar] = (await screen.findAllByRole("navigation", { name: "Bereiche" })) as [
+      HTMLElement,
+      HTMLElement,
+    ];
+    await userEvent.click(within(head).getByRole("link", { name: "Spielen" }));
     expect(await screen.findByRole("heading", { name: "Spielen" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Spielen" })).toHaveAttribute("aria-current", "page");
+    for (const nav of [head, bar])
+      expect(within(nav).getByRole("link", { name: "Spielen" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
     await userEvent.click(screen.getByRole("link", { name: "Wann kann ich?" }));
     expect(await screen.findByRole("heading", { name: "Wann kannst du?" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/availability");
-    await userEvent.click(screen.getByRole("link", { name: "Plätze" }));
+    expect(within(bar).getByRole("link", { name: "Spielen" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await userEvent.click(within(bar).getByRole("link", { name: "Plätze" }));
     expect(router.state.location.pathname).toBe("/");
-    expect(screen.getByRole("link", { name: "Plätze" })).toHaveAttribute("aria-current", "page");
+    expect(within(head).getByRole("link", { name: "Plätze" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("puts Neu, Hilfe and Einladen behind Mehr, with a dot for what is unread", async () => {
+    serve({
+      "GET /api/v1/me": () =>
+        answer(200, { email: "seb@example.at", name: "Seb", canInvite: true, welcomed: true }),
+      "GET /api/v1/slots": () => answer(200, snapshot()),
+      "GET /api/v1/invitations": () => answer(200, { items: [] }),
+      "GET /api/v1/release-notes": () =>
+        answer(200, {
+          items: [
+            {
+              slug: "2026-10-28-leiste",
+              date: "2026-10-28",
+              area: "app",
+              title: "Unten",
+              paragraphs: ["Die Bereiche sind unten."],
+              read: false,
+            },
+          ],
+        }),
+    });
+    const { router } = renderWithQuery(<App />);
+    const bar = (await screen.findAllByRole("navigation", { name: "Bereiche" }))[1]!;
+    await userEvent.click(await within(bar).findByRole("link", { name: "Mehr, neu" }));
+    expect(router.state.location.pathname).toBe("/more");
+    const more = within(screen.getByRole("main"));
+    expect(more.getByRole("link", { name: /Neu.*1 ungelesen/ })).toHaveAttribute(
+      "href",
+      "/whats-new",
+    );
+    expect(more.getByRole("link", { name: "Deine Rückmeldungen" })).toHaveAttribute(
+      "href",
+      "/feedback",
+    );
+    await userEvent.click(more.getByRole("link", { name: "Einladen" }));
+    expect(router.state.location.pathname).toBe("/invites");
+    expect(within(bar).getByRole("link", { name: /^Mehr/ })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("opens the Hilfe from the head", async () => {
@@ -67,10 +125,11 @@ describe("App", () => {
       "GET /api/v1/release-notes": () => answer(200, { items: [] }),
     });
     const { router } = renderWithQuery(<App />);
-    await userEvent.click(await screen.findByRole("link", { name: "Hilfe" }));
+    const head = within(screen.getByRole("banner"));
+    await userEvent.click(await head.findByRole("link", { name: "Hilfe" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Hilfe" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/help");
-    expect(screen.queryByRole("link", { name: "Hilfe" })).not.toBeInTheDocument();
+    expect(head.queryByRole("link", { name: "Hilfe" })).not.toBeInTheDocument();
   });
 
   it("takes the old address to the new one", async () => {
