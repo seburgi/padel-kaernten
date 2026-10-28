@@ -95,11 +95,13 @@ func run() error {
 	gamesSvc := games.NewService(pool)
 	var push *notify.Service
 	if cfg.VapidKey != "" {
-		key, err := notify.ParseKey(cfg.VapidKey)
-		if err != nil {
-			return err
+		// A key the API cannot read turns push off, loudly, rather than
+		// keeping the app from starting.
+		if key, err := notify.ParseKey(cfg.VapidKey); err != nil {
+			log.Error("push off: the VAPID key", "error", err)
+		} else {
+			push = notify.NewService(pool, key, cfg.PushContact)
 		}
-		push = notify.NewService(pool, key, cfg.PushContact)
 	}
 	var queue notify.Queue
 	switch {

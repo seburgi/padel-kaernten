@@ -25,8 +25,10 @@
   the background (`notify.Inline`).
 - **Web Push without a library** (`internal/notify/webpush.go`): RFC 8291
   aes128gcm, one record, and a VAPID JWT (RFC 8292) signed with the key
-  in the secret `padel-vapid-private-key` (`VAPID_PRIVATE_KEY`, P-256,
-  PEM); the public key is derived from it. The tests check the
+  in the secret `padel-vapid-private-key` (`VAPID_PRIVATE_KEY`, P-256);
+  the public key is derived from it. The key may be PEM (also with its
+  line breaks written as `\n`), the raw 32 bytes in base64url as
+  `web-push generate-vapid-keys` prints them, or that tool's JSON. The tests check the
   encryption against the RFC's own example, byte for byte.
 - **Subscriptions** (`push_subscriptions`, migration 0005): one row per
   browser, the endpoint and its keys, no content. The API names a row by
@@ -44,7 +46,8 @@
   from the home screen, and the card says so. `src/sw.ts` shows the push
   and opens the game on a tap (`push/notification.ts`, kept apart so the
   worker takes nothing of the app with it).
-- **Off without a key**: no `VAPID_PRIVATE_KEY`, and `GET /api/v1/push`
+- **Off without a key**: no `VAPID_PRIVATE_KEY`, or one the API cannot
+  read (logged as an error at start-up, "push off"), and `GET /api/v1/push`
   has no key, the card shows nothing, subscribing answers 409 `push-off`
   and games tell no one.
 
@@ -64,3 +67,6 @@
   checks for it rather than for the device.
 - The secret must have a version before a revision that mounts it can
   start; until then the old revision keeps serving.
+- A key the API could not read stopped the first revision with push from
+  starting (2026-10-28): the secret held the raw base64url key, not PEM.
+  Hence the shapes above, and push off rather than a crash.

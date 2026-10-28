@@ -5,6 +5,7 @@ import (
 	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/hkdf"
 	"crypto/rand"
 	"crypto/sha256"
@@ -18,6 +19,7 @@ import (
 	"io"
 	"math/big"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -31,9 +33,25 @@ type Key struct {
 	public  []byte // uncompressed point, 65 bytes
 }
 
-// ParseKey reads a PEM private key, PKCS #8 or SEC 1.
+// ParseKey reads the VAPID private key in any of the shapes it is handed
+// out in: PEM (PKCS #8 or SEC 1, also with its line breaks written as
+// \n), the raw 32-byte key in base64url as web-push generate-vapid-keys
+// prints it, or that tool's JSON ({"publicKey", "privateKey"}).
 func ParseKey(text string) (*Key, error) {
-	block, _ := pem.Decode([]byte(text))
+	text = strings.TrimSpace(text)
+	if strings.HasPrefix(text, "{") {
+		var pair struct {
+			PrivateKey string `json:"privateKey"`
+		}
+		if err := json.Unmarshal([]byte(text), &pair); err != nil || pair.PrivateKey == "" {
+			return nil, errors.New("notify: the VAPID key is JSON without a privateKey")
+		}
+		text = pair.PrivateKey
+	}
+	if !strings.HasPrefix(text, "-----") {
+		return rawKey(text)
+	}
+	block, _ := pem.Decode([]byte(strings.ReplaceAll(text, `\n`, "\n")))
 	if block == nil {
 		return nil, errors.New("notify: the VAPID key is not PEM")
 	}
@@ -46,6 +64,25 @@ func ParseKey(text string) (*Key, error) {
 	} else if k, err = x509.ParseECPrivateKey(block.Bytes); err != nil {
 		return nil, fmt.Errorf("notify: the VAPID key: %w", err)
 	}
+	return keyOf(k)
+}
+
+// rawKey is a P-256 private key as its 32 bytes in base64 (url or std,
+// padded or not).
+func rawKey(text string) (*Key, error) {
+	text = strings.TrimRight(strings.NewReplacer("+", "-", "/", "_").Replace(text), "=")
+	d, err := b64.DecodeString(text)
+	if err != nil || len(d) != 32 {
+		return nil, errors.New("notify: the VAPID key is neither PEM nor 32 bytes of base64")
+	}
+	k, err := ecdsa.ParseRawPrivateKey(elliptic.P256(), d)
+	if err != nil {
+		return nil, fmt.Errorf("notify: the VAPID key: %w", err)
+	}
+	return keyOf(k)
+}
+
+func keyOf(k *ecdsa.PrivateKey) (*Key, error) {
 	pub, err := k.PublicKey.Bytes()
 	if err != nil || len(pub) != 65 {
 		return nil, errors.New("notify: the VAPID key is not P-256")

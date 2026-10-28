@@ -2,6 +2,12 @@ package notify
 
 import (
 	"crypto/ecdh"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"strings"
 	"testing"
 	"time"
@@ -89,5 +95,46 @@ func TestEncrypt(t *testing.T) {
 	}
 	if _, err := encrypt(make([]byte, recordSize), p256dh, auth, randReader{}); err == nil {
 		t.Error("too long: encrypted")
+	}
+}
+
+// The shapes a VAPID key is handed out in all give the same key.
+func TestParseKey_shapes(t *testing.T) {
+	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := k.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, _ := x509.MarshalPKCS8PrivateKey(k)
+	pemText := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der}))
+	want, err := ParseKey(pemText)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, text := range map[string]string{
+		"base64url":       b64.EncodeToString(raw),
+		"base64 padded":   base64.StdEncoding.EncodeToString(raw) + "\n",
+		"web-push json":   `{"publicKey":"x","privateKey":"` + b64.EncodeToString(raw) + `"}`,
+		"pem with \\n":    strings.ReplaceAll(strings.TrimSpace(pemText), "\n", `\n`),
+		"pem with spaces": "\n  " + pemText,
+	} {
+		got, err := ParseKey(text)
+		if err != nil || got.Public() != want.Public() {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+	for name, text := range map[string]string{
+		"json without key": `{"publicKey":"x"}`,
+		"broken json":      `{`,
+		"short":            b64.EncodeToString(raw[:31]),
+		"zero":             b64.EncodeToString(make([]byte, 32)),
+		"not base64":       "!!!!",
+	} {
+		if _, err := ParseKey(text); err == nil {
+			t.Errorf("%s: parsed", name)
+		}
 	}
 }
