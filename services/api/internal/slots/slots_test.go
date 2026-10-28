@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/idempotency"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/testdb"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
@@ -137,5 +139,31 @@ func TestRefresh_callsTogetherAskOnce(t *testing.T) {
 	wg.Wait()
 	if f.calls.Load() != 1 {
 		t.Errorf("asked %d times", f.calls.Load())
+	}
+}
+
+// heldSites notes how many of the pool's connections are taken while the
+// sites are asked.
+type heldSites struct {
+	fakeSites
+	pool interface{ Stat() *pgxpool.Stat }
+	held int32
+}
+
+func (h *heldSites) Take(ctx context.Context) (sites.Snapshot, []error, error) {
+	h.held = h.pool.Stat().AcquiredConns()
+	return h.fakeSites.Take(ctx)
+}
+
+func TestRefresh_asksTheSitesWithoutHoldingAConnection(t *testing.T) {
+	pool := testdb.Pool(t)
+	now := time.Date(2026, 10, 27, 17, 0, 0, 0, time.UTC)
+	h := &heldSites{fakeSites: fakeSites{now: &now}, pool: pool, held: -1}
+	svc := slots.NewService(pool, h, func() time.Time { return now }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if _, err := svc.Refresh(t.Context(), "a@b.at", key1); err != nil {
+		t.Fatal(err)
+	}
+	if h.held != 0 {
+		t.Errorf("%d connections held while asking the sites", h.held)
 	}
 }

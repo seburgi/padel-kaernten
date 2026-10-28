@@ -93,6 +93,12 @@ func latest(ctx context.Context, q querier) (Snapshot, error) {
 // when the latest is older. key is the call's Idempotency-Key and who the
 // person calling: the same key again answers the latest snapshot without
 // asking.
+//
+// The sites are asked outside any transaction: a look takes seconds, up to
+// TakeTimeout, and the pool has three connections for the whole app
+// (database.MaxConns). A first, short transaction answers a replay or a
+// fresh snapshot; otherwise it rolls back, the sites are asked, and a
+// second one claims the key and saves.
 func (s *Service) Refresh(ctx context.Context, who, key string) (Snapshot, error) {
 	s.refreshing.Lock()
 	defer s.refreshing.Unlock()
@@ -121,32 +127,52 @@ func (s *Service) Refresh(ctx context.Context, who, key string) (Snapshot, error
 			}
 			return idempotency.Complete(ctx, tx, key, current.TakenAt.UTC().Format(time.RFC3339))
 		}
+		// Too old: let the claim go and ask the sites without holding
+		// a connection.
+		return errAsk
+	})
+	if !errors.Is(err, errAsk) {
+		return out, err
+	}
 
-		takeCtx, cancel := context.WithTimeout(ctx, TakeTimeout)
-		defer cancel()
-		snap, failed, err := s.sites.Take(takeCtx)
-		for _, f := range failed {
-			s.log.WarnContext(ctx, "a booking site failed", "error", f)
-		}
-		if err != nil {
-			return fmt.Errorf("%w: %w", ErrSitesFailed, err)
-		}
-		data, err := json.Marshal(snap)
+	takeCtx, cancel := context.WithTimeout(ctx, TakeTimeout)
+	defer cancel()
+	snap, failed, err := s.sites.Take(takeCtx)
+	for _, f := range failed {
+		s.log.WarnContext(ctx, "a booking site failed", "error", f)
+	}
+	if err != nil {
+		return Snapshot{}, fmt.Errorf("%w: %w", ErrSitesFailed, err)
+	}
+	data, err := json.Marshal(snap)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		claim, err := idempotency.Begin(ctx, tx, key, who, "refreshSlots", hash)
 		if err != nil {
 			return err
 		}
-		// Only ever replace an older snapshot.
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO snapshot (id, data, taken_at) VALUES (1, $1::json, $2)
-			ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, taken_at = EXCLUDED.taken_at
-			WHERE snapshot.taken_at < EXCLUDED.taken_at`, string(data), snap.TakenAt); err != nil {
-			return fmt.Errorf("save the snapshot: %w", err)
+		if !claim.Replay {
+			// Only ever replace an older snapshot.
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO snapshot (id, data, taken_at) VALUES (1, $1::json, $2)
+				ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, taken_at = EXCLUDED.taken_at
+				WHERE snapshot.taken_at < EXCLUDED.taken_at`, string(data), snap.TakenAt); err != nil {
+				return fmt.Errorf("save the snapshot: %w", err)
+			}
 		}
 		if out, err = latest(ctx, tx); err != nil {
 			return err
+		}
+		if claim.Replay {
+			return nil
 		}
 		s.log.InfoContext(ctx, "refreshed", "venues", len(snap.Venues), "failed", len(failed))
 		return idempotency.Complete(ctx, tx, key, out.TakenAt.UTC().Format(time.RFC3339))
 	})
 	return out, err
 }
+
+// errAsk rolls back Refresh's first transaction when the sites must be asked.
+var errAsk = errors.New("ask the booking sites")

@@ -35,8 +35,13 @@
 
 ## Traps
 
-- **A refresh can take tens of seconds** when a site is slow. The app shows
-  the old snapshot meanwhile and says it is refreshing.
+- **A refresh can take tens of seconds** when a site is slow (usually
+  5 to 15). The app shows the old snapshot meanwhile and says it is
+  refreshing. Nothing else waits for it: the boot screen counts only what
+  is read, never a refresh (`main.tsx`; until 2026-10-28 it waited for the
+  refresh after every release, up to ten seconds), and the sites are asked
+  outside any transaction, so the refresh holds none of the pool's three
+  connections meanwhile.
 - The save replaces only an older snapshot (`taken_at <` the new one), so
   two instances could at worst ask twice, never go backwards. The service
   runs one instance.
