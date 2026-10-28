@@ -22,17 +22,46 @@ export default tseslint.config(
   {
     files: ["src/courts/**"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: ["../invitations/*", "../whatsnew/*"] }],
+      "no-restricted-imports": [
+        "error",
+        { patterns: ["../invitations/*", "../whatsnew/*", "../groups/*", "../availability/*"] },
+      ],
     },
   },
   {
     files: ["src/invitations/**"],
-    rules: { "no-restricted-imports": ["error", { patterns: ["../courts/*", "../whatsnew/*"] }] },
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: ["../courts/*", "../whatsnew/*", "../groups/*", "../availability/*"] },
+      ],
+    },
   },
   {
     files: ["src/whatsnew/**"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: ["../courts/*", "../invitations/*"] }],
+      "no-restricted-imports": [
+        "error",
+        { patterns: ["../courts/*", "../invitations/*", "../groups/*", "../availability/*"] },
+      ],
+    },
+  },
+  {
+    files: ["src/groups/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: ["../courts/*", "../invitations/*", "../whatsnew/*", "../availability/*"] },
+      ],
+    },
+  },
+  {
+    files: ["src/availability/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: ["../courts/*", "../invitations/*", "../whatsnew/*", "../groups/*"] },
+      ],
     },
   },
   {

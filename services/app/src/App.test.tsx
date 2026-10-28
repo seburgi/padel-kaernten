@@ -37,6 +37,28 @@ describe("App", () => {
     expect(router.state.location.pathname).toBe("/");
   });
 
+  it("goes to Spielen and back to Plätze", async () => {
+    serve({
+      "GET /api/v1/me": () =>
+        answer(200, { email: "anna@example.at", name: "Anna", canInvite: false }),
+      "GET /api/v1/slots": () => answer(200, snapshot()),
+      "GET /api/v1/groups": () => answer(200, { items: [] }),
+      "GET /api/v1/availability": () =>
+        answer(200, { from: "2026-10-29", to: "2026-11-11", days: [], templates: [], venues: [] }),
+      "GET /api/v1/release-notes": () => answer(200, { items: [] }),
+    });
+    const { router } = renderWithQuery(<App />);
+    await userEvent.click(await screen.findByRole("link", { name: "Spielen" }));
+    expect(await screen.findByRole("heading", { name: "Spielen" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Spielen" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("link", { name: "Wann kann ich?" }));
+    expect(await screen.findByRole("heading", { name: "Wann kannst du?" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/availability");
+    await userEvent.click(screen.getByRole("link", { name: "Plätze" }));
+    expect(router.state.location.pathname).toBe("/");
+    expect(screen.getByRole("link", { name: "Plätze" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("takes the old address to the new one", async () => {
     serve({
       "GET /api/v1/me": () => answer(200, { email: "seb@example.at", canInvite: true }),

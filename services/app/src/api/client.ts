@@ -2,6 +2,7 @@
 // call says which build sent it (X-Client); writes carry an Idempotency-Key
 // the caller mints once, so a retry reuses it (standards/api/idempotency.md).
 import createClient, { type Middleware } from "openapi-fetch";
+import { useRef } from "react";
 import type { components, paths } from "./schema";
 
 export type Snapshot = components["schemas"]["Snapshot"];
@@ -12,6 +13,11 @@ export type Invitation = components["schemas"]["Invitation"];
 export type InvitationPage = components["schemas"]["InvitationPage"];
 export type Me = components["schemas"]["Me"];
 export type Problem = components["schemas"]["Problem"];
+export type GroupSummary = components["schemas"]["GroupSummary"];
+export type Group = components["schemas"]["Group"];
+export type Span = components["schemas"]["Span"];
+export type Availability = components["schemas"]["Availability"];
+export type Template = components["schemas"]["Template"];
 
 /** An answer that was not what the call wanted; kind is the end of the
  * problem's type URI ("sites-failed"), or "network". */
@@ -92,4 +98,15 @@ export async function call<T>(
 /** A fresh key for one write; keep it for the write's retries. */
 export function newKey(): string {
   return crypto.randomUUID();
+}
+
+/** A key per write: the same while what is written stays the same, so a
+ * retry after a failure reuses it, and fresh for anything else. */
+export function useWriteKey(): (body: unknown) => string {
+  const last = useRef<{ body: string; key: string } | null>(null);
+  return (body) => {
+    const text = JSON.stringify(body);
+    if (last.current?.body !== text) last.current = { body: text, key: newKey() };
+    return last.current.key;
+  };
 }

@@ -17,6 +17,14 @@
 - **Where one drives to**: venue ids from `venues.json` (`PUT
   /api/v1/availability/venues`); none chosen means every venue. An id
   that is not a venue answers 400 `unknown-venue`.
+- **In the app** (`services/app/src/availability`, `/availability`, "Wann
+  kannst du?"): the 14 days as rows, each a line from 6 to 24 with its
+  spans filled in. A row opens an editor: quick choices (Früh 7–9, Mittag
+  12–14, Abend ab 18, Ganzer Tag), from–to selects per span on the half
+  hour, "+ Noch eine Zeit", "Kann nicht" to clear, and "So ist es meistens
+  am …" to keep the day as its weekday's usual. A button fills the empty
+  days that have a usual time, one day after another, on request. Venues
+  are chips from the latest snapshot.
 - The nightly `/reap` deletes spans of days two days gone
   (`internal/platform/retention`).
 
@@ -27,6 +35,8 @@
 - **No hourly slots.** Courts open at different times (some at 7:00), so
   the grid is half hours and a span can start at any of them (Seb,
   2026-10-28).
+- **No dragging on the line yet**: spans are set with selects and quick
+  choices; drawing them on the line may come later.
 - **Spans are minutes, not "HH:MM"**, like the snapshot's `Slot`, so the
   app compares them with free courts directly.
 

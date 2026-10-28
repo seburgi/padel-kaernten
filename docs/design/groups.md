@@ -40,6 +40,12 @@
   group yet, the API founds "Padel Kärnten", private, with `OWNER_EMAIL`
   as admin and everyone in `invitations` as a member (`EnsureFirst`, under
   an advisory lock). Their invitation into the app stays.
+- **In the app** (`services/app/src/groups`): the tab Spielen (`/play`)
+  asks a person without a name for one, shows invitations to accept or
+  decline and the groups one is in; `/groups` lists the groups one can
+  join or ask into, `/groups/new` founds one, `/groups/{id}` shows the
+  members with their days entered, and to members inviting, open
+  invitations and requests, to admins the name and kind, and leaving.
 - The member list carries `daysEntered`, on how many of the next 14 days
   each member said when they can (`availability.md`); transport joins the
   two slices.
