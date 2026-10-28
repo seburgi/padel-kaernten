@@ -20,6 +20,7 @@ const group = (over: Partial<G> = {}): G => ({
   id: 1,
   name: "Padel Kärnten",
   kind: "private",
+  area: "alle",
   how: "member",
   role: "admin",
   members: 3,
@@ -191,6 +192,7 @@ describe("Group", () => {
   it("warns the last one, and says when leaving or settings fail", async () => {
     const g = group({
       members: 1,
+      area: "halle",
       memberList: [member("seb@example.at", "Seb", "admin")],
       requests: [],
       invitations: [],
@@ -202,7 +204,7 @@ describe("Group", () => {
       "PATCH /api/v1/groups/1": () => problem(400, "invalid-group"),
     });
     show();
-    await screen.findByText("Privat · 1 Mitglied");
+    await screen.findByText("Privat · 1 Mitglied · Nur Halle");
     expect(screen.queryByText("Möchten hinein")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Auf Anfrage" }));
     expect(await screen.findByText("Ein Name hat 1 bis 40 Zeichen.")).toBeInTheDocument();

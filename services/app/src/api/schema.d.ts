@@ -230,7 +230,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Rename it or change its kind; admins only */
+    /** Rename it or change its kind (admins), or where it plays (any member) */
     patch: operations["updateGroup"];
     trace?: never;
   };
@@ -469,7 +469,7 @@ export interface paths {
     };
     /**
      * Games of four the free courts and the members' times allow
-     * @description Computed from the latest snapshot on each call, never stored. Members only; 404 no-group otherwise. A snapshot older than five minutes is not refreshed here: the app asks /slots/refresh first.
+     * @description Computed from the latest snapshot on each call, never stored. Members only; 404 no-group otherwise. A snapshot older than five minutes is not refreshed here: the app asks /slots/refresh first. Only the courts of the group's area count (halle includes überdacht; a court of unknown area counts only for alle).
      */
     get: operations["listFits"];
     put?: never;
@@ -707,11 +707,14 @@ export interface components {
     };
     /** @description private, on_request or open; clients tolerate others. */
     GroupKind: string;
+    /** @description Where a group plays: alle, halle or freiluft; clients tolerate others. The fits leave the other courts out; überdacht counts as halle. */
+    GroupArea: string;
     GroupSummary: {
       /** Format: int64 */
       id: number;
       name: string;
       kind: components["schemas"]["GroupKind"];
+      area: components["schemas"]["GroupArea"];
       /** @description member, invited or listed (open, not joined); clients tolerate others. */
       how: string;
       /** @description admin or member, for a member. */
@@ -759,6 +762,7 @@ export interface components {
     GroupChange: {
       name?: string;
       kind?: components["schemas"]["GroupKind"];
+      area?: components["schemas"]["GroupArea"];
     };
     Joined: {
       /** @description member, or requested for a group open on request. */

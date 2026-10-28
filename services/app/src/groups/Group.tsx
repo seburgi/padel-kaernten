@@ -6,7 +6,15 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Group as G } from "../api/client";
 import { card, danger, field, link, pressed, primary, quiet } from "../ui";
-import { errorText, KINDS, kindLabel, useDropInvitation, useJoin, useMe } from "./groups";
+import {
+  areaLabel,
+  errorText,
+  KINDS,
+  kindLabel,
+  useDropInvitation,
+  useJoin,
+  useMe,
+} from "./groups";
 
 /** games is a member's view of the group's games, from the games slice
  * (App puts it in). */
@@ -59,6 +67,7 @@ export function Group({ games }: { games?: (id: number) => ReactNode }) {
       <h1 className="mt-1 mb-1 text-2xl font-semibold">{g.name}</h1>
       <p className="mb-4 text-ink-muted">
         {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
+        {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
       </p>
 
       {!member && (

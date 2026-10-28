@@ -20,8 +20,9 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport/gen"
 )
 
-// venues is the latest snapshot as the games slice reads it.
-func (h *Handler) venues(r *http.Request) ([]games.Venue, time.Time, error) {
+// venues is the latest snapshot as the games slice reads it, with only the
+// courts of area (groups.Anywhere for all of them).
+func (h *Handler) venues(r *http.Request, area string) ([]games.Venue, time.Time, error) {
 	snap, err := h.Slots.Latest(r.Context())
 	if err != nil {
 		return nil, time.Time{}, err
@@ -34,6 +35,9 @@ func (h *Handler) venues(r *http.Request) ([]games.Venue, time.Time, error) {
 	for i, v := range s.Venues {
 		gv := games.Venue{ID: v.ID, Name: v.Name, Step: v.Step, Failed: v.Failed, NotBookable: v.NotBookable, Links: v.Links}
 		for _, c := range v.Courts {
+			if !inArea(c.Area, area) {
+				continue
+			}
 			gc := games.Court{Name: c.Name}
 			for _, f := range c.Free {
 				slot := games.Slot{Day: f.Day, From: f.From, To: f.To}
@@ -48,6 +52,19 @@ func (h *Handler) venues(r *http.Request) ([]games.Venue, time.Time, error) {
 		out[i] = gv
 	}
 	return out, snap.TakenAt, nil
+}
+
+// inArea says whether a court of the snapshot's area counts for a group
+// playing in area. Überdacht is weatherproof, so with the halls, as on the
+// courts page; a court of unknown area counts only for groups.Anywhere.
+func inArea(court, area string) bool {
+	if area == groups.Anywhere || area == "" {
+		return true
+	}
+	if court == "ueberdacht" {
+		court = groups.Hall
+	}
+	return court == area
 }
 
 // noSnapshot answers when the booking sites were never asked.
@@ -114,7 +131,7 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 	if !ok {
 		return
 	}
-	venues, takenAt, err := h.venues(r)
+	venues, takenAt, err := h.venues(r, g.Area)
 	if errors.Is(err, slots.ErrNone) {
 		noSnapshot(w)
 		return
@@ -175,7 +192,7 @@ func (h *Handler) ProposeGame(w http.ResponseWriter, r *http.Request, id gen.Gro
 	if !decode(w, r, &body) {
 		return
 	}
-	venues, _, err := h.venues(r)
+	venues, _, err := h.venues(r, groups.Anywhere)
 	if errors.Is(err, slots.ErrNone) {
 		noSnapshot(w)
 		return
@@ -207,7 +224,7 @@ func (h *Handler) ListGames(w http.ResponseWriter, r *http.Request, params gen.L
 	}
 	out := gen.GameList{Items: make([]gen.Game, 0, len(list))}
 	seen := map[int64]groups.Group{}
-	venues, _, _ := h.venues(r) // links only; none without a snapshot
+	venues, _, _ := h.venues(r, groups.Anywhere) // links only; none without a snapshot
 	for _, g := range list {
 		grp, ok := seen[g.GroupID]
 		if !ok {
@@ -270,7 +287,7 @@ func (h *Handler) answerGame(w http.ResponseWriter, r *http.Request, status int,
 		h.internal(w, r, "reading a game's group", err)
 		return
 	}
-	venues, _, _ := h.venues(r) // links only; none without a snapshot
+	venues, _, _ := h.venues(r, groups.Anywhere) // links only; none without a snapshot
 	writeJSON(w, status, gameOut(g, grp, venues))
 }
 

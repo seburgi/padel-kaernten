@@ -58,7 +58,7 @@ func (h *Handler) GetGroup(w http.ResponseWriter, r *http.Request, id gen.GroupI
 	h.answerGroup(w, r, http.StatusOK, g, err)
 }
 
-// UpdateGroup renames a group or changes its kind.
+// UpdateGroup renames a group, changes its kind or where it plays.
 func (h *Handler) UpdateGroup(w http.ResponseWriter, r *http.Request, id gen.GroupId, params gen.UpdateGroupParams) {
 	email, ok := h.person(w, r)
 	if !ok {
@@ -68,7 +68,8 @@ func (h *Handler) UpdateGroup(w http.ResponseWriter, r *http.Request, id gen.Gro
 	if !decode(w, r, &body) {
 		return
 	}
-	g, err := h.Groups.Update(r.Context(), email, params.IdempotencyKey.String(), id, body.Name, (*string)(body.Kind))
+	g, err := h.Groups.Update(r.Context(), email, params.IdempotencyKey.String(), id,
+		groups.Change{Name: body.Name, Kind: (*string)(body.Kind), Area: (*string)(body.Area)})
 	h.answerGroup(w, r, http.StatusOK, g, err)
 }
 
@@ -201,7 +202,7 @@ func (h *Handler) answerGroup(w http.ResponseWriter, r *http.Request, status int
 		return
 	}
 	out := gen.Group{
-		Id: g.ID, Name: g.Name, Kind: gen.GroupKind(g.Kind), How: g.How, Members: g.Members, Requested: g.Requested,
+		Id: g.ID, Name: g.Name, Kind: gen.GroupKind(g.Kind), Area: gen.GroupArea(g.Area), How: g.How, Members: g.Members, Requested: g.Requested,
 		MemberList: make([]gen.Member, 0, len(g.List)), Invitations: make([]gen.GroupInvitation, 0, len(g.Invitations)),
 		Requests: make([]gen.JoinRequest, 0, len(g.Requests)),
 	}
@@ -237,7 +238,7 @@ func (h *Handler) groupError(w http.ResponseWriter, r *http.Request, err error) 
 	case errors.Is(err, groups.ErrForbidden):
 		problem.Write(w, problem.New(http.StatusForbidden, "not-allowed", "Not allowed in this group", ""))
 	case errors.Is(err, groups.ErrInvalid):
-		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-group", "A name is 1 to 40 characters; kind is private, on_request or open", ""))
+		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-group", "A name is 1 to 40 characters; kind is private, on_request or open; area is alle, halle or freiluft", ""))
 	case errors.Is(err, groups.ErrInvalidEmail):
 		invalidEmail(w)
 	case errors.Is(err, groups.ErrAlready):
@@ -255,7 +256,7 @@ func (h *Handler) groupError(w http.ResponseWriter, r *http.Request, err error) 
 }
 
 func groupSummary(g groups.Summary) gen.GroupSummary {
-	out := gen.GroupSummary{Id: g.ID, Name: g.Name, Kind: gen.GroupKind(g.Kind), How: g.How, Members: g.Members, Requested: g.Requested}
+	out := gen.GroupSummary{Id: g.ID, Name: g.Name, Kind: gen.GroupKind(g.Kind), Area: gen.GroupArea(g.Area), How: g.How, Members: g.Members, Requested: g.Requested}
 	if g.Role != "" {
 		role := g.Role
 		out.Role = &role

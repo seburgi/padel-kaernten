@@ -36,7 +36,8 @@
   hand: it empties the local database (it refuses one that is not on this
   machine), writes a fixed snapshot of every venue in `venues.json`, signs
   in Seb, Anna, Markus and Lisa through the local gateway, builds the
-  group "Dienstagsrunde" with their times and two games, and photographs
+  group "Dienstagsrunde" with their times and two games (everyone marked
+  welcomed, so the welcome stays out of the way), and photographs
   each screen on an iPhone 13, cut to the part the chapter is about. How
   to run it is at its top.
 - **Reached from** the round "Hilfe" button in the head (kit/web's `info`

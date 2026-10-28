@@ -11,6 +11,7 @@ const g = (over: Partial<GroupSummary>): GroupSummary => ({
   id: 1,
   name: "Padel Kärnten",
   kind: "private",
+  area: "alle",
   how: "member",
   members: 4,
   requested: false,

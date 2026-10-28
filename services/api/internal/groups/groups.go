@@ -26,7 +26,7 @@ var (
 	ErrNotFound = errors.New("no such group")
 	// ErrForbidden means the caller sees the group but may not do this.
 	ErrForbidden = errors.New("not allowed in this group")
-	// ErrInvalid means a name or kind the app does not take.
+	// ErrInvalid means a name, kind or area the app does not take.
 	ErrInvalid = errors.New("invalid group")
 	// ErrInvalidEmail means the address is not one an invitation can go to.
 	ErrInvalidEmail = errors.New("not an email address")
@@ -52,17 +52,26 @@ const (
 	Open      = "open"
 )
 
+// Where a group plays: every court, or only the halls or only the open-air
+// ones (Seb, 2026-10-28). The fits leave the other courts out.
+const (
+	Anywhere = "alle"
+	Hall     = "halle"
+	OpenAir  = "freiluft"
+)
+
 // FirstGroup is the name of the group everyone Seb invited before groups
 // existed is moved into (Seb, 2026-10-28).
 const FirstGroup = "Padel Kärnten"
 
 // Summary is a group as a list shows it to one viewer. How is member,
 // invited or listed (open or on request, not joined); Role is admin or
-// member for a member, "" otherwise.
+// member for a member, "" otherwise. Area is where it plays.
 type Summary struct {
 	ID        int64
 	Name      string
 	Kind      string
+	Area      string
 	How       string
 	Role      string
 	Members   int
@@ -140,6 +149,8 @@ func cleanName(name string) (string, error) {
 }
 
 func validKind(kind string) bool { return kind == Private || kind == OnRequest || kind == Open }
+
+func validArea(area string) bool { return area == Anywhere || area == Hall || area == OpenAir }
 
 // Person is someone who has opened the app.
 type Person struct {
@@ -245,7 +256,7 @@ func (s *Service) EnsureFirst(ctx context.Context, owner string) error {
 	})
 }
 
-const summaryColumns = `g.id, g.name, g.kind, v.how, COALESCE(m.role, ''),
+const summaryColumns = `g.id, g.name, g.kind, g.area, v.how, COALESCE(m.role, ''),
 	(SELECT count(*) FROM memberships c WHERE c.group_id = g.id),
 	EXISTS (SELECT 1 FROM join_requests r WHERE r.group_id = g.id AND r.email = v.viewer)`
 
@@ -255,7 +266,7 @@ const summaryFrom = `FROM group_visibility v
 
 func scanSummary(row pgx.Row) (Summary, error) {
 	var g Summary
-	return g, row.Scan(&g.ID, &g.Name, &g.Kind, &g.How, &g.Role, &g.Members, &g.Requested)
+	return g, row.Scan(&g.ID, &g.Name, &g.Kind, &g.Area, &g.How, &g.Role, &g.Members, &g.Requested)
 }
 
 // List is every group viewer may see: theirs first, then the ones they are
@@ -369,19 +380,25 @@ func (s *Service) Create(ctx context.Context, who, key, name, kind string) (Grou
 	return s.Get(ctx, who, id)
 }
 
-// Update changes the name or the kind; admins only. nil leaves it.
-func (s *Service) Update(ctx context.Context, who, key string, id int64, name, kind *string) (Group, error) {
+// Change is what Update changes; nil leaves it.
+type Change struct {
+	Name, Kind, Area *string
+}
+
+// Update changes the name, the kind or where the group plays. The name and
+// the kind are the admins'; where it plays any member sets.
+func (s *Service) Update(ctx context.Context, who, key string, id int64, c Change) (Group, error) {
 	var n string
-	if name != nil {
+	if c.Name != nil {
 		var err error
-		if n, err = cleanName(*name); err != nil {
+		if n, err = cleanName(*c.Name); err != nil {
 			return Group{}, err
 		}
 	}
-	if kind != nil && !validKind(*kind) {
+	if (c.Kind != nil && !validKind(*c.Kind)) || (c.Area != nil && !validArea(*c.Area)) {
 		return Group{}, ErrInvalid
 	}
-	hash, err := idempotency.Hash("update-group", []any{id, name, kind})
+	hash, err := idempotency.Hash("update-group", []any{id, c.Name, c.Kind, c.Area})
 	if err != nil {
 		return Group{}, err
 	}
@@ -394,16 +411,21 @@ func (s *Service) Update(ctx context.Context, who, key string, id int64, name, k
 		if err != nil {
 			return err
 		}
-		if sum.Role != "admin" {
+		if sum.How != "member" || ((c.Name != nil || c.Kind != nil) && sum.Role != "admin") {
 			return ErrForbidden
 		}
-		if name != nil {
+		if c.Name != nil {
 			if _, err := tx.Exec(ctx, `UPDATE groups SET name = $2 WHERE id = $1`, id, n); err != nil {
 				return err
 			}
 		}
-		if kind != nil {
-			if _, err := tx.Exec(ctx, `UPDATE groups SET kind = $2 WHERE id = $1`, id, *kind); err != nil {
+		if c.Kind != nil {
+			if _, err := tx.Exec(ctx, `UPDATE groups SET kind = $2 WHERE id = $1`, id, *c.Kind); err != nil {
+				return err
+			}
+		}
+		if c.Area != nil {
+			if _, err := tx.Exec(ctx, `UPDATE groups SET area = $2 WHERE id = $1`, id, *c.Area); err != nil {
 				return err
 			}
 		}

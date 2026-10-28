@@ -11,6 +11,10 @@ export const KINDS: { kind: string; label: string; hint: string }[] = [
 
 export const kindLabel = (kind: string) => KINDS.find((k) => k.kind === kind)?.label ?? kind;
 
+/** Where the group plays, when it is not everywhere; set at "Wann passt es für vier?". */
+export const areaLabel = (area: string) =>
+  ({ halle: "Nur Halle", freiluft: "Nur Freiluft" })[area] ?? "";
+
 export function errorText(e: unknown): string {
   if (e instanceof ApiError) {
     switch (e.kind) {

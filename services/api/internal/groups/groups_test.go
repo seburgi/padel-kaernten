@@ -109,12 +109,12 @@ func TestCreateUpdateAndSee(t *testing.T) {
 		t.Errorf("anna sees a private group: %v", err)
 	}
 	open := groups.Open
-	if _, err := s.Update(ctx, anna, key(), g.ID, nil, &open); !errors.Is(err, groups.ErrNotFound) {
+	if _, err := s.Update(ctx, anna, key(), g.ID, groups.Change{Kind: &open}); !errors.Is(err, groups.ErrNotFound) {
 		t.Errorf("anna changes it: %v", err)
 	}
 	name := "Büro-Padel"
-	g, err = s.Update(ctx, seb, key(), g.ID, &name, &open)
-	if err != nil || g.Name != name || g.Kind != groups.Open {
+	g, err = s.Update(ctx, seb, key(), g.ID, groups.Change{Name: &name, Kind: &open})
+	if err != nil || g.Name != name || g.Kind != groups.Open || g.Area != groups.Anywhere {
 		t.Fatalf("update: %+v %v", g, err)
 	}
 	// Open now: Anna sees it, listed, without invitations or requests.
@@ -122,15 +122,22 @@ func TestCreateUpdateAndSee(t *testing.T) {
 	if err != nil || got.How != "listed" || got.Role != "" || len(got.List) != 1 {
 		t.Errorf("anna's view: %+v %v", got, err)
 	}
-	if _, err := s.Update(ctx, anna, key(), g.ID, &name, nil); !errors.Is(err, groups.ErrForbidden) {
+	if _, err := s.Update(ctx, anna, key(), g.ID, groups.Change{Name: &name}); !errors.Is(err, groups.ErrForbidden) {
 		t.Errorf("a non-admin renames: %v", err)
 	}
 	bad := "secret"
-	if _, err := s.Update(ctx, seb, key(), g.ID, nil, &bad); !errors.Is(err, groups.ErrInvalid) {
+	if _, err := s.Update(ctx, seb, key(), g.ID, groups.Change{Kind: &bad}); !errors.Is(err, groups.ErrInvalid) {
 		t.Errorf("a bad kind: %v", err)
 	}
+	if _, err := s.Update(ctx, seb, key(), g.ID, groups.Change{Area: &bad}); !errors.Is(err, groups.ErrInvalid) {
+		t.Errorf("a bad area: %v", err)
+	}
+	hall := groups.Hall
+	if _, err := s.Update(ctx, anna, key(), g.ID, groups.Change{Area: &hall}); !errors.Is(err, groups.ErrForbidden) {
+		t.Errorf("someone outside sets the area: %v", err)
+	}
 	empty := " "
-	if _, err := s.Update(ctx, seb, key(), g.ID, &empty, nil); !errors.Is(err, groups.ErrInvalid) {
+	if _, err := s.Update(ctx, seb, key(), g.ID, groups.Change{Name: &empty}); !errors.Is(err, groups.ErrInvalid) {
 		t.Errorf("an empty name: %v", err)
 	}
 	if _, err := s.Get(ctx, seb, 999); !errors.Is(err, groups.ErrNotFound) {
@@ -181,6 +188,14 @@ func TestInviteAcceptLeave(t *testing.T) {
 	// Now a member, Anna invites too; the ref stays for her membership.
 	if _, err := s.Invite(ctx, anna, key(), g.ID, markus); err != nil {
 		t.Fatalf("anna invites: %v", err)
+	}
+	// Any member says where the group plays; the name stays the admins'.
+	hall := groups.Hall
+	if got, err := s.Update(ctx, anna, key(), g.ID, groups.Change{Area: &hall}); err != nil || got.Area != groups.Hall {
+		t.Errorf("anna sets the area: %+v %v", got.Summary, err)
+	}
+	if _, err := s.Update(ctx, anna, key(), g.ID, groups.Change{Name: &hall, Area: &hall}); !errors.Is(err, groups.ErrForbidden) {
+		t.Errorf("a member renames along with the area: %v", err)
 	}
 	// Markus declines; then Anna leaves.
 	if err := s.DropInvitation(ctx, markus, g.ID, markus); err != nil {

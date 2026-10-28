@@ -7,6 +7,12 @@
   (invitation only, unseen from outside), `on_request` (seen by everyone in
   the app; a member lets someone in) or `open` (anyone in the app joins).
   Admins rename it and change its kind.
+- **Where a group plays** (Seb, 2026-10-28): `groups.area` (migration
+  0007) is `alle` (the default), `halle` or `freiluft`, and the fits leave
+  the other courts out (`games.md`). Any member sets it (`PATCH
+  /api/v1/groups/{id}` with only `area`); the name and the kind stay the
+  admins'. The app offers it as Beides, Halle, Freiluft at "Wann passt es
+  für vier?", and the group's page says "Nur Halle" or "Nur Freiluft".
 - **Who sees a group is the view `group_visibility`** (migration 0003): a
   member, someone invited into it, or anyone in the app (`people`) when it
   is not private. Every read joins it; a group out of sight answers 404
@@ -59,6 +65,9 @@
   sees the invitation the next time they open Padel.
 - **No handing over as an admin yet**, and no second admin by hand: the
   longest member takes over when the last admin leaves.
+- **Where a group plays is not per person**: one choice for the group, so
+  everyone sees the same fits. Someone who never plays outdoors says so
+  in the group, or the group picks Halle.
 - **Groups are not paged**: a person sees a handful.
 
 ## Traps

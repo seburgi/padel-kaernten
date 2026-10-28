@@ -56,6 +56,7 @@ const group = {
   id: 1,
   name: "Padel Kärnten",
   kind: "private",
+  area: "alle",
   how: "member",
   role: "admin",
   members: 5,
@@ -226,6 +227,40 @@ describe("Fits", () => {
     await userEvent.click(screen.getByRole("button", { name: "Nochmal versuchen" }));
     expect(await screen.findByText(/Gerade passt nichts/)).toBeInTheDocument();
     expect(calls.filter((c) => c.url.pathname === "/api/v1/slots/refresh")).toHaveLength(1);
+  });
+
+  it("lets a member choose Halle or Freiluft for the group", async () => {
+    const calls: Sent[] = [];
+    let area = "alle";
+    serve(
+      {
+        "GET /api/v1/groups/1/fits": () =>
+          answer(200, { takenAt: fresh(), need: 4, fits: [], nearly: [] }),
+        "GET /api/v1/groups/1": () => answer(200, { ...group, area }),
+        "PATCH /api/v1/groups/1": (sent) => {
+          if ((sent.body as { area: string }).area === "freiluft")
+            return problem(400, "invalid-group");
+          area = (sent.body as { area: string }).area;
+          return answer(200, { ...group, area });
+        },
+      },
+      calls,
+    );
+    at("/groups/1/fits", <Fits />, "/groups/:id/fits");
+    const both = await screen.findByRole("button", { name: "Beides" });
+    await waitFor(() => expect(both).toHaveAttribute("aria-pressed", "true"));
+    await userEvent.click(both);
+    expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Halle" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Halle" })).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(screen.getByText(/Überdachte Plätze zählen zur Halle/)).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PATCH")!.body).toEqual({ area: "halle" });
+    const fitsAsked = calls.filter((c) => c.url.pathname.endsWith("/fits")).length;
+    expect(fitsAsked).toBeGreaterThan(1);
+    await userEvent.click(screen.getByRole("button", { name: "Freiluft" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   it("is for members only", async () => {

@@ -10,7 +10,10 @@
   the whole game and at least four members are free for all of it. Touching
   slots on one court join into one block first, so a 90-minute game can
   span two half-hour slots. Failed venues, days a site cannot book and
-  starts already past in Vienna are left out.
+  starts already past in Vienna are left out. Only the courts of the
+  group's area count (`groups.md`): transport drops the others before
+  `Fits` sees them. Überdacht counts as Halle, as on the courts page; a
+  court whose area nobody knows counts only for a group playing anywhere.
 - **Near misses** ("Fast: eine Person fehlt"): three can, and someone who
   drives there entered nothing for that day, so they might be the fourth.
   A day with no entry still means "can't" for fits (`availability.md`);
@@ -53,6 +56,9 @@
   change later, but everything assumes four.
 
 ## Traps
+
+- Proposing does not check the group's area: a fit was shown, so the
+  court is fine, and a game proposed before the area changed stays.
 
 - A fit is only as fresh as the snapshot. Proposing checks the court
   again against the latest snapshot, never against the site itself, so a

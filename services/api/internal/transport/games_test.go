@@ -36,7 +36,7 @@ func TestGames(t *testing.T) {
 	a.sites.snap = &sites.Snapshot{TakenAt: time.Now().UTC().Truncate(time.Second), Days: []string{tomorrow},
 		Venues: []sites.Venue{{ID: "villach", Name: "Padel Villach", Step: 30, NotBookable: []string{},
 			Links:  map[string]string{tomorrow: "https://book.example/" + tomorrow},
-			Courts: []sites.Court{{Name: "Court 1", Free: []sites.Slot{{Day: tomorrow, From: 1080, To: 1260, PricePerHour: &price}}}}}}}
+			Courts: []sites.Court{{Name: "Court 1", Area: "ueberdacht", Free: []sites.Slot{{Day: tomorrow, From: 1080, To: 1260, PricePerHour: &price}}}}}}}
 	if w := a.send(seb, "POST", "/api/v1/slots/refresh", ""); w.Code != 200 {
 		t.Fatalf("refresh: %d %s", w.Code, w.Body)
 	}
@@ -63,6 +63,22 @@ func TestGames(t *testing.T) {
 	if body := w.Body.String(); w.Code != 200 || !strings.Contains(body, `"perHead":{"amount":1500,"currency":"EUR"}`) ||
 		!strings.Contains(body, `{"email":"anna@example.at","name":"Anna"}`) || !strings.Contains(body, `"link":"https://book.example/`) {
 		t.Fatalf("fits: %d %s", w.Code, body)
+	}
+	// Where the group plays, set by any member: überdacht counts as a hall.
+	if w := a.send(anna, "PATCH", group, `{"area":"freiluft"}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"area":"freiluft"`) {
+		t.Fatalf("anna sets freiluft: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); !strings.Contains(w.Body.String(), `"fits":[]`) {
+		t.Errorf("fits outdoors only: %s", w.Body)
+	}
+	if w := a.send(anna, "PATCH", group, `{"area":"halle"}`); w.Code != 200 {
+		t.Fatalf("anna sets halle: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); !strings.Contains(w.Body.String(), `"court":"Court 1"`) {
+		t.Errorf("fits in halls: %s", w.Body)
+	}
+	if w := a.send(anna, "PATCH", group, `{"area":"dach"}`); w.Code != 400 {
+		t.Errorf("a bad area: %d %s", w.Code, w.Body)
 	}
 	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=45", "")); w.Code != 400 || problemType(w) != "invalid-game" {
 		t.Errorf("45 minutes: %d %s", w.Code, w.Body)

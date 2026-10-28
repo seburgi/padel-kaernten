@@ -52,7 +52,10 @@ function snapshot() {
     takenAt: new Date().toISOString(),
     days: DAYS,
     venues: list.map((v, n) => {
-      const indoor = n % 2 === 1;
+      // The venue's own kind of court, as venues.json says; the others
+      // (Eversports, Padelmates) are open-air ones (booking-sites.md).
+      const area = v.area ?? "freiluft";
+      const indoor = area === "halle";
       const price = { amount: indoor ? 4800 : 3600, currency: "EUR" };
       return {
         id: v.id,
@@ -66,7 +69,7 @@ function snapshot() {
         links: Object.fromEntries(DAYS.map((d) => [d, `https://example.at/${v.id}?day=${d}`])),
         courts: [1, 2].map((c) => ({
           name: `Platz ${c}`,
-          area: indoor ? "halle" : "freiluft",
+          area,
           // Each court free in two stretches a day, shifted per venue and
           // court so the list does not look copied.
           free: DAYS.flatMap((day, i) => {
@@ -117,6 +120,8 @@ async function seed() {
   for (const [who, name] of Object.entries(NAMES)) {
     await as(who, "GET", "/api/v1/me");
     await as(who, "PUT", "/api/v1/me/name", { name });
+    // Nor does the welcome, which a new person sees first.
+    await as(who, "POST", "/api/v1/me/welcomed");
     // The Neu card belongs to no screen.
     const notes = await as(who, "GET", "/api/v1/release-notes");
     await as(who, "POST", "/api/v1/release-notes/read", { slugs: notes.items.map((n) => n.slug) });

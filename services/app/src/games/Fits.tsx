@@ -1,7 +1,8 @@
 // Wann passt es für vier? (docs/design/games.md): the games the group's
 // times and the free courts allow, one tap from proposing one. The fits come
 // from the latest snapshot; one older than five minutes is refreshed once
-// on opening, as on the courts.
+// on opening, as on the courts. Where the group plays (Halle, Freiluft or
+// both) is the group's, and any member changes it here.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -10,6 +11,11 @@ import { card, link, pressed, primary, quiet } from "../ui";
 import { clock, dayLabel, errorText, euros, shown, span } from "./games";
 
 const DURATIONS = [60, 90, 120] as const;
+const AREAS = [
+  ["alle", "Beides"],
+  ["halle", "Halle"],
+  ["freiluft", "Freiluft"],
+] as const;
 const STALE_MS = 5 * 60 * 1000;
 
 export function Fits() {
@@ -52,6 +58,25 @@ export function Fits() {
     asked.current = true;
     mutate();
   }, [takenAt, noSnapshot, mutate]);
+
+  const areaKey = useWriteKey();
+  const setArea = useMutation({
+    mutationFn: (area: string) => {
+      const body = { area };
+      return call(
+        api.PATCH("/api/v1/groups/{groupId}", {
+          params: { path: { groupId: id }, header: { "Idempotency-Key": areaKey(body) } },
+          body,
+        }),
+      );
+    },
+    onSuccess: (next) => {
+      client.setQueryData(["group", id], next);
+      void client.invalidateQueries({ queryKey: ["groups"] });
+      void client.invalidateQueries({ queryKey: ["fits", id] });
+    },
+  });
+  const area = group.data?.area ?? "alle";
 
   const key = useWriteKey();
   const propose = useMutation({
@@ -107,7 +132,7 @@ export function Fits() {
           So geht’s
         </Link>
       </p>
-      <div className="mb-4 flex gap-2" role="group" aria-label="Wie lange?">
+      <div className="mb-2 flex gap-2" role="group" aria-label="Wie lange?">
         {DURATIONS.map((d) => (
           <button
             key={d}
@@ -120,6 +145,28 @@ export function Fits() {
           </button>
         ))}
       </div>
+      <div className="mb-1 flex gap-2" role="group" aria-label="Wo spielt ihr?">
+        {AREAS.map(([a, label]) => (
+          <button
+            key={a}
+            type="button"
+            aria-pressed={area === a}
+            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(area === a)}`}
+            disabled={!group.data || setArea.isPending}
+            onClick={() => area !== a && setArea.mutate(a)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="mb-4 text-sm text-ink-muted">
+        Gilt für die ganze Gruppe.{area === "halle" && " Überdachte Plätze zählen zur Halle."}
+      </p>
+      {setArea.isError && (
+        <p role="alert" className="mb-3 text-sm text-danger-text">
+          {errorText(setArea.error)}
+        </p>
+      )}
       {refresh.isPending && (
         <p role="status" className="mb-3 text-sm text-ink-muted">
           Frage die Anlagen ab …

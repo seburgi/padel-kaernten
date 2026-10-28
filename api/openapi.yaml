@@ -272,7 +272,7 @@ paths:
           $ref: "#/components/responses/Problem"
     patch:
       operationId: updateGroup
-      summary: Rename it or change its kind; admins only
+      summary: Rename it or change its kind (admins), or where it plays (any member)
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -535,7 +535,9 @@ paths:
       description: >-
         Computed from the latest snapshot on each call, never stored. Members
         only; 404 no-group otherwise. A snapshot older than five minutes is
-        not refreshed here: the app asks /slots/refresh first.
+        not refreshed here: the app asks /slots/refresh first. Only the
+        courts of the group's area count (halle includes überdacht; a court
+        of unknown area counts only for alle).
       parameters:
         - name: minutes
           in: query
@@ -944,9 +946,14 @@ components:
     GroupKind:
       type: string
       description: private, on_request or open; clients tolerate others.
+    GroupArea:
+      type: string
+      description: >-
+        Where a group plays: alle, halle or freiluft; clients tolerate others.
+        The fits leave the other courts out; überdacht counts as halle.
     GroupSummary:
       type: object
-      required: [id, name, kind, how, members, requested]
+      required: [id, name, kind, area, how, members, requested]
       properties:
         id:
           type: integer
@@ -955,6 +962,8 @@ components:
           type: string
         kind:
           $ref: "#/components/schemas/GroupKind"
+        area:
+          $ref: "#/components/schemas/GroupArea"
         how:
           type: string
           description: member, invited or listed (open, not joined); clients tolerate others.
@@ -1050,6 +1059,8 @@ components:
           maxLength: 40
         kind:
           $ref: "#/components/schemas/GroupKind"
+        area:
+          $ref: "#/components/schemas/GroupArea"
     Joined:
       type: object
       required: [state]

@@ -163,6 +163,11 @@ export const CHAPTERS: Chapter[] = [
           nicht eingetragen hat. Die Person könnt ihr fragen.
         </p>
         <p>
+          Darunter wählt ihr, wo ihr spielt: {b("Halle")}, {b("Freiluft")} oder {b("Beides")}. Das
+          gilt für die ganze Gruppe, und jedes Mitglied kann es ändern. Überdachte Plätze zählen zur
+          Halle. Steht nicht Beides, sieht man es auch auf der Seite der Gruppe.
+        </p>
+        <p>
           {b("Vorschlagen")} macht aus einer Zeit ein Spiel, und du bist dabei. Die anderen sagen{" "}
           {b("Bin dabei")} oder {b("Kann nicht")}. Wer nach vier noch zusagt, ist Ersatz und rückt
           nach, wenn jemand absagt.
@@ -177,7 +182,7 @@ export const CHAPTERS: Chapter[] = [
     shots: [
       {
         name: "spiele-passt",
-        alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
+        alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, Halle, Freiluft oder Beides, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
       },
       {
         name: "spiele-fast",
