@@ -16,7 +16,7 @@
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm coverage"
   },
   "dependencies": {
-    "@burgstaller/web": "github:seburgi/burgstaller-platform#kit/web/v0.1.0&path:/kit/web",
+    "@burgstaller/web": "github:seburgi/burgstaller-platform#09164bc&path:/kit/web",
     "@tanstack/react-query": "^5.90.0",
     "openapi-fetch": "^0.14.0",
     "react": "^19.3.0",

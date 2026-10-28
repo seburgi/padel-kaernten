@@ -1,8 +1,11 @@
 // The app's frame: the head with What's new, Hilfe and the feedback button on every
-// screen, Plätze and Spielen, and the screens by path (react-router). The
-// page Einladen is Seb's alone; members invite into their groups.
+// screen, Plätze and Spielen, and the screens by path (react-router). On a
+// phone the sections, Neu and Hilfe sit in the kit's tab bar at the bottom
+// instead (standards/frontend/navigation.md). The page Einladen is Seb's
+// alone; members invite into their groups.
 import { FeedbackButton, FeedbackLayer, YourNotes } from "@burgstaller/web/feedback";
 import { Icon } from "@burgstaller/web/icons";
+import { TabBar } from "@burgstaller/web/nav";
 import { InstallHint, UpdateNote } from "@burgstaller/web/pwa";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -39,7 +42,7 @@ export function App() {
     retry: false,
   });
   const canInvite = me.data?.canInvite ?? false;
-  const { markRead } = useReleaseNotes();
+  const { unread, markRead } = useReleaseNotes();
   // Someone new sees the welcome once, whatever they opened, and then what
   // they opened (docs/design/help.md). The Hilfe and their notes stay open.
   const newHere = me.data?.welcomed === false;
@@ -64,7 +67,7 @@ export function App() {
               </Link>
             )}
             {path !== "/whats-new" && (
-              <Link to="/whats-new" className={`${link} px-1.5 text-sm`}>
+              <Link to="/whats-new" className={`${link} hidden px-1.5 text-sm md:inline`}>
                 Neu
               </Link>
             )}
@@ -73,7 +76,7 @@ export function App() {
                 to="/help"
                 aria-label="Hilfe"
                 title="Hilfe"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-hover hover:text-ink"
+                className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-hover hover:text-ink md:inline-flex"
               >
                 <Icon name="info" size={22} />
               </Link>
@@ -87,7 +90,7 @@ export function App() {
           </p>
         )}
         {/* The two halves of the app: free courts, and playing together. */}
-        <nav className="mt-3 flex gap-1 rounded-xl bg-sunken p-1" aria-label="Bereiche">
+        <nav className="mt-3 hidden gap-1 rounded-xl bg-sunken p-1 md:flex" aria-label="Bereiche">
           {[
             { to: "/", label: "Plätze", on: path === "/" },
             { to: "/play", label: "Spielen", on: playing },
@@ -148,6 +151,25 @@ export function App() {
         path={path}
         notesHref="/feedback"
       />
+      {path !== "/welcome" && (
+        <TabBar
+          link={Link}
+          label="Bereiche"
+          dotLabel="neu"
+          tabs={[
+            { to: "/", label: "Plätze", icon: "pin", on: path === "/" },
+            { to: "/play", label: "Spielen", icon: "calendar", on: playing },
+            {
+              to: "/whats-new",
+              label: "Neu",
+              icon: "sparkle",
+              on: path === "/whats-new",
+              dot: unread.length > 0,
+            },
+            { to: "/help", label: "Hilfe", icon: "info", on: path === "/help" },
+          ]}
+        />
+      )}
       <UpdateNote label="Eine neue Version ist da." />
       <InstallHint app={APP} />
     </div>
