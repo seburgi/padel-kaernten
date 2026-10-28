@@ -21,6 +21,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/games"
 	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
+	"github.com/seburgi/padel-kaernten/services/api/internal/notify"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/config"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/database"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
@@ -91,13 +92,31 @@ func run() error {
 	if err := groupsSvc.EnsureFirst(ctx, cfg.Owner); err != nil {
 		return fmt.Errorf("the first group: %w", err)
 	}
+	gamesSvc := games.NewService(pool)
+	var push *notify.Service
+	if cfg.VapidKey != "" {
+		key, err := notify.ParseKey(cfg.VapidKey)
+		if err != nil {
+			return err
+		}
+		push = notify.NewService(pool, key, cfg.PushContact)
+	}
+	var queue notify.Queue
+	switch {
+	case push == nil:
+	case cfg.NotifyQueue != "":
+		queue = &notify.CloudTasks{Name: cfg.NotifyQueue, URL: cfg.NotifyURL, Caller: cfg.NotifyCaller}
+	default:
+		queue = notify.Inline{Deliver: push.Deliver}
+	}
+	log.Info("push", "on", push != nil, "queue", cfg.NotifyQueue)
 	h := &transport.Handler{
 		Slots:        slots.NewService(pool, booking, nil, log),
 		Invitations:  invitations.NewService(pool, platform),
 		WhatsNew:     news,
 		Groups:       groupsSvc,
 		Availability: availability.NewService(pool, sites.Known),
-		Games:        games.NewService(pool),
+		Games:        gamesSvc,
 		Gateway:      gw,
 		Owner:        cfg.Owner,
 		Revision:     buildRevision,
@@ -105,8 +124,12 @@ func run() error {
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
-		ReapCaller: cfg.ReapCaller,
+		ReapCaller:   cfg.ReapCaller,
+		Push:         push,
+		Queue:        queue,
+		NotifyCaller: cfg.NotifyCaller,
 	}
+	gamesSvc.Changed = h.GameChanged
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           transport.Router(h, cfg.Dist),

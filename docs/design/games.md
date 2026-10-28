@@ -39,13 +39,13 @@
   group's page. A snapshot older than five minutes is refreshed once when
   the fits open, as on the courts. The group screens get the games as
   props from `App.tsx`, so the slices stay apart.
+- **What happened** (`Service.Changed`): proposed, full, moved up, booked
+  and cancelled, once per write; Mitteilungen tell people (`notify.md`).
 
 ## Deliberately not
 
 - **No booking in the app.** The venues' sites take the money and the
   booking; the app links there and is told afterwards.
-- **No notifications yet.** Nobody hears of a proposal until they open
-  the app; Web Push comes next, with a queue and a key from the platform.
 - **Leaving a group does not take back one's answers** to its games yet.
 - **Old games are not reaped yet**; past days simply drop out of the
   lists.

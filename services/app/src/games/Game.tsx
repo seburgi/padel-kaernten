@@ -2,7 +2,7 @@
 // not answered; saying yes or no; and, for whoever proposed it, the way to
 // the venue's booking page, "Gebucht" and cancelling.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Game as G } from "../api/client";
 import { card, danger, link, primary, quiet } from "../ui";
@@ -14,7 +14,9 @@ const STATE: Record<string, string> = {
   cancelled: "Abgesagt",
 };
 
-export function Game() {
+/** notify is the way to turn Mitteilungen on, from the push slice (App
+ * puts it in); shown to whoever is in. */
+export function Game({ notify }: { notify?: ReactNode }) {
   const id = Number(useParams().id);
   const client = useQueryClient();
   const me = useQuery({
@@ -162,6 +164,7 @@ export function Game() {
           {errorText(answer.error)}
         </p>
       )}
+      {open && (mine === "in" || mine === "reserve") && notify}
 
       <section className="mb-6">
         <h2 className="mb-2 font-semibold">

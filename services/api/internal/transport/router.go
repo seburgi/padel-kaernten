@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/seburgi/padel-kaernten/services/api/internal/notify"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/problem"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport/gen"
@@ -35,6 +36,8 @@ func Router(h *Handler, dist string) http.Handler {
 	// The nightly retention run, outside the contract: only Cloud Scheduler
 	// calls it (standards/architecture/background-work.md).
 	r.Post("/reap", h.reap)
+	// Web Push: the queue's tasks come back here (notify.Path).
+	r.Post(notify.Path, h.notifyTask)
 	// The sign-in stand-in, on a laptop only (localgateway).
 	if h.Gateway != nil && h.Gateway.Local != nil {
 		r.Handle(localgateway.Path+"*", h.Gateway.Local)

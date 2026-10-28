@@ -11,7 +11,7 @@ they apply here. A change to a rule edits its note there.
 `platform.md` (where it runs, who may call it), `slots.md` (the snapshot
 and its refresh), `booking-sites.md` (how each booking site is read, and
 how to add a venue), `invitations.md` (Seb's invitations into the app),
-`groups.md`, `availability.md`, `games.md`, `whats-new.md` (release notes). Each says what is true, what is
+`groups.md`, `availability.md`, `games.md`, `notify.md` (Web Push), `whats-new.md` (release notes). Each says what is true, what is
 **deliberately not** done, and the traps. A change to behaviour edits its
 file in the same commit.
 
@@ -74,14 +74,15 @@ secret for it.
   committed.
 - `services/api/internal/<slice>/`: `slots` (with `slots/sites`, the
   booking sites and `venues.json`), `invitations`, `groups`,
-  `availability`, `games` and `whatsnew`, which never import each other
-  (depguard); `transport` is where they meet.
+  `availability`, `games`, `notify` and `whatsnew`, which never import
+  each other (depguard); `transport` is where they meet.
 - `services/api/internal/platform/`: config, database, idempotency,
   problem+json, the platform service's invitation calls (`platformsvc`),
   the test database.
 - `services/api/migrations/`: `NNNN_some_words.sql`, applied at start-up.
 - `services/app/src/<slice>/`: `courts`, `invitations`, `groups`,
-  `availability`, `games` and `whatsnew`, which never import each other (ESLint).
+  `availability`, `games`, `push` and `whatsnew`, which never import each
+  other (ESLint).
 - `release_notes/`: What's new, one file per change (below).
 
 ## What's new

@@ -348,3 +348,46 @@ func TestDatabaseDown(t *testing.T) {
 		t.Error("answer")
 	}
 }
+
+func TestEvents(t *testing.T) {
+	s, _, group := setup(t)
+	ctx := t.Context()
+	var got []string
+	s.Changed = func(_ context.Context, e games.Event) {
+		if e.Key == "" || e.Game.ID == 0 {
+			t.Errorf("event without key or game: %+v", e)
+		}
+		got = append(got, e.Kind+" "+e.Who)
+	}
+	k := key()
+	p := games.Proposal{VenueID: "villach", Court: "Court 1", Day: "2026-10-29", Start: 1110, Minutes: 90}
+	g, err := s.Propose(ctx, anna, k, group, p, []games.Venue{villach()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Propose(ctx, anna, k, group, p, []games.Venue{villach()}); err != nil {
+		t.Fatal(err)
+	}
+	do := func(who, a string) {
+		t.Helper()
+		if _, err := s.Answer(ctx, who, key(), g.ID, a); err != nil {
+			t.Fatal(err)
+		}
+	}
+	do(bert, games.In)
+	do(carla, games.In)
+	do(carla, games.In)
+	do(dora, games.In)
+	do(emil, games.In)
+	do(bert, games.Out)
+	do(emil, games.Out)
+	for _, st := range []string{games.Booked, games.Booked, games.Cancelled} {
+		if _, err := s.SetState(ctx, anna, key(), g.ID, st); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := []string{"proposed " + anna, "full " + dora, "moved-up " + emil, "booked " + anna, "cancelled " + anna}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("events:\n got %q\nwant %q", got, want)
+	}
+}

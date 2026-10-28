@@ -83,11 +83,42 @@ func mustZone(name string) *time.Location {
 	return l
 }
 
+// What happened to a game, for whoever wants to tell people (Event.Kind).
+const (
+	EventProposed  = "proposed"
+	EventFull      = "full"
+	EventMovedUp   = "moved-up"
+	EventBooked    = "booked"
+	EventCancelled = "cancelled"
+)
+
+// Event is something people may want to hear of: Game as it is after,
+// Who whoever it is about (who moved up), Key the write's Idempotency-Key.
+type Event struct {
+	Kind string
+	Game Game
+	Who  string
+	Key  string
+}
+
 // Service keeps the games.
 type Service struct {
 	pool *pgxpool.Pool
 	// Now is the clock; nil is time.Now.
 	Now func() time.Time
+	// Changed hears of each event once the write is in; a retried request
+	// that changes nothing tells it nothing. It must not fail the write.
+	Changed func(context.Context, Event)
+}
+
+func (s *Service) tell(ctx context.Context, g Game, key string, events []Event) {
+	if s.Changed == nil {
+		return
+	}
+	for _, e := range events {
+		e.Game, e.Key = g, key
+		s.Changed(ctx, e)
+	}
 }
 
 // NewService is the games service.
@@ -204,6 +235,7 @@ func (s *Service) Propose(ctx context.Context, who, key string, group int64, p P
 		return Game{}, err
 	}
 	var id int64
+	var events []Event
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		claim, err := idempotency.Begin(ctx, tx, key, who, "propose-game", hash)
 		if err != nil {
@@ -231,12 +263,17 @@ func (s *Service) Propose(ctx context.Context, who, key string, group int64, p P
 			`INSERT INTO game_players (game_id, email, state) VALUES ($1, $2, 'in')`, id, who); err != nil {
 			return err
 		}
+		events = []Event{{Kind: EventProposed, Who: who}}
 		return idempotency.Complete(ctx, tx, key, strconv.FormatInt(id, 10))
 	})
 	if err != nil {
 		return Game{}, err
 	}
-	return s.Get(ctx, who, id)
+	g, err := s.Get(ctx, who, id)
+	if err == nil {
+		s.tell(ctx, g, key, events)
+	}
+	return g, err
 }
 
 // stillFree finds the proposal's venue and its price when the court is
@@ -265,11 +302,12 @@ func stillFree(venues []Venue, p Proposal, w Window) (Venue, *int, error) {
 
 // write runs fn once per Idempotency-Key, on a game who may see, and
 // answers the game as it is after.
-func (s *Service) write(ctx context.Context, who, key, op string, id int64, body any, fn func(pgx.Tx, Game) error) (Game, error) {
+func (s *Service) write(ctx context.Context, who, key, op string, id int64, body any, fn func(pgx.Tx, Game) ([]Event, error)) (Game, error) {
 	hash, err := idempotency.Hash(op, []any{id, body})
 	if err != nil {
 		return Game{}, err
 	}
+	var events []Event
 	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		claim, err := idempotency.Begin(ctx, tx, key, who, op, hash)
 		if err != nil || claim.Replay {
@@ -280,7 +318,7 @@ func (s *Service) write(ctx context.Context, who, key, op string, id int64, body
 		if err != nil {
 			return err
 		}
-		if err := fn(tx, g); err != nil {
+		if events, err = fn(tx, g); err != nil {
 			return err
 		}
 		return idempotency.Complete(ctx, tx, key, strconv.FormatInt(id, 10))
@@ -288,7 +326,11 @@ func (s *Service) write(ctx context.Context, who, key, op string, id int64, body
 	if err != nil {
 		return Game{}, err
 	}
-	return s.Get(ctx, who, id)
+	g, err := s.Get(ctx, who, id)
+	if err == nil {
+		s.tell(ctx, g, key, events)
+	}
+	return g, err
 }
 
 // Answer is who saying yes (in) or no (out). A yes when the game is full
@@ -298,43 +340,55 @@ func (s *Service) Answer(ctx context.Context, who, key string, id int64, answer 
 	if answer != In && answer != Out {
 		return Game{}, ErrInvalid
 	}
-	return s.write(ctx, who, key, "answer-game", id, answer, func(tx pgx.Tx, g Game) error {
+	return s.write(ctx, who, key, "answer-game", id, answer, func(tx pgx.Tx, g Game) ([]Event, error) {
 		if g.State == Cancelled || g.Day < today {
-			return ErrClosed
+			return nil, ErrClosed
 		}
 		var was string
 		err := tx.QueryRow(ctx, `SELECT state FROM game_players WHERE game_id = $1 AND email = $2`, id, who).Scan(&was)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return err
+			return nil, err
 		}
 		if answer == In && (was == In || was == Reserve) || answer == Out && was == Out {
-			return nil
+			return nil, nil
 		}
 		state := Out
+		var events []Event
 		if answer == In {
 			var playing int
 			if err := tx.QueryRow(ctx,
 				`SELECT count(*) FROM game_players WHERE game_id = $1 AND state = 'in'`, id).Scan(&playing); err != nil {
-				return err
+				return nil, err
 			}
 			state = In
-			if playing >= g.Players {
+			switch {
+			case playing >= g.Players:
 				state = Reserve
+			case playing+1 == g.Players:
+				events = append(events, Event{Kind: EventFull, Who: who})
 			}
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO game_players (game_id, email, state) VALUES ($1, $2, $3)
 			ON CONFLICT (game_id, email) DO UPDATE SET state = $3, answered_at = now()`, id, who, state); err != nil {
-			return err
+			return nil, err
 		}
 		if was != In {
-			return nil
+			return events, nil
 		}
-		_, err = tx.Exec(ctx, `
+		var moved string
+		err = tx.QueryRow(ctx, `
 				UPDATE game_players SET state = 'in' WHERE (game_id, email) = (
 					SELECT game_id, email FROM game_players WHERE game_id = $1 AND state = 'reserve'
-					 ORDER BY answered_at, email LIMIT 1)`, id)
-		return err
+					 ORDER BY answered_at, email LIMIT 1)
+				RETURNING email`, id).Scan(&moved)
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return events, nil
+		case err != nil:
+			return nil, err
+		}
+		return append(events, Event{Kind: EventMovedUp, Who: moved}), nil
 	})
 }
 
@@ -343,16 +397,26 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 	if state != Booked && state != Cancelled {
 		return Game{}, ErrInvalid
 	}
-	return s.write(ctx, who, key, "game-state", id, state, func(tx pgx.Tx, g Game) error {
+	return s.write(ctx, who, key, "game-state", id, state, func(tx pgx.Tx, g Game) ([]Event, error) {
 		if g.ProposedBy != who {
-			return ErrForbidden
+			return nil, ErrForbidden
 		}
 		if g.State == Cancelled {
-			return ErrClosed
+			return nil, ErrClosed
+		}
+		if g.State == state {
+			return nil, nil
 		}
 		_, err := tx.Exec(ctx, `
 			UPDATE games SET state = $2, booked_at = CASE WHEN $2 = 'booked' THEN coalesce(booked_at, now()) ELSE booked_at END
 			 WHERE id = $1`, id, state)
-		return err
+		if err != nil {
+			return nil, err
+		}
+		kind := EventBooked
+		if state == Cancelled {
+			kind = EventCancelled
+		}
+		return []Event{{Kind: kind, Who: who}}, nil
 	})
 }

@@ -25,10 +25,12 @@ type Table struct {
 // Tables is every table the run looks at. Idempotency answers are kept a
 // week (standards/api/idempotency.md); a retry comes long before that.
 // Spans of days gone by are no use (docs/design/availability.md); two days
-// keeps yesterday in Vienna whatever the hour in UTC.
+// keeps yesterday in Vienna whatever the hour in UTC. A browser the app
+// has not opened in for 90 days is no longer in use (docs/design/notify.md).
 var Tables = []Table{
 	{Name: "idempotency_keys", Column: "created_at", Days: 7},
 	{Name: "availability_spans", Column: "day", Days: 2},
+	{Name: "push_subscriptions", Column: "seen_at", Days: 90},
 }
 
 // Result is what a run did, or would do, to one table.

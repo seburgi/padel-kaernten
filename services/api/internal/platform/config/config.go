@@ -32,6 +32,16 @@ type Config struct {
 	// ReapCaller is the account the Cloud Scheduler job signs POST /reap
 	// with. Nobody else may call it; empty means nobody can.
 	ReapCaller string
+	// Web Push (docs/design/notify.md), all optional: without the VAPID
+	// key push is off. VapidKey is a P-256 private key in PEM; NotifyQueue
+	// the Cloud Tasks queue, NotifyURL the service's own address the tasks
+	// go to, NotifyCaller the account they are signed as. Without a queue
+	// the API sends at once (a laptop).
+	VapidKey     string
+	PushContact  string
+	NotifyQueue  string
+	NotifyURL    string
+	NotifyCaller string
 	// ReleaseNotesDir holds the What's new notes; the image copies them to
 	// /release_notes.
 	ReleaseNotesDir string
@@ -53,6 +63,11 @@ func Load() (Config, error) {
 		Owner:           strings.ToLower(strings.TrimSpace(os.Getenv("OWNER_EMAIL"))),
 		ReapCaller:      strings.ToLower(strings.TrimSpace(os.Getenv("REAP_CALLER"))),
 		ReleaseNotesDir: env("RELEASE_NOTES_DIR", "../../release_notes"),
+		VapidKey:        os.Getenv("VAPID_PRIVATE_KEY"),
+		PushContact:     env("PUSH_CONTACT", "mailto:sburgstaller@gmail.com"),
+		NotifyQueue:     os.Getenv("NOTIFY_QUEUE"),
+		NotifyURL:       os.Getenv("NOTIFY_URL"),
+		NotifyCaller:    strings.ToLower(strings.TrimSpace(os.Getenv("NOTIFY_CALLER"))),
 	}
 	for _, a := range strings.Split(os.Getenv("GATEWAY_AUDIENCES"), ",") {
 		if a = strings.TrimSpace(a); a != "" {

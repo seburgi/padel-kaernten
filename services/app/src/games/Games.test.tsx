@@ -262,10 +262,12 @@ describe("Game", () => {
       },
       calls,
     );
-    at("/games/7", <Game />, "/games/:id");
+    at("/games/7", <Game notify={<p>Mitteilungen?</p>} />, "/games/:id");
     expect(
       await screen.findByRole("heading", { name: "Do 29.10., 18:30–20:00" }),
     ).toBeInTheDocument();
+    // Whoever is in is asked about Mitteilungen.
+    expect(screen.getByText("Mitteilungen?")).toBeInTheDocument();
     expect(screen.getByText(/Padel Villach · Court 1/)).toHaveTextContent("pro Kopf");
     expect(screen.getByText(/voll, jetzt buchen/)).toHaveTextContent("Vorgeschlagen von dir");
     expect(screen.getByText("Seb (du)")).toBeInTheDocument();

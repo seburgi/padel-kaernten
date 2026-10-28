@@ -541,6 +541,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/push": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Whether the API sends notifications, and the key browsers subscribe with */
+    get: operations["getPush"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/push/subscriptions/{subscriptionId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        subscriptionId: components["parameters"]["SubscriptionId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Keep this browser's subscription for the caller, or see it again
+     * @description The id is the first 32 hex digits of the endpoint's SHA-256, so a browser can name its own. Sent again whenever the app opens; the same subscription twice is one.
+     */
+    put: operations["subscribePush"];
+    post?: never;
+    /** Forget one of the caller's browsers */
+    delete: operations["unsubscribePush"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -828,6 +868,17 @@ export interface components {
       /** @description booked or cancelled. */
       state: string;
     };
+    PushInfo: {
+      /** @description The VAPID public key, base64url; absent when push is off. */
+      publicKey?: string;
+    };
+    PushSubscription: {
+      endpoint: string;
+      keys: {
+        p256dh: string;
+        auth: string;
+      };
+    };
     GameAnswer: {
       /** @description in or out. */
       answer: string;
@@ -845,6 +896,7 @@ export interface components {
     };
   };
   parameters: {
+    SubscriptionId: string;
     GameId: number;
     GroupId: number;
     /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
@@ -1635,6 +1687,76 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["Game"];
         };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getPush: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The VAPID public key, none when push is off. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PushInfo"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  subscribePush: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        subscriptionId: components["parameters"]["SubscriptionId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushSubscription"];
+      };
+    };
+    responses: {
+      /** @description Kept. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  unsubscribePush: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        subscriptionId: components["parameters"]["SubscriptionId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Gone, or was not there. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       default: components["responses"]["Problem"];
     };

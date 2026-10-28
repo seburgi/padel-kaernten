@@ -15,6 +15,8 @@ import { Upcoming } from "./games/Upcoming";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play } from "./groups/Play";
+import { useKeepPush } from "./push/push";
+import { PushCard } from "./push/PushCard";
 import { Invitations } from "./invitations/Invitations";
 import { link } from "./ui";
 import { WhatsNew } from "./whatsnew/WhatsNew";
@@ -33,6 +35,7 @@ export function App() {
     retry: false,
   });
   const canInvite = me.data?.canInvite ?? false;
+  useKeepPush();
   const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
 
   return (
@@ -88,7 +91,19 @@ export function App() {
         <Route path="/invites" element={canInvite ? <Invitations /> : <Courts />} />
         {/* The page's address until 2026-10-28; links to it keep working. */}
         <Route path="/einladen" element={<Navigate to="/invites" replace />} />
-        <Route path="/play" element={<Play games={<Upcoming />} />} />
+        <Route
+          path="/play"
+          element={
+            <Play
+              games={
+                <>
+                  <PushCard where="play" />
+                  <Upcoming />
+                </>
+              }
+            />
+          }
+        />
         <Route path="/groups" element={<Groups />} />
         <Route path="/groups/new" element={<NewGroup />} />
         <Route
@@ -96,7 +111,7 @@ export function App() {
           element={<Group games={(id) => <Upcoming key={id} group={id} />} />}
         />
         <Route path="/groups/:id/fits" element={<Fits />} />
-        <Route path="/games/:id" element={<Game />} />
+        <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />
         <Route path="/availability" element={<Availability />} />
         <Route path="/whats-new" element={<WhatsNew />} />
         <Route path="/feedback" element={<YourNotes app={APP} />} />

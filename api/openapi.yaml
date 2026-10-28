@@ -639,8 +639,59 @@ paths:
                 $ref: "#/components/schemas/Game"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/push:
+    get:
+      operationId: getPush
+      summary: Whether the API sends notifications, and the key browsers subscribe with
+      responses:
+        "200":
+          description: The VAPID public key, none when push is off.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushInfo"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/push/subscriptions/{subscriptionId}:
+    parameters:
+      - $ref: "#/components/parameters/SubscriptionId"
+    put:
+      operationId: subscribePush
+      summary: Keep this browser's subscription for the caller, or see it again
+      description: >-
+        The id is the first 32 hex digits of the endpoint's SHA-256, so a
+        browser can name its own. Sent again whenever the app opens; the
+        same subscription twice is one.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscription"
+      responses:
+        "204":
+          description: Kept.
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: unsubscribePush
+      summary: Forget one of the caller's browsers
+      responses:
+        "204":
+          description: Gone, or was not there.
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9a-f]{32}$"
     GameId:
       name: gameId
       in: path
@@ -1228,6 +1279,26 @@ components:
         state:
           type: string
           description: booked or cancelled.
+    PushInfo:
+      type: object
+      properties:
+        publicKey:
+          type: string
+          description: The VAPID public key, base64url; absent when push is off.
+    PushSubscription:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+        keys:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh:
+              type: string
+            auth:
+              type: string
     GameAnswer:
       type: object
       required: [answer]

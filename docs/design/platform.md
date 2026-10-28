@@ -22,10 +22,14 @@
   invitation page (`invitations.md`).
 - **A nightly `POST /reap`** (03:30 Vienna, Cloud Scheduler) deletes what
   grows forever, table by table, in chunks under an advisory lock
-  (`internal/platform/retention`; standards/data/retention.md): today the
-  idempotency answers after 7 days. Only `REAP_CALLER`, the scheduler's
+  (`internal/platform/retention`; standards/data/retention.md): the
+  idempotency answers after 7 days, spans of days gone by after 2, push
+  subscriptions not seen for 90. Only `REAP_CALLER`, the scheduler's
   account `padel-reap`, may call it; the gateway's account is refused like
   anyone else's. `?dry_run=true` counts and deletes nothing.
+- **`POST /tasks/notify`** is the queue `padel-notify` coming back with a
+  message to push (`notify.md`). Only `NOTIFY_CALLER`, the API's own
+  account, may call it.
 - **On a laptop there is no gateway.** With `ENVIRONMENT=local` (and
   only then; Terraform sets `prod`) the API mounts a stand-in at
   `/dev-gateway/` (`internal/platform/localgateway`;

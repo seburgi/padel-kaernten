@@ -2,7 +2,12 @@ package transport_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"io"
 	"log/slog"
@@ -11,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +29,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/games"
 	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
+	"github.com/seburgi/padel-kaernten/services/api/internal/notify"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/testdb"
@@ -38,7 +45,53 @@ const (
 	seb            = "seb@example.at"
 	anna           = "anna@example.at"
 	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
+	apiAccount     = "padel-api@burgstaller-platform.iam.gserviceaccount.com"
 )
+
+// fakeQueue keeps what would go on the queue.
+type fakeQueue struct {
+	mu    sync.Mutex
+	err   error
+	names []string
+	sent  []notify.Message
+}
+
+func (q *fakeQueue) Enqueue(_ context.Context, name string, m notify.Message) error {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.err != nil {
+		return q.err
+	}
+	q.names = append(q.names, name)
+	q.sent = append(q.sent, m)
+	return nil
+}
+
+func (q *fakeQueue) take() []notify.Message {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	out := q.sent
+	q.sent = nil
+	return out
+}
+
+// vapidKey is a P-256 key for the tests.
+func vapidKey(t *testing.T) *notify.Key {
+	t.Helper()
+	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKCS8PrivateKey(k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, err := notify.ParseKey(string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return key
+}
 
 type fakeSites struct {
 	err  error
@@ -74,6 +127,8 @@ type app struct {
 	dist     string
 	log      *slog.Logger
 	news     *whatsnew.Service
+	queue    *fakeQueue
+	key      *notify.Key
 }
 
 func setup(t *testing.T) *app {
@@ -88,7 +143,7 @@ func setup(t *testing.T) *app {
 			t.Fatal(err)
 		}
 	}
-	a := &app{t: t, signer: signer, sites: &fakeSites{}, platform: &fakePlatform{}}
+	a := &app{t: t, signer: signer, sites: &fakeSites{}, platform: &fakePlatform{}, queue: &fakeQueue{}, key: vapidKey(t)}
 	news, err := whatsnew.NewService(context.Background(), pool, []whatsnew.Note{
 		{Slug: "2026-10-27-older", Date: "2026-10-27", Area: "courts", Title: "Older", Paragraphs: []string{"Before."}},
 		{Slug: "2026-10-28-newer", Date: "2026-10-28", Area: "app", Title: "Newer", Paragraphs: []string{"After."}, Link: "/whats-new"},
@@ -104,13 +159,14 @@ func setup(t *testing.T) *app {
 // router is the app on pool; a closed pool is a database that is down.
 func (a *app) router(pool *pgxpool.Pool) http.Handler {
 	log, news := a.log, a.news
+	gamesSvc := games.NewService(pool)
 	h := &transport.Handler{
 		Slots:        slots.NewService(pool, a.sites, nil, log),
 		Invitations:  invitations.NewService(pool, a.platform),
 		WhatsNew:     news,
 		Groups:       groups.NewService(pool, a.platform),
 		Availability: availability.NewService(pool, func(v string) bool { return v == "villach" }),
-		Games:        games.NewService(pool),
+		Games:        gamesSvc,
 		Gateway: &transport.Gateway{Caller: gatewayAccount, Address: address,
 			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: a.signer.URL}},
 		Owner:    seb,
@@ -119,8 +175,12 @@ func (a *app) router(pool *pgxpool.Pool) http.Handler {
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
-		ReapCaller: reapAccount,
+		ReapCaller:   reapAccount,
+		Push:         notify.NewService(pool, a.key, "mailto:seb@example.at"),
+		Queue:        a.queue,
+		NotifyCaller: apiAccount,
 	}
+	gamesSvc.Changed = h.GameChanged
 	return transport.Router(h, a.dist)
 }
 
