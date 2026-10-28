@@ -58,7 +58,10 @@ On a laptop the API runs with `ENVIRONMENT=local` and signs people in at
 `/dev-gateway/` (Seb, Anna, Markus, Lisa; `docs/design/platform.md`). To
 see a change in a browser, drive it with `services/app/tools/browse.mjs`
 (Playwright, a dev dependency for it alone) and put screenshots in the
-project's shared files, never in the repository.
+project's shared files, never in the repository. The one exception is
+the Hilfe's own pictures, which the app ships: `services/app/public/help/`,
+made only by `services/app/tools/help-shots.mjs` (Seb, 2026-10-28;
+`docs/design/help.md`).
 
 Go 1.27; the Dockerfile's base image tracks `go.mod`. `GOPRIVATE=github.com/seburgi/*`
 lets Go and pnpm fetch the platform's private kit (`kit/go`, `kit/web`)

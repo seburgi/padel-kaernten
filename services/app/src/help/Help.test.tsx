@@ -1,4 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWithQuery } from "../test/render";
 import { CHAPTERS } from "./chapters";
@@ -23,13 +25,44 @@ describe("Help", () => {
     );
   });
 
-  it("scrolls to the chapter a link asks for", () => {
+  it("scrolls to the chapter a link asks for", async () => {
     const scrolled = vi.fn();
     Element.prototype.scrollIntoView = function (this: Element) {
       scrolled(this.id);
     };
     renderWithQuery(<Help />, { at: "/help#spiele" });
-    expect(scrolled).toHaveBeenCalledWith("spiele");
+    await waitFor(() => expect(scrolled).toHaveBeenCalledWith("spiele"));
+  });
+
+  it("shows each picture light, or dark where the app is set to dark", () => {
+    renderWithQuery(<Help />, { at: "/help" });
+    const img = screen.getByRole("img", { name: /^Ein vorgeschlagenes Spiel/ });
+    expect(img).toHaveAttribute("src", "/help/spiel.webp");
+    expect(img).toHaveAttribute("loading", "lazy");
+    expect(img.parentElement?.querySelector("source")).toHaveAttribute(
+      "srcset",
+      "/help/spiel-dark.webp",
+    );
+  });
+
+  it("follows a theme chosen in the app", () => {
+    document.cookie = "theme=dark; Path=/";
+    try {
+      renderWithQuery(<Help />, { at: "/help" });
+      const img = screen.getByRole("img", { name: /^Ein vorgeschlagenes Spiel/ });
+      expect(img).toHaveAttribute("src", "/help/spiel-dark.webp");
+      expect(img.parentElement?.querySelector("source")).toBeNull();
+    } finally {
+      document.cookie = "theme=; Max-Age=0; Path=/";
+    }
+  });
+
+  it("has every picture it names, light and dark", () => {
+    const named = CHAPTERS.flatMap((c) => c.shots ?? []).map((s) => s.name);
+    expect(named.length).toBeGreaterThan(0);
+    for (const name of named)
+      for (const file of [`${name}.webp`, `${name}-dark.webp`])
+        expect(existsSync(join(__dirname, "../../public/help", file)), file).toBe(true);
   });
 
   it("keeps the anchors unique", () => {

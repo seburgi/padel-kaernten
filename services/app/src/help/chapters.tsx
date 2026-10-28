@@ -4,6 +4,10 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { link } from "../ui";
+import type SHOTS from "./shots.json";
+
+/** A picture from tools/help-shots.mjs: its name in shots.json, and what it shows. */
+export type Shot = { name: keyof typeof SHOTS; alt: string };
 
 export type Chapter = {
   /** The anchor, German like the words on screen: /help#gruppen. */
@@ -11,6 +15,7 @@ export type Chapter = {
   title: string;
   lead: string;
   body: ReactNode;
+  shots?: Shot[];
 };
 
 const b = (text: string) => <b className="font-semibold">{text}</b>;
@@ -58,6 +63,12 @@ export const CHAPTERS: Chapter[] = [
         <p>Wer einen Platz gebucht hat, zeigt die App nie. Sie weiß nur, was frei ist.</p>
       </>
     ),
+    shots: [
+      {
+        name: "plaetze",
+        alt: "Plätze: oben Tag, Beginn ab, Ende bis, Spieldauer und Halle oder Freiluft, darunter eine Anlage mit ihren freien Startzeiten und Preisen.",
+      },
+    ],
   },
   {
     id: "zeiten",
@@ -84,6 +95,16 @@ export const CHAPTERS: Chapter[] = [
         </p>
       </>
     ),
+    shots: [
+      {
+        name: "zeiten",
+        alt: "Wann kannst du?: die nächsten Tage als Zeilen von 6 bis 24 Uhr, die eingetragenen Zeiten grün.",
+      },
+      {
+        name: "zeiten-tag",
+        alt: "Ein Tag offen: Schnellwahl Früh, Mittag, Abend, Ganzer Tag, zwei Zeiten mit von und bis, „+ Noch eine Zeit“, „So ist es meistens am Freitag“, Speichern und Kann nicht.",
+      },
+    ],
   },
   {
     id: "gruppen",
@@ -118,6 +139,16 @@ export const CHAPTERS: Chapter[] = [
         </p>
       </>
     ),
+    shots: [
+      {
+        name: "gruppen-finden",
+        alt: "Gruppen finden: eine Gruppe auf Anfrage mit „Anfragen“ und eine offene mit „Beitreten“.",
+      },
+      {
+        name: "gruppe",
+        alt: "Die Seite einer Gruppe: vier Mitglieder mit den Tagen, an denen sie Zeiten eingetragen haben, darunter Einladen mit der E-Mail-Adresse.",
+      },
+    ],
   },
   {
     id: "spiele",
@@ -143,6 +174,24 @@ export const CHAPTERS: Chapter[] = [
         <p>Deine nächsten Spiele stehen unter Spielen und auf der Seite der Gruppe.</p>
       </>
     ),
+    shots: [
+      {
+        name: "spiele-passt",
+        alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
+      },
+      {
+        name: "spiele-fast",
+        alt: "Fast: eine Person fehlt: drei können, und die App sagt, wen ihr fragen könnt.",
+      },
+      {
+        name: "spiel",
+        alt: "Ein vorgeschlagenes Spiel: Dabei 3 von 4, noch keine Antwort von Lisa, für wer vorgeschlagen hat Zur Buchung, Gebucht und Spiel absagen.",
+      },
+      {
+        name: "spielen",
+        alt: "Spielen: Nächste Spiele, eines gebucht und eines mit 3 von 4, darunter deine Gruppen.",
+      },
+    ],
   },
   {
     id: "mitteilungen",

@@ -11,6 +11,19 @@
 - **The text lives in the app's code** (`help/chapters.tsx`), in the
   words the screens use, and changes in the same commit as the screen it
   describes. No call to the API; the page works as soon as the app does.
+- **Pictures** of the screens sit under their chapter, from
+  `services/app/public/help/` (WebP, 780 px wide, about 20 to 60 KB),
+  each light and dark (`<name>.webp`, `<name>-dark.webp`): the device's
+  choice picks one with `<picture>`, unless a theme was chosen in the app.
+  `src/help/shots.json` holds their sizes, so the page does not jump while
+  they load, and they load only when scrolled to.
+- **`services/app/tools/help-shots.mjs` makes every picture**, never a
+  hand: it empties the local database (it refuses one that is not on this
+  machine), writes a fixed snapshot of every venue in `venues.json`, signs
+  in Seb, Anna, Markus and Lisa through the local gateway, builds the
+  group "Dienstagsrunde" with their times and two games, and photographs
+  each screen on an iPhone 13, cut to the part the chapter is about. How
+  to run it is at its top.
 - **Reached from** the round "Hilfe" button in the head (kit/web's `info`
   icon, beside Neu and the feedback button), and from a "So geht's" link
   where people get stuck: "Wann kannst du?" (`#zeiten`), Gruppen finden
@@ -25,11 +38,23 @@
 - **No help text from the server.** It would be one more thing to
   deploy apart from the screens it describes.
 - **No search.** Ten short chapters and a table of contents are enough.
+- **No pictures of Mitteilungen, the home screen or feedback**: a headless
+  browser cannot show them as a phone does, and the words say enough.
+- **No real people, venues' real times or prices in a picture.** The
+  snapshot is made up; the venues' names are real.
 
 ## Traps
 
 - A chapter names buttons by their words on screen. Renaming a button
   means changing its chapter, or the Hilfe tells people to tap something
   that is not there.
+- **A screen changed, its picture did not.** No test notices; run
+  `help-shots.mjs` again in the same commit as a change to a screen the
+  Hilfe shows (`plaetze`, `zeiten`, `zeiten-tag`, `gruppen-finden`,
+  `gruppe`, `spiele-passt`, `spiele-fast`, `spiel`, `spielen`), and look
+  at the pictures before pushing. `Help.test.tsx` checks only that every
+  named picture exists, light and dark.
+- A picture is cut from one locator's top to another's bottom; a screen
+  whose structure changes can make the script fail or cut wrongly.
 - An anchor is a link other screens and release notes use. Renaming one
   breaks them silently; `Help.test.tsx` only checks they are unique.

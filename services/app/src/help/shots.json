@@ -1,0 +1,38 @@
+{
+  "gruppe": {
+    "width": 780,
+    "height": 946
+  },
+  "gruppen-finden": {
+    "width": 780,
+    "height": 776
+  },
+  "plaetze": {
+    "width": 780,
+    "height": 1412
+  },
+  "spiel": {
+    "width": 780,
+    "height": 1274
+  },
+  "spiele-fast": {
+    "width": 780,
+    "height": 462
+  },
+  "spiele-passt": {
+    "width": 780,
+    "height": 1408
+  },
+  "spielen": {
+    "width": 780,
+    "height": 1124
+  },
+  "zeiten": {
+    "width": 780,
+    "height": 1038
+  },
+  "zeiten-tag": {
+    "width": 780,
+    "height": 864
+  }
+}

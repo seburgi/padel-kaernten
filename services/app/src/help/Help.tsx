@@ -1,18 +1,24 @@
 // Hilfe (docs/design/help.md): every part of the app on one page, a chapter
 // each, with an anchor every screen can link to (/help#gruppen). The text
 // lives here, next to the code it describes, and changes with it.
+import { useThemeChoice } from "@burgstaller/web/theme";
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { card, link } from "../ui";
-import { CHAPTERS } from "./chapters";
+import { CHAPTERS, type Shot } from "./chapters";
+import SHOTS from "./shots.json";
 
 export function Help() {
   const { hash } = useLocation();
-  // The frame scrolls to the top on every new path; a chapter asked for by
-  // its anchor is scrolled to after that.
+  // The frame scrolls to the top on every new path, in its own effect,
+  // which runs after this one; a chapter asked for by its anchor is
+  // scrolled to on the next frame, after that.
   useEffect(() => {
     if (!hash) return;
-    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+    const frame = requestAnimationFrame(() =>
+      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView(),
+    );
+    return () => cancelAnimationFrame(frame);
   }, [hash]);
 
   return (
@@ -48,8 +54,40 @@ export function Help() {
           </h2>
           <p className="mb-3 text-ink-muted">{c.lead}</p>
           <div className="flex flex-col gap-3">{c.body}</div>
+          {c.shots && (
+            <div className="mt-4 flex flex-wrap items-start gap-4">
+              {c.shots.map((s) => (
+                <Picture key={s.name} shot={s} />
+              ))}
+            </div>
+          )}
         </section>
       ))}
     </main>
+  );
+}
+
+/** A screen as it looks, light or dark like the app (tools/help-shots.mjs
+ * makes both). A theme chosen in the app wins over the device's. */
+function Picture({ shot }: { shot: Shot }) {
+  const choice = useThemeChoice();
+  const { width, height } = SHOTS[shot.name];
+  const light = `/help/${shot.name}.webp`;
+  const dark = `/help/${shot.name}-dark.webp`;
+  return (
+    <figure className="w-full max-w-[300px] overflow-hidden rounded-2xl border border-line">
+      <picture>
+        {choice === "system" && <source srcSet={dark} media="(prefers-color-scheme: dark)" />}
+        <img
+          src={choice === "dark" ? dark : light}
+          alt={shot.alt}
+          width={width}
+          height={height}
+          loading="lazy"
+          decoding="async"
+          className="block h-auto w-full"
+        />
+      </picture>
+    </figure>
   );
 }
