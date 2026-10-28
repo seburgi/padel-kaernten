@@ -1,7 +1,8 @@
 // Willkommen (docs/design/help.md): what someone new sees once, whatever
 // address they opened: what the app is, their name, three steps to a
 // first game, and the way to the Hilfe. "Los geht's" records it and goes
-// on to the address they came for (?next=), or to Spielen; "Alles erklärt"
+// on to the address they came for (?next=), or to Spielen, where their
+// invitations wait, when they only opened the app's address; "Alles erklärt"
 // records it too and opens the Hilfe.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -35,9 +36,16 @@ const STEPS: { title: string; text: string; shot: Shot }[] = [
   },
 ];
 
-/** A path in this app to go on to, never another site. */
+/**
+ * A path in this app to go on to, never another site. Someone who opened only
+ * the app's address goes to Spielen: an invitation waits there, not on Plätze.
+ */
 function nextPath(next: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/welcome")
+  return next &&
+    next !== "/" &&
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.startsWith("/welcome")
     ? next
     : "/play";
 }

@@ -4,7 +4,9 @@
 
 - **Someone new sees `/welcome` once**, whatever address they opened;
   the address waits in `?next=` (a path in the app only, never another
-  site) and they go on to it, or to Spielen. The page says what the app
+  site) and they go on to it, or to Spielen. Someone who opened only the
+  app's address (`next=/`) goes to Spielen too, where an invitation waits
+  (on Plätze it went unseen: Gernot, 2026-10-28). The page says what the app
   is, asks for the name the others see when there is none, shows three
   steps to a first game with a glimpse of each screen, and has one
   primary button, "Los geht's". "Alles erklärt" opens the Hilfe instead.

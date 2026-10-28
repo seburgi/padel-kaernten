@@ -82,6 +82,14 @@ describe("Welcome", () => {
     expect(calls.some((c) => c.url.pathname === "/api/v1/me/welcomed")).toBe(false);
   });
 
+  it("goes on to Spielen, where invitations wait, from the app's bare address", async () => {
+    api({ name: "Anna", welcomed: false });
+    const { router } = renderWithQuery(<App />, { at: "/" });
+    await waitFor(() => expect(router.state.location.search).toBe("?next=%2F"));
+    await userEvent.click(await screen.findByRole("button", { name: "Los geht’s" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/play"));
+  });
+
   it("says so when it could not be recorded", async () => {
     serve({
       "GET /api/v1/me": () => answer(200, { ...anna, name: "Anna", welcomed: false }),
