@@ -15,7 +15,8 @@
 - **`people` is everyone who opened the app**: `GET /api/v1/me` writes the
   row, `PUT /api/v1/me/name` sets the name the others see (1 to 40
   characters). There is no other account row; a person is the lower-cased
-  email from the gateway's note.
+  email from the gateway's note. `welcomed_at` says they have seen the
+  welcome (`help.md`).
 - **Every member invites** (Seb, 2026-10-28), into the group, by address
   (`POST /api/v1/groups/{id}/invitations`). The platform service holds the
   invitation under the ref `group-<id>` (`PUT /v1/invitations/{email}/group-<id>`),

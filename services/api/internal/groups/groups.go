@@ -143,8 +143,9 @@ func validKind(kind string) bool { return kind == Private || kind == OnRequest |
 
 // Person is someone who has opened the app.
 type Person struct {
-	Email string
-	Name  string // "" until they gave one
+	Email    string
+	Name     string // "" until they gave one
+	Welcomed bool   // has seen /welcome (docs/design/help.md)
 }
 
 // Seen records that email opened the app and returns them. It is what
@@ -155,7 +156,7 @@ func (s *Service) Seen(ctx context.Context, email string) (Person, error) {
 	err := s.pool.QueryRow(ctx,
 		`INSERT INTO people (email) VALUES ($1)
 		 ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email
-		 RETURNING name`, email).Scan(&name)
+		 RETURNING name, welcomed_at IS NOT NULL`, email).Scan(&name, &p.Welcomed)
 	if name != nil {
 		p.Name = *name
 	}
@@ -180,6 +181,31 @@ func (s *Service) SetName(ctx context.Context, email, key, name string) (Person,
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO people (email, name) VALUES ($1, $2)
 			 ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name`, email, n); err != nil {
+			return err
+		}
+		return idempotency.Complete(ctx, tx, key, email)
+	})
+	if err != nil {
+		return Person{}, err
+	}
+	return s.Seen(ctx, email)
+}
+
+// Welcome records that email has seen the welcome. The first time counts;
+// a second is the same.
+func (s *Service) Welcome(ctx context.Context, email, key string) (Person, error) {
+	hash, err := idempotency.Hash("welcomed", email)
+	if err != nil {
+		return Person{}, err
+	}
+	err = pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		claim, err := idempotency.Begin(ctx, tx, key, email, "welcomed", hash)
+		if err != nil || claim.Replay {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO people (email, welcomed_at) VALUES ($1, now())
+			 ON CONFLICT (email) DO UPDATE SET welcomed_at = coalesce(people.welcomed_at, now())`, email); err != nil {
 			return err
 		}
 		return idempotency.Complete(ctx, tx, key, email)

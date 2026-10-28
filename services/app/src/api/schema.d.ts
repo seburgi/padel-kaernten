@@ -362,6 +362,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/me/welcomed": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** The caller has seen the welcome; doing it twice is the same */
+    post: operations["markWelcomed"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/availability": {
     parameters: {
       query?: never;
@@ -606,6 +623,8 @@ export interface components {
       canInvite: boolean;
       /** @description The name the others see; "" until given. */
       name: string;
+      /** @description Has seen /welcome; the app shows it until then (docs/design/help.md). */
+      welcomed: boolean;
     };
     Snapshot: {
       /** Format: date-time */
@@ -1412,6 +1431,30 @@ export interface operations {
     };
     responses: {
       /** @description The caller, with the name. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Me"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  markWelcomed: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The caller, welcomed. */
       200: {
         headers: {
           [name: string]: unknown;

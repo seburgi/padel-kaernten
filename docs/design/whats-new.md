@@ -32,8 +32,8 @@
 - **Notes in German**, not English as the standard says: Padel's people
   read German, and so does the rest of the app (Seb, 2026-10-28).
 - **No "only since you joined" filter.** Billomatic hides notes dated
-  before the account existed; Padel has no account row to date, and the
-  notes are few, so someone new sees the card once.
+  before the account existed; here the welcome marks every note read
+  instead (`help.md`), so someone new never sees the card for the past.
 - **No release notes in code.** Two threads adding to one list collide;
   two files do not. No number on a note either.
 

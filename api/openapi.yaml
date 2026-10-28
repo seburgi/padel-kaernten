@@ -420,6 +420,21 @@ paths:
                 $ref: "#/components/schemas/Me"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/me/welcomed:
+    post:
+      operationId: markWelcomed
+      summary: The caller has seen the welcome; doing it twice is the same
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: The caller, welcomed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Problem"
   /api/v1/availability:
     get:
       operationId: getAvailability
@@ -751,7 +766,7 @@ components:
           type: string
     Me:
       type: object
-      required: [email, canInvite, name]
+      required: [email, canInvite, name, welcomed]
       properties:
         email:
           type: string
@@ -761,6 +776,9 @@ components:
         name:
           type: string
           description: The name the others see; "" until given.
+        welcomed:
+          type: boolean
+          description: Has seen /welcome; the app shows it until then (docs/design/help.md).
     Snapshot:
       type: object
       required: [takenAt, days, venues]

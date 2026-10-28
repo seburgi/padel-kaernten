@@ -68,14 +68,17 @@ export function Help() {
 }
 
 /** A screen as it looks, light or dark like the app (tools/help-shots.mjs
- * makes both). A theme chosen in the app wins over the device's. */
-function Picture({ shot }: { shot: Shot }) {
+ * makes both). A theme chosen in the app wins over the device's. crop
+ * shows only its top, for a glimpse. */
+export function Picture({ shot, crop = false }: { shot: Shot; crop?: boolean }) {
   const choice = useThemeChoice();
   const { width, height } = SHOTS[shot.name];
   const light = `/help/${shot.name}.webp`;
   const dark = `/help/${shot.name}-dark.webp`;
   return (
-    <figure className="w-full max-w-[300px] overflow-hidden rounded-2xl border border-line">
+    <figure
+      className={`w-full max-w-[300px] overflow-hidden rounded-2xl border border-line ${crop ? "max-h-48" : ""}`}
+    >
       <picture>
         {choice === "system" && <source srcSet={dark} media="(prefers-color-scheme: dark)" />}
         <img

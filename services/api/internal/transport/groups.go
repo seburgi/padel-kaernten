@@ -159,12 +159,31 @@ func (h *Handler) SetMyName(w http.ResponseWriter, r *http.Request, params gen.S
 	p, err := h.Groups.SetName(r.Context(), email, params.IdempotencyKey.String(), body.Name)
 	switch {
 	case err == nil:
-		writeJSON(w, http.StatusOK, gen.Me{Email: email, Name: p.Name, CanInvite: email == h.Owner})
+		writeJSON(w, http.StatusOK, h.me(p))
 	case errors.Is(err, groups.ErrInvalid):
 		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-name", "A name is 1 to 40 characters", ""))
 	default:
 		h.groupError(w, r, err)
 	}
+}
+
+// MarkWelcomed records that the caller has seen /welcome.
+func (h *Handler) MarkWelcomed(w http.ResponseWriter, r *http.Request, params gen.MarkWelcomedParams) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	p, err := h.Groups.Welcome(r.Context(), email, params.IdempotencyKey.String())
+	if err != nil {
+		h.groupError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, h.me(p))
+}
+
+// me is how the API says who someone is.
+func (h *Handler) me(p groups.Person) gen.Me {
+	return gen.Me{Email: p.Email, Name: p.Name, CanInvite: p.Email == h.Owner, Welcomed: p.Welcomed}
 }
 
 func (h *Handler) answerGroup(w http.ResponseWriter, r *http.Request, status int, g groups.Group, err error) {

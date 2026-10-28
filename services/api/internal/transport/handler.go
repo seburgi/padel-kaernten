@@ -76,7 +76,7 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "recording a visit", err)
 		return
 	}
-	writeJSON(w, http.StatusOK, gen.Me{Email: email, Name: p.Name, CanInvite: email == h.Owner})
+	writeJSON(w, http.StatusOK, h.me(p))
 }
 
 // GetSlots is the latest snapshot, 304 when the client has it.

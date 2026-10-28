@@ -1,7 +1,22 @@
-# Hilfe
+# Willkommen and Hilfe
 
 ## How it works
 
+- **Someone new sees `/welcome` once**, whatever address they opened;
+  the address waits in `?next=` (a path in the app only, never another
+  site) and they go on to it, or to Spielen. The page says what the app
+  is, asks for the name the others see when there is none, shows three
+  steps to a first game with a glimpse of each screen, and has one
+  primary button, "Los geht's". "Alles erklärt" opens the Hilfe instead.
+- **Either records it at the server**: `people.welcomed_at` (migration
+  0006, which counts everyone already in as welcomed), set by
+  `POST /api/v1/me/welcomed`; `GET /api/v1/me` says `welcomed`. So a
+  person is welcomed once, not once per phone. `/help` and `/feedback`
+  stay open before it; `/welcome` stays reachable later as "Kurzer
+  Rundgang" on the Hilfe and then sends nobody anywhere.
+- **Someone new has nothing to catch up on**: while not welcomed, the
+  Neu card stays away, and the welcome marks every note read (the app
+  hands it `markRead` from whatsnew; the slices stay apart).
 - **One page, `/help`**, a chapter per part of the app, each under an
   anchor in German like the words on screen: `#start`, `#plaetze`,
   `#zeiten`, `#gruppen`, `#spiele`, `#mitteilungen`, `#handy`, `#feedback`,
