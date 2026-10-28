@@ -14,8 +14,9 @@ import sys
 
 # Prefixes, first match wins.
 PARTS: dict[str, tuple[str, ...]] = {
-    # The Go service and its contract; a change deploys it.
-    "go": ("services/api/", "api/"),
+    # The Go service, its contract and the release notes it serves; a
+    # change deploys it.
+    "go": ("services/api/", "api/", "release_notes/"),
     # The React app the service serves; a change deploys it too.
     "app": ("services/app/",),
     # The scripts behind the hooks, the gate and CI.

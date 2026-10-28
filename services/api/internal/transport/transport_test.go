@@ -23,6 +23,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots/sites"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport"
+	"github.com/seburgi/padel-kaernten/services/api/internal/whatsnew"
 )
 
 const (
@@ -69,9 +70,17 @@ func setup(t *testing.T) *app {
 		}
 	}
 	a := &app{t: t, signer: signer, sites: &fakeSites{}, platform: &fakePlatform{}}
+	news, err := whatsnew.NewService(context.Background(), pool, []whatsnew.Note{
+		{Slug: "2026-10-27-older", Date: "2026-10-27", Area: "courts", Title: "Older", Paragraphs: []string{"Before."}},
+		{Slug: "2026-10-28-newer", Date: "2026-10-28", Area: "app", Title: "Newer", Paragraphs: []string{"After."}, Link: "/whats-new"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	h := &transport.Handler{
 		Slots:       slots.NewService(pool, a.sites, nil, log),
 		Invitations: invitations.NewService(pool, a.platform),
+		WhatsNew:    news,
 		Gateway: &transport.Gateway{Caller: gatewayAccount, Address: address,
 			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: signer.URL}},
 		Owner:    seb,
@@ -312,5 +321,44 @@ func TestReap_onlyTheScheduler(t *testing.T) {
 	}
 	if w := a.do(gatewaytest.From(reapAccount, "POST", "/reap", "")); w.Code != 200 || !strings.Contains(w.Body.String(), `"dryRun":false`) {
 		t.Errorf("a real run: %d %s", w.Code, w.Body)
+	}
+}
+
+func TestReleaseNotes(t *testing.T) {
+	a := setup(t)
+	w := a.do(a.as(anna, "GET", "/api/v1/release-notes", ""))
+	var list struct {
+		Items []struct {
+			Slug string
+			Link *string
+			Read bool
+		}
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &list); w.Code != 200 || err != nil || len(list.Items) != 2 {
+		t.Fatalf("list: %d %s", w.Code, w.Body)
+	}
+	if list.Items[0].Slug != "2026-10-28-newer" || list.Items[0].Link == nil || list.Items[1].Link != nil || list.Items[0].Read {
+		t.Errorf("newest first, unread: %s", w.Body)
+	}
+
+	read := `{"slugs":["2026-10-28-newer","gone-in-a-deploy"]}`
+	if w := a.do(withKey(a.as(anna, "POST", "/api/v1/release-notes/read", read), "11111111-1111-4111-8111-111111111111")); w.Code != 204 {
+		t.Fatalf("read: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(withKey(a.as(anna, "POST", "/api/v1/release-notes/read", read), "11111111-1111-4111-8111-111111111111")); w.Code != 204 {
+		t.Errorf("the same again: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(withKey(a.as(anna, "POST", "/api/v1/release-notes/read", `{"slugs":[]}`), "11111111-1111-4111-8111-111111111111")); w.Code != 409 {
+		t.Errorf("key reused: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(withKey(a.as(anna, "POST", "/api/v1/release-notes/read", `[`), "22222222-2222-4222-8222-222222222222")); w.Code != 400 {
+		t.Errorf("broken body: %d %s", w.Code, w.Body)
+	}
+
+	if w := a.do(a.as(anna, "GET", "/api/v1/release-notes", "")); !strings.Contains(w.Body.String(), `"read":true`) {
+		t.Errorf("anna read it: %s", w.Body)
+	}
+	if w := a.do(a.as(seb, "GET", "/api/v1/release-notes", "")); strings.Contains(w.Body.String(), `"read":true`) {
+		t.Errorf("seb did not: %s", w.Body)
 	}
 }

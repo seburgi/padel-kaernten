@@ -21,11 +21,19 @@ export default tseslint.config(
   },
   {
     files: ["src/courts/**"],
-    rules: { "no-restricted-imports": ["error", { patterns: ["../invitations/*"] }] },
+    rules: {
+      "no-restricted-imports": ["error", { patterns: ["../invitations/*", "../whatsnew/*"] }],
+    },
   },
   {
     files: ["src/invitations/**"],
-    rules: { "no-restricted-imports": ["error", { patterns: ["../courts/*"] }] },
+    rules: { "no-restricted-imports": ["error", { patterns: ["../courts/*", "../whatsnew/*"] }] },
+  },
+  {
+    files: ["src/whatsnew/**"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: ["../courts/*", "../invitations/*"] }],
+    },
   },
   {
     files: ["src/sw.ts"],

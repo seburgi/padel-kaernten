@@ -49,7 +49,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/api /api
 COPY --from=app /src/services/app/dist /app
+COPY release_notes /release_notes
 USER nonroot:nonroot
-ENV PORT=8080 APP_DIST=/app
+ENV PORT=8080 APP_DIST=/app RELEASE_NOTES_DIR=/release_notes
 EXPOSE 8080
 ENTRYPOINT ["/api"]

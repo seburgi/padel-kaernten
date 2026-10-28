@@ -20,7 +20,8 @@
     "@tanstack/react-query": "^5.90.0",
     "openapi-fetch": "^0.14.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10",

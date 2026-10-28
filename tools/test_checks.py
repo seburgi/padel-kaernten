@@ -233,3 +233,12 @@ def test_collect_reads_a_first_push_against_the_empty_tree(tmp_path, monkeypatch
     assert found.base_migrations == []
     assert [m.strip() for _, m in found.commits] == ["first"]
     assert checks.migrations(found) == []
+
+
+def test_an_app_change_brings_its_note_or_says_why_not():
+    app = {"services/app/src/courts/Courts.tsx": "M"}
+    assert "adds no note to release_notes/" in checks.release_notes(change(app))[0]
+    assert checks.release_notes(change({**app, "release_notes/2026-10-27-a-change.md": "A"})) == []
+    assert checks.release_notes(change(app, messages="Tray\n\nRelease-note: none, a refactor")) == []
+    # The commit hook runs before the message exists: checked on push.
+    assert checks.release_notes(change(app, staged=True)) == []

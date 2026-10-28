@@ -175,6 +175,45 @@ paths:
           description: Withdrawn.
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/release-notes:
+    get:
+      operationId: listReleaseNotes
+      summary: What's new, and what the caller has read of it
+      description: >-
+        The notes the API ships, one per change (docs/design/whats-new.md),
+        newest day first and, within a day, the one that arrived last
+        first. read is the caller's own, on every device. A short list
+        that grows by hand, so it is not paged.
+      responses:
+        "200":
+          description: The notes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReleaseNoteList"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/release-notes/read:
+    post:
+      operationId: markReleaseNotesRead
+      summary: Record that the caller has seen these notes
+      description: >-
+        A slug the API does not ship is left out rather than refused (the
+        page may predate a deploy); reading a note twice keeps the first
+        time.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleaseNotesRead"
+      responses:
+        "204":
+          description: Read.
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     IdempotencyKey:
@@ -348,3 +387,45 @@ components:
         nextCursor:
           type: string
           nullable: true
+    ReleaseNote:
+      type: object
+      description: One change, written for the people who use Padel.
+      required: [slug, date, area, title, paragraphs, read]
+      properties:
+        slug:
+          type: string
+        date:
+          type: string
+          format: date
+        area:
+          type: string
+          description: courts, invites or app; clients tolerate others.
+        title:
+          type: string
+        paragraphs:
+          type: array
+          items:
+            type: string
+        link:
+          type: string
+          description: A path in the app where the change can be tried.
+        read:
+          type: boolean
+    ReleaseNoteList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReleaseNote"
+    ReleaseNotesRead:
+      type: object
+      required: [slugs]
+      properties:
+        slugs:
+          type: array
+          maxItems: 1000
+          items:
+            type: string
+            maxLength: 200

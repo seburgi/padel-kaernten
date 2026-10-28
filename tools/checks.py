@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from tools import parts  # noqa: E402
+from tools import parts, release_note  # noqa: E402
 
 MIGRATIONS = "services/api/migrations/"
 MIGRATION_NAME = re.compile(r"^(\d{4})_[a-z0-9_]+\.sql$")
@@ -151,6 +151,16 @@ def binaries(change: Change) -> list[str]:
     ]
 
 
+def release_notes(change: Change) -> list[str]:
+    """A change to the React app brings its note in release_notes/
+    (docs/design/whats-new.md) or a commit says "Release-note: none, <why>".
+    Checked on push: the commit hook runs before the message is written."""
+    if change.staged:
+        return []
+    ok, message = release_note.verdict(change.present(), change.messages)
+    return [] if ok else [message]
+
+
 def sorted_folders(change: Change) -> list[str]:
     """Every path is sorted into tools/parts.py, so CI never skips the
     tests of a new folder."""
@@ -194,7 +204,7 @@ def commit_messages(change: Change) -> list[str]:
     return problems
 
 
-CHECKS = [migrations, applied_migrations, secrets, binaries, sorted_folders, commit_messages]
+CHECKS = [migrations, applied_migrations, secrets, binaries, release_notes, sorted_folders, commit_messages]
 
 
 def _git(*args: str) -> str:

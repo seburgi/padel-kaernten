@@ -29,6 +29,9 @@ type Config struct {
 	// ReapCaller is the account the Cloud Scheduler job signs POST /reap
 	// with. Nobody else may call it; empty means nobody can.
 	ReapCaller string
+	// ReleaseNotesDir holds the What's new notes; the image copies them to
+	// /release_notes.
+	ReleaseNotesDir string
 }
 
 // Load reads the environment. It refuses to start without the gateway's
@@ -45,6 +48,7 @@ func Load() (Config, error) {
 		PlatformURL:     os.Getenv("PLATFORM_URL"),
 		Owner:           strings.ToLower(strings.TrimSpace(os.Getenv("OWNER_EMAIL"))),
 		ReapCaller:      strings.ToLower(strings.TrimSpace(os.Getenv("REAP_CALLER"))),
+		ReleaseNotesDir: env("RELEASE_NOTES_DIR", "../../release_notes"),
 	}
 	for _, a := range strings.Split(os.Getenv("GATEWAY_AUDIENCES"), ",") {
 		if a = strings.TrimSpace(a); a != "" {

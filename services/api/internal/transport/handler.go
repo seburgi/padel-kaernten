@@ -20,12 +20,14 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport/gen"
+	"github.com/seburgi/padel-kaernten/services/api/internal/whatsnew"
 )
 
 // Handler answers every route of the contract.
 type Handler struct {
 	Slots       *slots.Service
 	Invitations *invitations.Service
+	WhatsNew    *whatsnew.Service
 	Gateway     *Gateway
 	// Owner is the one address that may invite (OWNER_EMAIL).
 	Owner    string
@@ -186,6 +188,55 @@ func (h *Handler) WithdrawInvitation(w http.ResponseWriter, r *http.Request, ema
 		h.platformFailed(w, r, err)
 	default:
 		h.internal(w, r, "withdrawing", err)
+	}
+}
+
+// ListReleaseNotes is What's new, each note saying whether the caller has
+// read it.
+func (h *Handler) ListReleaseNotes(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	notes, err := h.WhatsNew.List(r.Context(), email)
+	if err != nil {
+		h.internal(w, r, "listing release notes", err)
+		return
+	}
+	list := gen.ReleaseNoteList{Items: make([]gen.ReleaseNote, 0, len(notes))}
+	for _, n := range notes {
+		item := gen.ReleaseNote{Slug: n.Slug, Area: n.Area, Title: n.Title, Paragraphs: n.Paragraphs, Read: n.Read}
+		if d, err := time.Parse(time.DateOnly, n.Date); err == nil {
+			item.Date.Time = d
+		}
+		if n.Link != "" {
+			link := n.Link
+			item.Link = &link
+		}
+		list.Items = append(list.Items, item)
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+// MarkReleaseNotesRead records that the caller has seen these notes.
+func (h *Handler) MarkReleaseNotesRead(w http.ResponseWriter, r *http.Request, params gen.MarkReleaseNotesReadParams) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	var body gen.ReleaseNotesRead
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10)).Decode(&body); err != nil || len(body.Slugs) > 1000 {
+		problem.Write(w, problem.New(http.StatusBadRequest, "bad-request", "Bad request", "The body is not a list of notes."))
+		return
+	}
+	err := h.WhatsNew.MarkRead(r.Context(), email, params.IdempotencyKey.String(), body.Slugs)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, idempotency.ErrKeyReused):
+		keyReused(w)
+	default:
+		h.internal(w, r, "marking release notes read", err)
 	}
 }
 

@@ -41,6 +41,8 @@ linters:
           deny:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/invitations
               desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/whatsnew
+              desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
         slice-invitations:
@@ -48,6 +50,18 @@ linters:
             - "**/internal/invitations/**"
           deny:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/slots
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/whatsnew
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
+              desc: Slices have no HTTP of their own; transport calls them.
+        slice-whatsnew:
+          files:
+            - "**/internal/whatsnew/**"
+          deny:
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/slots
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/invitations
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
@@ -58,6 +72,8 @@ linters:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/slots
               desc: platform is infrastructure only; it never imports a slice.
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/invitations
+              desc: platform is infrastructure only; it never imports a slice.
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/whatsnew
               desc: platform is infrastructure only; it never imports a slice.
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: platform is infrastructure only.

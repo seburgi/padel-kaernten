@@ -10,7 +10,7 @@ they apply here. A change to a rule edits its note there.
 `docs/design/` describes how the app works today, one file per area:
 `platform.md` (where it runs, who may call it), `slots.md` (the snapshot
 and its refresh), `booking-sites.md` (how each booking site is read, and
-how to add a venue), `invitations.md`. Each says what is true, what is
+how to add a venue), `invitations.md`, `whats-new.md` (release notes). Each says what is true, what is
 **deliberately not** done, and the traps. A change to behaviour edits its
 file in the same commit.
 
@@ -29,6 +29,10 @@ committed and pushed to `main`, and every push to `main` deploys.
   push hook runs the gate (`tools/gate.py`: generated code, vet,
   golangci-lint, Go tests with `-race` against a real Postgres, `pnpm
   check`, coverage). Never `--no-verify`, `git commit -n` or a force push.
+- A change to the app (`services/app/src`, `public`, `index.html`; tests
+  aside) adds its note to `release_notes/` (What's new, below) or says
+  `Release-note: none, <why>` in its message; the push hook and CI refuse
+  it otherwise.
 - About 6 minutes after a push, check the `deploy` run for the commit. Red
   deploys nothing; fix forward at once.
 - Commit messages: subject, `Why:`, `What:`, `Checked:`, `Thread:` (the
@@ -60,14 +64,39 @@ in the secrets `KIT_APP_ID` and `KIT_APP_KEY`.
   and `services/app/src/api/schema.d.ts` are generated from it and
   committed.
 - `services/api/internal/<slice>/`: `slots` (with `slots/sites`, the
-  booking sites and `venues.json`) and `invitations`, which never import
-  each other (depguard).
+  booking sites and `venues.json`), `invitations` and `whatsnew`, which
+  never import each other (depguard).
 - `services/api/internal/platform/`: config, database, idempotency,
   problem+json, the platform service's invitation calls (`platformsvc`),
   the test database.
 - `services/api/migrations/`: `NNNN_some_words.sql`, applied at start-up.
-- `services/app/src/<slice>/`: `courts` and `invitations`, which never
-  import each other (ESLint).
+- `services/app/src/<slice>/`: `courts`, `invitations` and `whatsnew`,
+  which never import each other (ESLint).
+- `release_notes/`: What's new, one file per change (below).
+
+## What's new
+
+The page **Neu** (`/whats-new`) and the card under the head are fed by
+`release_notes/`, one file per change (platform
+`standards/workflow/release-notes.md`; how it works is
+`docs/design/whats-new.md`). Every change a person can see or feel adds
+one in the same push, named `YYYY-MM-DD-a-few-words.md` and dated the day
+it is pushed (Vienna):
+
+```
+---
+date: 2026-10-28
+area: app
+title: Hier steht ab jetzt, was neu ist
+link: /whats-new
+---
+One to three short paragraphs in German, for the people who play: what
+they will notice and where. No file names or commit ids.
+```
+
+`area` is one of `courts` (Plätze), `invites` (Einladen) or `app`
+(Überall); `link` is optional, a path in the app. A new area goes into
+`whatsnew.Areas` and the page's names in the same commit.
 
 The cloud side is `infra/platform/app-padel.tf` in
 `seburgi/burgstaller-platform`: plan on a pull request there, Seb merges.

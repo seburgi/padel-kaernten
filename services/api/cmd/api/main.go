@@ -25,6 +25,7 @@ import (
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots"
 	"github.com/seburgi/padel-kaernten/services/api/internal/slots/sites"
 	"github.com/seburgi/padel-kaernten/services/api/internal/transport"
+	"github.com/seburgi/padel-kaernten/services/api/internal/whatsnew"
 )
 
 // buildRevision is set at build time (-ldflags -X).
@@ -54,11 +55,20 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+	notes, err := whatsnew.Load(cfg.ReleaseNotesDir)
+	if err != nil {
+		return err
+	}
+	news, err := whatsnew.NewService(ctx, pool, notes)
+	if err != nil {
+		return err
+	}
 	booking := &sites.Client{HTTP: &http.Client{Timeout: 25 * time.Second}}
 	platform := &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
 	h := &transport.Handler{
 		Slots:       slots.NewService(pool, booking, nil, log),
 		Invitations: invitations.NewService(pool, platform),
+		WhatsNew:    news,
 		Gateway: &transport.Gateway{Caller: cfg.GatewayCaller, Address: cfg.GatewayAudience, Keys: &gateway.Keys{
 			Audience: cfg.GatewayAudience, Audiences: cfg.GatewayAudiences, JWKS: cfg.GatewayJWKS,
 			Client: &http.Client{Timeout: 10 * time.Second},

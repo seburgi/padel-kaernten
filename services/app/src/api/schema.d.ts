@@ -147,6 +147,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/release-notes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * What's new, and what the caller has read of it
+     * @description The notes the API ships, one per change (docs/design/whats-new.md), newest day first and, within a day, the one that arrived last first. read is the caller's own, on every device. A short list that grows by hand, so it is not paged.
+     */
+    get: operations["listReleaseNotes"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/release-notes/read": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Record that the caller has seen these notes
+     * @description A slug the API does not ship is left out rather than refused (the page may predate a deploy); reading a note twice keeps the first time.
+     */
+    post: operations["markReleaseNotesRead"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -229,6 +269,25 @@ export interface components {
     InvitationPage: {
       items: components["schemas"]["Invitation"][];
       nextCursor?: string | null;
+    };
+    /** @description One change, written for the people who use Padel. */
+    ReleaseNote: {
+      slug: string;
+      /** Format: date */
+      date: string;
+      /** @description courts, invites or app; clients tolerate others. */
+      area: string;
+      title: string;
+      paragraphs: string[];
+      /** @description A path in the app where the change can be tried. */
+      link?: string;
+      read: boolean;
+    };
+    ReleaseNoteList: {
+      items: components["schemas"]["ReleaseNote"][];
+    };
+    ReleaseNotesRead: {
+      slugs: string[];
     };
   };
   responses: {
@@ -434,6 +493,53 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Withdrawn. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listReleaseNotes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The notes. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReleaseNoteList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  markReleaseNotesRead: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReleaseNotesRead"];
+      };
+    };
+    responses: {
+      /** @description Read. */
       204: {
         headers: {
           [name: string]: unknown;

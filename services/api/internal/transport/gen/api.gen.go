@@ -74,6 +74,30 @@ type Problem struct {
 	Type   string  `json:"type"`
 }
 
+// ReleaseNote One change, written for the people who use Padel.
+type ReleaseNote struct {
+	// Area courts, invites or app; clients tolerate others.
+	Area string             `json:"area"`
+	Date openapi_types.Date `json:"date"`
+
+	// Link A path in the app where the change can be tried.
+	Link       *string  `json:"link,omitempty"`
+	Paragraphs []string `json:"paragraphs"`
+	Read       bool     `json:"read"`
+	Slug       string   `json:"slug"`
+	Title      string   `json:"title"`
+}
+
+// ReleaseNoteList defines model for ReleaseNoteList.
+type ReleaseNoteList struct {
+	Items []ReleaseNote `json:"items"`
+}
+
+// ReleaseNotesRead defines model for ReleaseNotesRead.
+type ReleaseNotesRead struct {
+	Slugs []string `json:"slugs"`
+}
+
 // Slot A free stretch on one day, in minutes after midnight in Vienna.
 type Slot struct {
 	Day          openapi_types.Date `json:"day"`
@@ -138,6 +162,12 @@ type InviteParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// MarkReleaseNotesReadParams defines parameters for MarkReleaseNotesRead.
+type MarkReleaseNotesReadParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // GetSlotsParams defines parameters for GetSlots.
 type GetSlotsParams struct {
 	IfNoneMatch *string `json:"If-None-Match,omitempty"`
@@ -151,6 +181,9 @@ type RefreshSlotsParams struct {
 
 // InviteJSONRequestBody defines body for Invite for application/json ContentType.
 type InviteJSONRequestBody = NewInvitation
+
+// MarkReleaseNotesReadJSONRequestBody defines body for MarkReleaseNotesRead for application/json ContentType.
+type MarkReleaseNotesReadJSONRequestBody = ReleaseNotesRead
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -169,6 +202,12 @@ type ServerInterface interface {
 	// GetMe Who is signed in, and what they may do
 	// (GET /api/v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// ListReleaseNotes What's new, and what the caller has read of it
+	// (GET /api/v1/release-notes)
+	ListReleaseNotes(w http.ResponseWriter, r *http.Request)
+	// MarkReleaseNotesRead Record that the caller has seen these notes
+	// (POST /api/v1/release-notes/read)
+	MarkReleaseNotesRead(w http.ResponseWriter, r *http.Request, params MarkReleaseNotesReadParams)
 	// GetSlots The latest free slots
 	// (GET /api/v1/slots)
 	GetSlots(w http.ResponseWriter, r *http.Request, params GetSlotsParams)
@@ -211,6 +250,18 @@ func (_ Unimplemented) WithdrawInvitation(w http.ResponseWriter, r *http.Request
 // GetMe Who is signed in, and what they may do
 // (GET /api/v1/me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListReleaseNotes What's new, and what the caller has read of it
+// (GET /api/v1/release-notes)
+func (_ Unimplemented) ListReleaseNotes(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// MarkReleaseNotesRead Record that the caller has seen these notes
+// (POST /api/v1/release-notes/read)
+func (_ Unimplemented) MarkReleaseNotesRead(w http.ResponseWriter, r *http.Request, params MarkReleaseNotesReadParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -377,6 +428,65 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReleaseNotes operation middleware
+func (siw *ServerInterfaceWrapper) ListReleaseNotes(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReleaseNotes(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// MarkReleaseNotesRead operation middleware
+func (siw *ServerInterfaceWrapper) MarkReleaseNotesRead(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params MarkReleaseNotesReadParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MarkReleaseNotesRead(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -623,6 +733,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/invitations/{email}", wrapper.WithdrawInvitation)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/release-notes", wrapper.ListReleaseNotes)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/release-notes/read", wrapper.MarkReleaseNotesRead)
+	})
 
 	return r
 }
@@ -632,45 +748,52 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"ALUrkkUyT7aftv8ZAA==",
+	"zFr9bttGEn+VAe+A2DhashMHxdl/uU7aM1onhpM2CNrgMOKOxK3JXXZ3aEUI/Db3Jvdih9klJVKkbPfq",
+	"AP1PH7uz8/Gbj/2RX5LMlpU1ZNgnJ1+SCh2WxOTCtwtFZWWZTLb6gVbyiyKfOV2xtiY5Sc7gp58uXgHn",
+	"BFmhyTCU2rA/BQRH7FbgySgPmgEXqA3seUaj0Ck/xUpP9Ub8pFT7kyRNtIjNCRW5JE0MlpScdNU4ED3S",
+	"xNHvtXakkhN2NaWJz3IqURScW1ciJydJXWuVpAmvKhHh2WmzSO7u7mSzr6zxFEy8cnZWUCkfM2uYDMtH",
+	"rKpCZyhmTqu44h+/ebH5S+esvzuaJyfJ36YbH07jv37ayg0nbnnNwPV35/DP45ffQCN8ksiyZq+IPg/u",
+	"PLdmrhchLs5W5FhHpeeEXLv4GZXSIhiLq96axvCZtQWhSe7WrrCz3yjj5O6u68ZfNjI/DVamybmtHQ/1",
+	"QEc4REWORUEpzB3pop4zWAc1zcgpzHI+BZx5MgzLnAzU5sbYpZlAtNcD24IcMoHlnJyfDCOYJnNHJKdq",
+	"ptI/FId3heWO8egcrpK7FlpfBvjoOyWsak4c88uFudWM0e5t51CJuhg5QkB+q5nUGfcAq5DpgHU48H6t",
+	"ouSunPt1u8IFDfVbu+9RfuxYOuZN+szntfPWiRxTFwXOCmqz835r4vFjFlyOaJ2hCarQOMZ3OX2HBzfS",
+	"Rs+3hlZDFbC0teEh7i+1EagbzR72MvHefge/2jAtyIncrHZOitlQxMW7t3D8/OibFF7/dD15EAiNJh2J",
+	"Y2a8oeWjcFri5x/JLDhPTp6/PH4cCMfO65TU/kmKeFdKeEauu3Wr4y7WXNDorvjDQ8EO/7Zi1keNaX5N",
+	"BaGnN5ZpGJu3hiDL0SwohaXTzGRgbl3ofhXZqiBY5hZqT3CFigoJ32PKZSa11acQs9lLucSqOoXsD5RE",
+	"qR2DYjK2sNDmZqyPV8g5aBOMwaqS6uwofIsmQ4YGZgTsNKlRFWRyWDis8n5N2RGzTelwhGo8l31RL8ZF",
+	"7ADEVtzD/rR1RXD+BgUddRsdHgDEj9rzny2iHXFDVzy6LHak+OvGe32txPK+Vt3cPjwcCV+Jny/i4qPD",
+	"w8MHdIvyx3QL7XYEX9JBwbMjznKwBqwhULgS1MvMWDN5wDmTg1Iroxc5yz8/azIGh4mkcPUotM+dLcdr",
+	"SuV0Rlfk/mVr91DUYhuQeNkR0xhK6xmOjo8Px6r9ludE80avIG/UhwYrn9sRtClc+aEK7yVLsSCZrMWp",
+	"HtDfkJLiJFOYLYGtwlXfoWtkPOjE7YRlvCHz+NklTW7J1PT4JPlZlj+YHq0WaXTK+pQxh0aJwz6ulCM/",
+	"XqViUX60znE+HnHWHHVBajxmM2tvtFmA10ygtAJjGdD4JTlAD/S5ooxJnUJUBrQHKitedWDWqZZajRoi",
+	"Bf8x94TNjt2KVrggqCiADPY+fvz48eDy8uDVq+6Ys/H6jgk7TYzlb629iRPitmNeCX6l70SvWPLBLRLu",
+	"Vg8f2u6K+M/huCowG1ewKpBF3FA7YjJG+xSWaHxlHadAt+TCx9C5K+n8JTL5P9bAQz1q5w4eTkdUjWNo",
+	"4bQCOwfP6BgkA323pj6iIoVbcnPPiS7pOGAN4H7UGo1adK3TZTz5nB+dOx3d6vafkYJmy1JzQIIuBXdL",
+	"9DCrdcGhpKXi7F8TRbe/Jg/PyeujhgrehfvYfKSyfwgjkDZwjk4bzjUCxvjGhJR8DG1tT9nMTxV5vTDT",
+	"/Qm8jzPUMw/XhBm31Ij2oAUkpiVLTgN2Vpw3RcDDjHJtVJwomxA88yByD7SBBTItpWeiUXFrHNtmdXvG",
+	"QRYIg7DgNvodDJGKGdXsfxYyiibrYegkCfMq/PDf/zjDZEIxbYKWHEkMbUUGK52cJC8mh5MXYXziOOgF",
+	"Iuf2aNpTQP5Y0MggcFXPCp1FC0QlRVVhRSNf2hsCJs/SygpxlSgoeAnXlguVnCTfE/d4kS0q5/nh4T00",
+	"zh+jb3rnjHA4EuN5gQs/iSVzjnXBu4SuteywQmni67JEt0pOku8i9RIFru8UWFVhXethvb7D+Z3+fWuK",
+	"Vdhsl4Yc7L398Ob19b9fX55d/Lh/CmhWgj4qPMGC2MPx4QtYas5BkkJQcRD2DT0vw+9F5/y0RxT+8iXy",
+	"dr/X5FYb2i6LhECXnRuk6fjOQpeaexvXHn55GGZVXdZlM8qW2sRvRyO17tNXxMgWwTLG9MWWaefQCV4K",
+	"sxWE2/NTYOdDbuEdzaDhgkIvsf5BaEzgqmbf3F2dtwa0YRu+X2PN+QoWztZVU+84d7Ze5L3CBJ7crc7k",
+	"MpzrLIfMETIFkSVo04oJNJ/mTScXwi8u2muWsCwRfzSbEaStAFvwxKHmer+0Tu1PILg8lEtbkmAZC7m7",
+	"rVrzm/EpCNKu4/UJvDx83sF6a8VB7G9RzTHzIC44Fd1DodYeHGXWKVLDPGnIpEF6jEV2s2S6xbNH1P5e",
+	"k+dvrVo9GWD7RNBdv0uyq+lukC1HXyFbxjLlIsbvKTIiimoRsquETr+EFLyLiVIQ08Mp8x5vqJcztmZJ",
+	"7tBcO+kSHnakUJuCfFi/gmUzS2iGGc2taziiNW4F+BN4h3MS3DuqCEca4AfNuXLYjeIgYscjk0yzzTyF",
+	"e8UJgKaTWzDD7KalgLZ7ggwKm8Le8q67n99sd4hPnfCV1Gl8g9Hgkr7mQHBJu8YAGc9IyYAWUfFUVV37",
+	"RjRoEyemZY4c4VTiCpTtYdtFVujAWKbdA4IoHFYE0J5dXYDPdeXTMJZW5Fq6rzfTyrn+wNBSntKlYGhJ",
+	"nsMlcK6dZ9EtDbVVG8BI64SsMQQsKqNz+pYUFOg5bpmAlG0xkSN5UZB75iXPRJNmuFUkBXgCZ+Bz6xgK",
+	"7TkKXDi79NJG83C0t5JXOvYX6bhqfILpEmdfEyvbrOEO4IQ4PA1akGWqp2UfJ41jIUcf/S2DCO9GzbTl",
+	"YscniDMQ3m8NnHVHFwSJ9wuSh301g0O56EqoDDia154U7Mm2MA0JditHck0HbG4A+6dBQemvGPwCvJTm",
+	"e0NURYxEpLEuaRjbS3Q3A1L0L9qDB3o+qg2PFHXZ/BTguQ7DTMyrLcx4ikORb7DaQ44vLN9fZ3zDYwLG",
+	"EHb5Li85vZTaxoCR3jFnLFNa/0ZysBbStM0NFhzNHfl8AmfNzPfi8Fia58X84I01dHCJnOWjl8h3QfXx",
+	"fjV496Ar7d67zNe8aqwp4R2lpMBwdW6dJVZHQ4Imr9/jon/Wtu4i9cUYynpx7LznIfBoqnc8+0lGi40l",
+	"8XlBiNMAdNMm8rsr1Yd2mt/yi6hsC9XWprm+pZYpS4U0903n6TGzzasrOJPSxmTAU2aN8vuh1nYuHFKA",
+	"10edRrZvqT311jQaCcZFHvpwUK/dBiPDCzFwHriQThOVy1YRW6v27e4lag60gWbfHLZ93wk517vsREuD",
+	"he0VJ+rX9ZdnXPlhDl3HAOzIo/+n0P418ia8tOLz8MaKEZh0ESLIeQqUn/mbkXLY3BmweZwUo9M9vpcH",
+	"txtS9V6ezdv1E115gMtUFNJgaQlN43+AiTOQ5ZTdgGZwtWmmtcjMam72jE1b3xO3vO9XjG57xI7gutoY",
+	"cbCwxupp5iwhOoK4QANE+fF4oQvaBKhdkZwk0+Tu093/BgA=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

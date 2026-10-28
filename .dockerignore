@@ -1,6 +1,7 @@
 # Allow-list: only what the image is built from.
 *
 !api/openapi.yaml
+!release_notes/
 !services/api/
 !services/app/
 services/api/**/*_test.go

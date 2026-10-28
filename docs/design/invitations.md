@@ -3,7 +3,8 @@
 ## How it works
 
 - **Only Seb invites, from the app** (Seb, 2026-10-27): the page
-  `/einladen`, shown only to `OWNER_EMAIL`. Everyone else gets 403
+  `/invites` (until 2026-10-28 `/einladen`, which still leads there),
+  shown only to `OWNER_EMAIL`. Everyone else gets 403
   `not-owner` from `/api/v1/invitations`, and the app does not show the
   page.
 - **Inviting** (`POST /api/v1/invitations`, with an `Idempotency-Key`)
