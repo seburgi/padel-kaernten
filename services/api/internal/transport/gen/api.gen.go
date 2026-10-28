@@ -21,6 +21,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for ListFitsParamsMinutes.
+const (
+	N120 ListFitsParamsMinutes = 120
+	N60  ListFitsParamsMinutes = 60
+	N90  ListFitsParamsMinutes = 90
+)
+
+// Valid indicates whether the value is a known member of the ListFitsParamsMinutes enum.
+func (e ListFitsParamsMinutes) Valid() bool {
+	switch e {
+	case N120:
+		return true
+	case N60:
+		return true
+	case N90:
+		return true
+	default:
+		return false
+	}
+}
+
 // Availability defines model for Availability.
 type Availability struct {
 	Days []AvailabilityDay `json:"days"`
@@ -51,6 +72,87 @@ type Court struct {
 	Area *string `json:"area,omitempty"`
 	Free []Slot  `json:"free"`
 	Name string  `json:"name"`
+}
+
+// Fit defines model for Fit.
+type Fit struct {
+	// Ask On a near miss, members who entered nothing for the day.
+	Ask []Person `json:"ask"`
+
+	// Can The members free for the whole game, in the group's order.
+	Can   []Person           `json:"can"`
+	Court string             `json:"court"`
+	Day   openapi_types.Date `json:"day"`
+
+	// Link The venue's booking page for the day.
+	Link    *string `json:"link,omitempty"`
+	Minutes int     `json:"minutes"`
+	PerHead *Money  `json:"perHead,omitempty"`
+	Price   *Money  `json:"price,omitempty"`
+
+	// Start Minutes after midnight in Vienna.
+	Start     int    `json:"start"`
+	VenueId   string `json:"venueId"`
+	VenueName string `json:"venueName"`
+}
+
+// FitList defines model for FitList.
+type FitList struct {
+	Fits []Fit `json:"fits"`
+
+	// Nearly One short; ask lists who could still make it.
+	Nearly []Fit `json:"nearly"`
+
+	// Need How many play a game.
+	Need int `json:"need"`
+
+	// TakenAt When the snapshot the fits come from was taken.
+	TakenAt time.Time `json:"takenAt"`
+}
+
+// Game defines model for Game.
+type Game struct {
+	Court     string             `json:"court"`
+	Day       openapi_types.Date `json:"day"`
+	GroupId   int64              `json:"groupId"`
+	GroupName string             `json:"groupName"`
+	Id        int64              `json:"id"`
+
+	// Lineup Every answer, in the order given.
+	Lineup []Player `json:"lineup"`
+
+	// Link The venue's booking page for the day, while the snapshot has one.
+	Link    *string `json:"link,omitempty"`
+	Minutes int     `json:"minutes"`
+	PerHead *Money  `json:"perHead,omitempty"`
+
+	// Players How many play; 4 today.
+	Players    int    `json:"players"`
+	Price      *Money `json:"price,omitempty"`
+	ProposedBy Person `json:"proposedBy"`
+	Start      int    `json:"start"`
+
+	// State proposed, booked or cancelled; clients tolerate others.
+	State     string `json:"state"`
+	VenueId   string `json:"venueId"`
+	VenueName string `json:"venueName"`
+}
+
+// GameAnswer defines model for GameAnswer.
+type GameAnswer struct {
+	// Answer in or out.
+	Answer string `json:"answer"`
+}
+
+// GameChange defines model for GameChange.
+type GameChange struct {
+	// State booked or cancelled.
+	State string `json:"state"`
+}
+
+// GameList defines model for GameList.
+type GameList struct {
+	Items []Game `json:"items"`
 }
 
 // Group defines model for Group.
@@ -179,6 +281,15 @@ type NameChange struct {
 	Name string `json:"name"`
 }
 
+// NewGame defines model for NewGame.
+type NewGame struct {
+	Court   string             `json:"court"`
+	Day     openapi_types.Date `json:"day"`
+	Minutes int                `json:"minutes"`
+	Start   int                `json:"start"`
+	VenueId string             `json:"venueId"`
+}
+
 // NewGroup defines model for NewGroup.
 type NewGroup struct {
 	// Kind private, on_request or open; clients tolerate others.
@@ -189,6 +300,23 @@ type NewGroup struct {
 // NewInvitation defines model for NewInvitation.
 type NewInvitation struct {
 	Email string `json:"email"`
+}
+
+// Person defines model for Person.
+type Person struct {
+	Email string `json:"email"`
+
+	// Name "" until they gave one.
+	Name string `json:"name"`
+}
+
+// Player defines model for Player.
+type Player struct {
+	Email string `json:"email"`
+	Name  string `json:"name"`
+
+	// State in, reserve or out; clients tolerate others.
+	State string `json:"state"`
 }
 
 // Problem defines model for Problem.
@@ -301,6 +429,9 @@ type Version struct {
 	Revision string `json:"revision"`
 }
 
+// GameId defines model for GameId.
+type GameId = int64
+
 // GroupId defines model for GroupId.
 type GroupId = int64
 
@@ -325,6 +456,23 @@ type SetVenuesParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// ListGamesParams defines parameters for ListGames.
+type ListGamesParams struct {
+	GroupId *int64 `form:"groupId,omitempty" json:"groupId,omitempty"`
+}
+
+// UpdateGameParams defines parameters for UpdateGame.
+type UpdateGameParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// AnswerGameParams defines parameters for AnswerGame.
+type AnswerGameParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // CreateGroupParams defines parameters for CreateGroup.
 type CreateGroupParams struct {
 	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
@@ -333,6 +481,20 @@ type CreateGroupParams struct {
 
 // UpdateGroupParams defines parameters for UpdateGroup.
 type UpdateGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// ListFitsParams defines parameters for ListFits.
+type ListFitsParams struct {
+	Minutes ListFitsParamsMinutes `form:"minutes" json:"minutes"`
+}
+
+// ListFitsParamsMinutes defines parameters for ListFits.
+type ListFitsParamsMinutes int
+
+// ProposeGameParams defines parameters for ProposeGame.
+type ProposeGameParams struct {
 	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
@@ -399,11 +561,20 @@ type SetAvailabilityTemplatesJSONRequestBody = TemplateList
 // SetVenuesJSONRequestBody defines body for SetVenues for application/json ContentType.
 type SetVenuesJSONRequestBody = VenueChoice
 
+// UpdateGameJSONRequestBody defines body for UpdateGame for application/json ContentType.
+type UpdateGameJSONRequestBody = GameChange
+
+// AnswerGameJSONRequestBody defines body for AnswerGame for application/json ContentType.
+type AnswerGameJSONRequestBody = GameAnswer
+
 // CreateGroupJSONRequestBody defines body for CreateGroup for application/json ContentType.
 type CreateGroupJSONRequestBody = NewGroup
 
 // UpdateGroupJSONRequestBody defines body for UpdateGroup for application/json ContentType.
 type UpdateGroupJSONRequestBody = GroupChange
+
+// ProposeGameJSONRequestBody defines body for ProposeGame for application/json ContentType.
+type ProposeGameJSONRequestBody = NewGame
 
 // InviteToGroupJSONRequestBody defines body for InviteToGroup for application/json ContentType.
 type InviteToGroupJSONRequestBody = NewInvitation
@@ -434,6 +605,18 @@ type ServerInterface interface {
 	// GetClientConfig Feature flags for the app
 	// (GET /api/v1/client-config)
 	GetClientConfig(w http.ResponseWriter, r *http.Request)
+	// ListGames The coming games of the caller's groups, soonest first
+	// (GET /api/v1/games)
+	ListGames(w http.ResponseWriter, r *http.Request, params ListGamesParams)
+	// GetGame One game, for the members of its group
+	// (GET /api/v1/games/{gameId})
+	GetGame(w http.ResponseWriter, r *http.Request, gameId GameId)
+	// UpdateGame Mark the game booked, or cancel it; whoever proposed it
+	// (PATCH /api/v1/games/{gameId})
+	UpdateGame(w http.ResponseWriter, r *http.Request, gameId GameId, params UpdateGameParams)
+	// AnswerGame Say yes (in) or no (out); a yes when it is full makes a reserve
+	// (PUT /api/v1/games/{gameId}/players/me)
+	AnswerGame(w http.ResponseWriter, r *http.Request, gameId GameId, params AnswerGameParams)
 	// ListGroups The caller's groups, the ones they are invited into, and the open ones
 	// (GET /api/v1/groups)
 	ListGroups(w http.ResponseWriter, r *http.Request)
@@ -446,6 +629,12 @@ type ServerInterface interface {
 	// UpdateGroup Rename it or change its kind; admins only
 	// (PATCH /api/v1/groups/{groupId})
 	UpdateGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params UpdateGroupParams)
+	// ListFits Games of four the free courts and the members' times allow
+	// (GET /api/v1/groups/{groupId}/fits)
+	ListFits(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListFitsParams)
+	// ProposeGame Propose a fit as a game; whoever proposes plays
+	// (POST /api/v1/groups/{groupId}/games)
+	ProposeGame(w http.ResponseWriter, r *http.Request, groupId GroupId, params ProposeGameParams)
 	// InviteToGroup Invite someone into the group; any member may
 	// (POST /api/v1/groups/{groupId}/invitations)
 	InviteToGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params InviteToGroupParams)
@@ -530,6 +719,30 @@ func (_ Unimplemented) GetClientConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ListGames The coming games of the caller's groups, soonest first
+// (GET /api/v1/games)
+func (_ Unimplemented) ListGames(w http.ResponseWriter, r *http.Request, params ListGamesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGame One game, for the members of its group
+// (GET /api/v1/games/{gameId})
+func (_ Unimplemented) GetGame(w http.ResponseWriter, r *http.Request, gameId GameId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGame Mark the game booked, or cancel it; whoever proposed it
+// (PATCH /api/v1/games/{gameId})
+func (_ Unimplemented) UpdateGame(w http.ResponseWriter, r *http.Request, gameId GameId, params UpdateGameParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AnswerGame Say yes (in) or no (out); a yes when it is full makes a reserve
+// (PUT /api/v1/games/{gameId}/players/me)
+func (_ Unimplemented) AnswerGame(w http.ResponseWriter, r *http.Request, gameId GameId, params AnswerGameParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // ListGroups The caller's groups, the ones they are invited into, and the open ones
 // (GET /api/v1/groups)
 func (_ Unimplemented) ListGroups(w http.ResponseWriter, r *http.Request) {
@@ -551,6 +764,18 @@ func (_ Unimplemented) GetGroup(w http.ResponseWriter, r *http.Request, groupId 
 // UpdateGroup Rename it or change its kind; admins only
 // (PATCH /api/v1/groups/{groupId})
 func (_ Unimplemented) UpdateGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params UpdateGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListFits Games of four the free courts and the members' times allow
+// (GET /api/v1/groups/{groupId}/fits)
+func (_ Unimplemented) ListFits(w http.ResponseWriter, r *http.Request, groupId GroupId, params ListFitsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ProposeGame Propose a fit as a game; whoever proposes plays
+// (POST /api/v1/groups/{groupId}/games)
+func (_ Unimplemented) ProposeGame(w http.ResponseWriter, r *http.Request, groupId GroupId, params ProposeGameParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -831,6 +1056,173 @@ func (siw *ServerInterfaceWrapper) GetClientConfig(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListGames operation middleware
+func (siw *ServerInterfaceWrapper) ListGames(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGamesParams
+
+	// ------------- Optional query parameter "groupId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "groupId", r.URL.Query(), &params.GroupId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "groupId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGames(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGame operation middleware
+func (siw *ServerInterfaceWrapper) GetGame(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "gameId" -------------
+	var gameId GameId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "gameId", chi.URLParam(r, "gameId"), &gameId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gameId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGame(w, r, gameId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGame operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGame(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "gameId" -------------
+	var gameId GameId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "gameId", chi.URLParam(r, "gameId"), &gameId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gameId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UpdateGameParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGame(w, r, gameId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AnswerGame operation middleware
+func (siw *ServerInterfaceWrapper) AnswerGame(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "gameId" -------------
+	var gameId GameId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "gameId", chi.URLParam(r, "gameId"), &gameId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gameId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AnswerGameParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AnswerGame(w, r, gameId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListGroups operation middleware
 func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
 
@@ -961,6 +1353,102 @@ func (siw *ServerInterfaceWrapper) UpdateGroup(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListFits operation middleware
+func (siw *ServerInterfaceWrapper) ListFits(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListFitsParams
+
+	// ------------- Required query parameter "minutes" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "minutes", r.URL.Query(), &params.Minutes, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "minutes"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "minutes", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListFits(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ProposeGame operation middleware
+func (siw *ServerInterfaceWrapper) ProposeGame(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ProposeGameParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ProposeGame(w, r, groupId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1769,6 +2257,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/v1/availability/venues", wrapper.SetVenues)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/groups/{groupId}/fits", wrapper.ListFits)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/games", wrapper.ProposeGame)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/games", wrapper.ListGames)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/games/{gameId}", wrapper.GetGame)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v1/games/{gameId}", wrapper.UpdateGame)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/games/{gameId}/players/me", wrapper.AnswerGame)
+	})
 
 	return r
 }
@@ -1778,84 +2284,100 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

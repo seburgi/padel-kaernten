@@ -511,8 +511,143 @@ paths:
                 $ref: "#/components/schemas/VenueChoice"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/fits:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: listFits
+      summary: Games of four the free courts and the members' times allow
+      description: >-
+        Computed from the latest snapshot on each call, never stored. Members
+        only; 404 no-group otherwise. A snapshot older than five minutes is
+        not refreshed here: the app asks /slots/refresh first.
+      parameters:
+        - name: minutes
+          in: query
+          required: true
+          schema:
+            type: integer
+            enum: [60, 90, 120]
+      responses:
+        "200":
+          description: The fits and the near misses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FitList"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/games:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: proposeGame
+      summary: Propose a fit as a game; whoever proposes plays
+      description: 409 with type court-gone when the court is no longer free for the whole game.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGame"
+      responses:
+        "201":
+          description: The game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/games:
+    get:
+      operationId: listGames
+      summary: The coming games of the caller's groups, soonest first
+      parameters:
+        - name: groupId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: The games.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameList"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/games/{gameId}:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    get:
+      operationId: getGame
+      summary: One game, for the members of its group
+      responses:
+        "200":
+          description: The game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        default:
+          $ref: "#/components/responses/Problem"
+    patch:
+      operationId: updateGame
+      summary: Mark the game booked, or cancel it; whoever proposed it
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameChange"
+      responses:
+        "200":
+          description: The game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/games/{gameId}/players/me:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    put:
+      operationId: answerGame
+      summary: Say yes (in) or no (out); a yes when it is full makes a reserve
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameAnswer"
+      responses:
+        "200":
+          description: The game.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Game"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
     GroupId:
       name: groupId
       in: path
@@ -943,3 +1078,160 @@ components:
           type: array
           items:
             type: string
+    Fit:
+      type: object
+      required: [day, start, minutes, venueId, venueName, court, can, ask]
+      properties:
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+          description: Minutes after midnight in Vienna.
+        minutes:
+          type: integer
+        venueId:
+          type: string
+        venueName:
+          type: string
+        court:
+          type: string
+        price:
+          $ref: "#/components/schemas/Money"
+        perHead:
+          $ref: "#/components/schemas/Money"
+        link:
+          type: string
+          description: The venue's booking page for the day.
+        can:
+          type: array
+          description: The members free for the whole game, in the group's order.
+          items:
+            $ref: "#/components/schemas/Person"
+        ask:
+          type: array
+          description: On a near miss, members who entered nothing for the day.
+          items:
+            $ref: "#/components/schemas/Person"
+    Person:
+      type: object
+      required: [email, name]
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+          description: '"" until they gave one.'
+    FitList:
+      type: object
+      required: [takenAt, need, fits, nearly]
+      properties:
+        takenAt:
+          type: string
+          format: date-time
+          description: When the snapshot the fits come from was taken.
+        need:
+          type: integer
+          description: How many play a game.
+        fits:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fit"
+        nearly:
+          type: array
+          description: One short; ask lists who could still make it.
+          items:
+            $ref: "#/components/schemas/Fit"
+    NewGame:
+      type: object
+      required: [venueId, court, day, start, minutes]
+      properties:
+        venueId:
+          type: string
+        court:
+          type: string
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+        minutes:
+          type: integer
+    Player:
+      type: object
+      required: [email, name, state]
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        state:
+          type: string
+          description: in, reserve or out; clients tolerate others.
+    Game:
+      type: object
+      required: [id, groupId, groupName, venueId, venueName, court, day, start, minutes, players, state, proposedBy, lineup]
+      properties:
+        id:
+          type: integer
+          format: int64
+        groupId:
+          type: integer
+          format: int64
+        groupName:
+          type: string
+        venueId:
+          type: string
+        venueName:
+          type: string
+        court:
+          type: string
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+        minutes:
+          type: integer
+        players:
+          type: integer
+          description: How many play; 4 today.
+        price:
+          $ref: "#/components/schemas/Money"
+        perHead:
+          $ref: "#/components/schemas/Money"
+        link:
+          type: string
+          description: The venue's booking page for the day, while the snapshot has one.
+        state:
+          type: string
+          description: proposed, booked or cancelled; clients tolerate others.
+        proposedBy:
+          $ref: "#/components/schemas/Person"
+        lineup:
+          type: array
+          description: Every answer, in the order given.
+          items:
+            $ref: "#/components/schemas/Player"
+    GameList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Game"
+    GameChange:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          description: booked or cancelled.
+    GameAnswer:
+      type: object
+      required: [answer]
+      properties:
+        answer:
+          type: string
+          description: in or out.

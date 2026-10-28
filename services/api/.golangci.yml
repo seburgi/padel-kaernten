@@ -47,6 +47,8 @@ linters:
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
               desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
+              desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
         slice-invitations:
@@ -60,6 +62,8 @@ linters:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/groups
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
@@ -75,6 +79,8 @@ linters:
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
               desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
+              desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
         slice-groups:
@@ -89,6 +95,8 @@ linters:
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
               desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
+              desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
         slice-availability:
@@ -102,6 +110,24 @@ linters:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/whatsnew
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/groups
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
+              desc: Slices have no HTTP of their own; transport calls them.
+        slice-games:
+          files:
+            - "**/internal/games/**"
+          deny:
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/slots
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/invitations
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/whatsnew
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/groups
+              desc: Slices must not import each other (standards/architecture/slices.md).
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
               desc: Slices must not import each other (standards/architecture/slices.md).
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: Slices have no HTTP of their own; transport calls them.
@@ -118,6 +144,8 @@ linters:
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/groups
               desc: platform is infrastructure only; it never imports a slice.
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/availability
+              desc: platform is infrastructure only; it never imports a slice.
+            - pkg: github.com/seburgi/padel-kaernten/services/api/internal/games
               desc: platform is infrastructure only; it never imports a slice.
             - pkg: github.com/seburgi/padel-kaernten/services/api/internal/transport
               desc: platform is infrastructure only.

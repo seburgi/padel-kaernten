@@ -2,13 +2,15 @@
 // said when they can; for members, inviting, the open invitations and who
 // asked in; for admins, the name and who may join; and leaving.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Group as G } from "../api/client";
 import { card, danger, field, link, pressed, primary, quiet } from "../ui";
 import { errorText, KINDS, kindLabel, useDropInvitation, useJoin, useMe } from "./groups";
 
-export function Group() {
+/** games is a member's view of the group's games, from the games slice
+ * (App puts it in). */
+export function Group({ games }: { games?: (id: number) => ReactNode }) {
   const id = Number(useParams().id);
   const me = useMe();
   const group = useQuery({
@@ -81,6 +83,7 @@ export function Group() {
         </div>
       )}
 
+      {member && games?.(g.id)}
       <Members g={g} me={myEmail} />
       {member && (
         <>

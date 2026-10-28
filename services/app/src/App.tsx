@@ -9,6 +9,9 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
 import { Availability } from "./availability/Availability";
 import { Courts } from "./courts/Courts";
+import { Fits } from "./games/Fits";
+import { Game } from "./games/Game";
+import { Upcoming } from "./games/Upcoming";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play } from "./groups/Play";
@@ -30,7 +33,7 @@ export function App() {
     retry: false,
   });
   const canInvite = me.data?.canInvite ?? false;
-  const playing = ["/play", "/groups", "/availability"].some((p) => path.startsWith(p));
+  const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-[env(safe-area-inset-top)]">
@@ -85,10 +88,15 @@ export function App() {
         <Route path="/invites" element={canInvite ? <Invitations /> : <Courts />} />
         {/* The page's address until 2026-10-28; links to it keep working. */}
         <Route path="/einladen" element={<Navigate to="/invites" replace />} />
-        <Route path="/play" element={<Play />} />
+        <Route path="/play" element={<Play games={<Upcoming />} />} />
         <Route path="/groups" element={<Groups />} />
         <Route path="/groups/new" element={<NewGroup />} />
-        <Route path="/groups/:id" element={<Group />} />
+        <Route
+          path="/groups/:id"
+          element={<Group games={(id) => <Upcoming key={id} group={id} />} />}
+        />
+        <Route path="/groups/:id/fits" element={<Fits />} />
+        <Route path="/games/:id" element={<Game />} />
         <Route path="/availability" element={<Availability />} />
         <Route path="/whats-new" element={<WhatsNew />} />
         <Route path="/feedback" element={<YourNotes app={APP} />} />

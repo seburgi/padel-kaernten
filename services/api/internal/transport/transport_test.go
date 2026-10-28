@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/games"
 	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
@@ -39,11 +40,17 @@ const (
 	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
 )
 
-type fakeSites struct{ err error }
+type fakeSites struct {
+	err  error
+	snap *sites.Snapshot
+}
 
 func (f *fakeSites) Take(context.Context) (sites.Snapshot, []error, error) {
 	if f.err != nil {
 		return sites.Snapshot{}, nil, f.err
+	}
+	if f.snap != nil {
+		return *f.snap, nil, nil
 	}
 	return sites.Snapshot{TakenAt: time.Now().UTC().Truncate(time.Second), Days: []string{"2026-10-27"},
 		Venues: []sites.Venue{{ID: "a", Name: "A", Courts: []sites.Court{}}}}, nil, nil
@@ -103,6 +110,7 @@ func (a *app) router(pool *pgxpool.Pool) http.Handler {
 		WhatsNew:     news,
 		Groups:       groups.NewService(pool, a.platform),
 		Availability: availability.NewService(pool, func(v string) bool { return v == "villach" }),
+		Games:        games.NewService(pool),
 		Gateway: &transport.Gateway{Caller: gatewayAccount, Address: address,
 			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: a.signer.URL}},
 		Owner:    seb,

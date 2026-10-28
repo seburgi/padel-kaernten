@@ -2,13 +2,14 @@
 // waiting for an answer, and the way to say when one can. A person without
 // a name is asked for one first, since the others see it.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { api, call, useWriteKey, type GroupSummary } from "../api/client";
 import { card, field, link, primary, quiet } from "../ui";
 import { errorText, kindLabel, useDropInvitation, useGroups, useJoin, useMe } from "./groups";
 
-export function Play() {
+/** games is the coming games, from the games slice (App puts it in). */
+export function Play({ games }: { games?: ReactNode }) {
   const me = useMe();
   const groups = useGroups();
   const join = useJoin();
@@ -32,6 +33,8 @@ export function Play() {
           Gruppen finden
         </Link>
       </div>
+
+      {games}
 
       {groups.isPending && (
         <div aria-busy="true" aria-label="Lädt">

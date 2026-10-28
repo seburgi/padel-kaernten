@@ -297,3 +297,49 @@ func (s *Service) Entered(ctx context.Context, emails []string) (map[string]int,
 	})
 	return out, err
 }
+
+// Person is what one person said, as the fits read it: spans per day of
+// the window, and the venues they drive to (none means every venue).
+type Person struct {
+	Days   map[string][]Span
+	Venues []string
+}
+
+// Of is what each of emails said; everyone asked is in the answer.
+func (s *Service) Of(ctx context.Context, emails []string) (map[string]Person, error) {
+	from, to := s.Window()
+	out := make(map[string]Person, len(emails))
+	for _, e := range emails {
+		out[e] = Person{Days: map[string][]Span{}, Venues: []string{}}
+	}
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx,
+			`SELECT email, to_char(day, 'YYYY-MM-DD'), from_min, to_min FROM availability_spans
+			  WHERE email = ANY($1::text[]) AND day BETWEEN $2::date AND $3::date ORDER BY email, day, from_min`,
+			emails, from, to)
+		if err != nil {
+			return err
+		}
+		var e, day, venue string
+		var sp Span
+		if _, err := pgx.ForEachRow(rows, []any{&e, &day, &sp.From, &sp.To}, func() error {
+			out[e].Days[day] = append(out[e].Days[day], sp)
+			return nil
+		}); err != nil {
+			return err
+		}
+		rows, err = tx.Query(ctx,
+			`SELECT email, venue_id FROM venue_choices WHERE email = ANY($1::text[]) ORDER BY email, venue_id`, emails)
+		if err != nil {
+			return err
+		}
+		_, err = pgx.ForEachRow(rows, []any{&e, &venue}, func() error {
+			p := out[e]
+			p.Venues = append(p.Venues, venue)
+			out[e] = p
+			return nil
+		})
+		return err
+	})
+	return out, err
+}

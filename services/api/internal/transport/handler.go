@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/games"
 	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/idempotency"
@@ -33,6 +34,7 @@ type Handler struct {
 	Groups      *groups.Service
 	// Availability counts the days each member entered.
 	Availability *availability.Service
+	Games        *games.Service
 	Gateway      *Gateway
 	// Owner is the one address that may invite (OWNER_EMAIL).
 	Owner    string

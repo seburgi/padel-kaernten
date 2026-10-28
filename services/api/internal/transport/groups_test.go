@@ -201,6 +201,12 @@ func TestGroups_noNoteAndDatabaseDown(t *testing.T) {
 		{"PUT", "/api/v1/availability/days/2026-10-30", `{"spans":[]}`},
 		{"PUT", "/api/v1/availability/templates", `{"templates":[]}`},
 		{"PUT", "/api/v1/availability/venues", `{"venues":[]}`},
+		{"GET", "/api/v1/groups/1/fits?minutes=90", ""},
+		{"POST", "/api/v1/groups/1/games", `{"venueId":"v","court":"1","day":"2026-10-30","start":1080,"minutes":90}`},
+		{"GET", "/api/v1/games", ""},
+		{"GET", "/api/v1/games/1", ""},
+		{"PATCH", "/api/v1/games/1", `{"state":"booked"}`},
+		{"PUT", "/api/v1/games/1/players/me", `{"answer":"in"}`},
 	}
 	for _, c := range calls {
 		keys++

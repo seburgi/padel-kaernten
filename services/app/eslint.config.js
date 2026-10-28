@@ -24,7 +24,15 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: ["../invitations/*", "../whatsnew/*", "../groups/*", "../availability/*"] },
+        {
+          patterns: [
+            "../invitations/*",
+            "../whatsnew/*",
+            "../groups/*",
+            "../availability/*",
+            "../games/*",
+          ],
+        },
       ],
     },
   },
@@ -33,7 +41,15 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: ["../courts/*", "../whatsnew/*", "../groups/*", "../availability/*"] },
+        {
+          patterns: [
+            "../courts/*",
+            "../whatsnew/*",
+            "../groups/*",
+            "../availability/*",
+            "../games/*",
+          ],
+        },
       ],
     },
   },
@@ -42,7 +58,15 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: ["../courts/*", "../invitations/*", "../groups/*", "../availability/*"] },
+        {
+          patterns: [
+            "../courts/*",
+            "../invitations/*",
+            "../groups/*",
+            "../availability/*",
+            "../games/*",
+          ],
+        },
       ],
     },
   },
@@ -51,7 +75,15 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: ["../courts/*", "../invitations/*", "../whatsnew/*", "../availability/*"] },
+        {
+          patterns: [
+            "../courts/*",
+            "../invitations/*",
+            "../whatsnew/*",
+            "../availability/*",
+            "../games/*",
+          ],
+        },
       ],
     },
   },
@@ -60,7 +92,32 @@ export default tseslint.config(
     rules: {
       "no-restricted-imports": [
         "error",
-        { patterns: ["../courts/*", "../invitations/*", "../whatsnew/*", "../groups/*"] },
+        {
+          patterns: [
+            "../courts/*",
+            "../invitations/*",
+            "../whatsnew/*",
+            "../groups/*",
+            "../games/*",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/games/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            "../courts/*",
+            "../invitations/*",
+            "../whatsnew/*",
+            "../groups/*",
+            "../availability/*",
+          ],
+        },
       ],
     },
   },

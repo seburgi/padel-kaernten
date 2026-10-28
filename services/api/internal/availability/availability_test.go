@@ -141,3 +141,25 @@ func TestTemplatesAndVenues(t *testing.T) {
 		t.Errorf("cleared: %+v", m)
 	}
 }
+
+func TestOf(t *testing.T) {
+	s := setup(t)
+	ctx := t.Context()
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-29", []span{{1110, 1320}, {420, 540}})
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-30", []span{{600, 660}})
+	_, _ = s.SetVenues(ctx, anna, key(), []string{"villach"})
+	_, _ = s.SetDay(ctx, lisa, key(), "2026-10-29", []span{{600, 660}})
+	got, err := s.Of(ctx, []string{anna, lisa, "markus@example.at"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]availability.Person{
+		anna: {Days: map[string][]span{"2026-10-29": {{420, 540}, {1110, 1320}}, "2026-10-30": {{600, 660}}},
+			Venues: []string{"villach"}},
+		lisa:                {Days: map[string][]span{"2026-10-29": {{600, 660}}}, Venues: []string{}},
+		"markus@example.at": {Days: map[string][]span{}, Venues: []string{}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("of: %+v", got)
+	}
+}

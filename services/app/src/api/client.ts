@@ -18,6 +18,9 @@ export type Group = components["schemas"]["Group"];
 export type Span = components["schemas"]["Span"];
 export type Availability = components["schemas"]["Availability"];
 export type Template = components["schemas"]["Template"];
+export type Fit = components["schemas"]["Fit"];
+export type FitList = components["schemas"]["FitList"];
+export type Game = components["schemas"]["Game"];
 
 /** An answer that was not what the call wanted; kind is the end of the
  * problem's type URI ("sites-failed"), or "network". */

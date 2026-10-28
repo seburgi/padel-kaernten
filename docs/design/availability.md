@@ -31,7 +31,8 @@
 ## Deliberately not
 
 - **No groups here.** Groups read the counts through transport; matching
-  people against free courts comes with games (phase 2).
+  people against free courts is the games slice's (`games.md`), which
+  gets everyone's spans through `Of`.
 - **No hourly slots.** Courts open at different times (some at 7:00), so
   the grid is half hours and a span can start at any of them (Seb,
   2026-10-28).

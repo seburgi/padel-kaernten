@@ -18,6 +18,7 @@ import (
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/games"
 	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/config"
@@ -96,6 +97,7 @@ func run() error {
 		WhatsNew:     news,
 		Groups:       groupsSvc,
 		Availability: availability.NewService(pool, sites.Known),
+		Games:        games.NewService(pool),
 		Gateway:      gw,
 		Owner:        cfg.Owner,
 		Revision:     buildRevision,

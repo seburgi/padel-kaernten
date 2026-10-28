@@ -441,6 +441,106 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/groups/{groupId}/fits": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    /**
+     * Games of four the free courts and the members' times allow
+     * @description Computed from the latest snapshot on each call, never stored. Members only; 404 no-group otherwise. A snapshot older than five minutes is not refreshed here: the app asks /slots/refresh first.
+     */
+    get: operations["listFits"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/games": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Propose a fit as a game; whoever proposes plays
+     * @description 409 with type court-gone when the court is no longer free for the whole game.
+     */
+    post: operations["proposeGame"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/games": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The coming games of the caller's groups, soonest first */
+    get: operations["listGames"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/games/{gameId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    /** One game, for the members of its group */
+    get: operations["getGame"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Mark the game booked, or cancel it; whoever proposed it */
+    patch: operations["updateGame"];
+    trace?: never;
+  };
+  "/api/v1/games/{gameId}/players/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** Say yes (in) or no (out); a yes when it is full makes a reserve */
+    put: operations["answerGame"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -647,6 +747,91 @@ export interface components {
       templates: components["schemas"]["Template"][];
       venues: string[];
     };
+    Fit: {
+      /** Format: date */
+      day: string;
+      /** @description Minutes after midnight in Vienna. */
+      start: number;
+      minutes: number;
+      venueId: string;
+      venueName: string;
+      court: string;
+      price?: components["schemas"]["Money"];
+      perHead?: components["schemas"]["Money"];
+      /** @description The venue's booking page for the day. */
+      link?: string;
+      /** @description The members free for the whole game, in the group's order. */
+      can: components["schemas"]["Person"][];
+      /** @description On a near miss, members who entered nothing for the day. */
+      ask: components["schemas"]["Person"][];
+    };
+    Person: {
+      email: string;
+      /** @description "" until they gave one. */
+      name: string;
+    };
+    FitList: {
+      /**
+       * Format: date-time
+       * @description When the snapshot the fits come from was taken.
+       */
+      takenAt: string;
+      /** @description How many play a game. */
+      need: number;
+      fits: components["schemas"]["Fit"][];
+      /** @description One short; ask lists who could still make it. */
+      nearly: components["schemas"]["Fit"][];
+    };
+    NewGame: {
+      venueId: string;
+      court: string;
+      /** Format: date */
+      day: string;
+      start: number;
+      minutes: number;
+    };
+    Player: {
+      email: string;
+      name: string;
+      /** @description in, reserve or out; clients tolerate others. */
+      state: string;
+    };
+    Game: {
+      /** Format: int64 */
+      id: number;
+      /** Format: int64 */
+      groupId: number;
+      groupName: string;
+      venueId: string;
+      venueName: string;
+      court: string;
+      /** Format: date */
+      day: string;
+      start: number;
+      minutes: number;
+      /** @description How many play; 4 today. */
+      players: number;
+      price?: components["schemas"]["Money"];
+      perHead?: components["schemas"]["Money"];
+      /** @description The venue's booking page for the day, while the snapshot has one. */
+      link?: string;
+      /** @description proposed, booked or cancelled; clients tolerate others. */
+      state: string;
+      proposedBy: components["schemas"]["Person"];
+      /** @description Every answer, in the order given. */
+      lineup: components["schemas"]["Player"][];
+    };
+    GameList: {
+      items: components["schemas"]["Game"][];
+    };
+    GameChange: {
+      /** @description booked or cancelled. */
+      state: string;
+    };
+    GameAnswer: {
+      /** @description in or out. */
+      answer: string;
+    };
   };
   responses: {
     /** @description An RFC 9457 problem. */
@@ -660,6 +845,7 @@ export interface components {
     };
   };
   parameters: {
+    GameId: number;
     GroupId: number;
     /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
     IdempotencyKey: string;
@@ -1287,6 +1473,167 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["VenueChoice"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listFits: {
+    parameters: {
+      query: {
+        minutes: 60 | 90 | 120;
+      };
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The fits and the near misses. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FitList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  proposeGame: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewGame"];
+      };
+    };
+    responses: {
+      /** @description The game. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Game"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listGames: {
+    parameters: {
+      query?: {
+        groupId?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The games. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GameList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getGame: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The game. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Game"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  updateGame: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GameChange"];
+      };
+    };
+    responses: {
+      /** @description The game. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Game"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  answerGame: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GameAnswer"];
+      };
+    };
+    responses: {
+      /** @description The game. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Game"];
         };
       };
       default: components["responses"]["Problem"];
