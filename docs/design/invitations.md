@@ -2,7 +2,9 @@
 
 ## How it works
 
-- **Only Seb invites, from the app** (Seb, 2026-10-27): the page
+- **This is Seb's invitation into the app.** Since 2026-10-28 every member
+  invites people into their groups (`groups.md`); this page stays Seb's
+  view of who he let into the app himself: the page
   `/invites` (until 2026-10-28 `/einladen`, which still leads there),
   shown only to `OWNER_EMAIL`. Everyone else gets 403
   `not-owner` from `/api/v1/invitations`, and the app does not show the
@@ -24,7 +26,8 @@
 
 ## Deliberately not
 
-- **No invitations by members.** Seb chose "only me, but in the app".
+- **No members on this page.** Members invite into groups (`groups.md`);
+  this list and its ref `padel` are Seb's alone.
 - **No Rauthy key here.** Only the platform service may change groups, and
   only for the app whose account calls it (`PLATFORM_APPS` in
   `infra/platform/app-platform.tf`).

@@ -32,9 +32,17 @@ func TestInviteAndWithdraw(t *testing.T) {
 	if err := c.Withdraw(context.Background(), "anna+padel@example.at"); err != nil {
 		t.Fatal(err)
 	}
+	if err := c.InviteAs(context.Background(), "lisa@example.at", "group-7"); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.WithdrawAs(context.Background(), "lisa@example.at", "group-7"); err != nil {
+		t.Fatal(err)
+	}
 	want := []string{
 		"PUT /v1/invitations/anna+padel@example.at/padel Bearer tok",
 		"DELETE /v1/invitations/anna+padel@example.at/padel Bearer tok",
+		"PUT /v1/invitations/lisa@example.at/group-7 Bearer tok",
+		"DELETE /v1/invitations/lisa@example.at/group-7 Bearer tok",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Errorf("calls:\n%s", strings.Join(got, "\n"))

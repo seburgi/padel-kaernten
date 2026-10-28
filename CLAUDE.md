@@ -10,7 +10,8 @@ they apply here. A change to a rule edits its note there.
 `docs/design/` describes how the app works today, one file per area:
 `platform.md` (where it runs, who may call it), `slots.md` (the snapshot
 and its refresh), `booking-sites.md` (how each booking site is read, and
-how to add a venue), `invitations.md`, `whats-new.md` (release notes). Each says what is true, what is
+how to add a venue), `invitations.md` (Seb's invitations into the app),
+`groups.md`, `availability.md`, `whats-new.md` (release notes). Each says what is true, what is
 **deliberately not** done, and the traps. A change to behaviour edits its
 file in the same commit.
 
@@ -70,8 +71,9 @@ in the secrets `KIT_APP_ID` and `KIT_APP_KEY`.
   and `services/app/src/api/schema.d.ts` are generated from it and
   committed.
 - `services/api/internal/<slice>/`: `slots` (with `slots/sites`, the
-  booking sites and `venues.json`), `invitations` and `whatsnew`, which
-  never import each other (depguard).
+  booking sites and `venues.json`), `invitations`, `groups`,
+  `availability` and `whatsnew`, which never import each other
+  (depguard); `transport` is where they meet.
 - `services/api/internal/platform/`: config, database, idempotency,
   problem+json, the platform service's invitation calls (`platformsvc`),
   the test database.
@@ -100,8 +102,8 @@ One to three short paragraphs in German, for the people who play: what
 they will notice and where. No file names or commit ids.
 ```
 
-`area` is one of `courts` (Plätze), `invites` (Einladen) or `app`
-(Überall); `link` is optional, a path in the app. A new area goes into
+`area` is one of `courts` (Plätze), `play` (Spielen: groups and times),
+`invites` (Einladen) or `app` (Überall); `link` is optional, a path in the app. A new area goes into
 `whatsnew.Areas` and the page's names in the same commit.
 
 The cloud side is `infra/platform/app-padel.tf` in

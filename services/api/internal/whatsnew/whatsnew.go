@@ -34,7 +34,7 @@ import (
 )
 
 // Areas are the areas a note may name, kept in CLAUDE.md too.
-var Areas = []string{"courts", "invites", "app"}
+var Areas = []string{"courts", "play", "invites", "app"}
 
 // Note is one note file, and whether the person asking has read it.
 type Note struct {

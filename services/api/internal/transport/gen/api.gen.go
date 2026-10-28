@@ -21,6 +21,25 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Availability defines model for Availability.
+type Availability struct {
+	Days []AvailabilityDay `json:"days"`
+
+	// From Today in Vienna.
+	From      openapi_types.Date `json:"from"`
+	Templates []Template         `json:"templates"`
+
+	// To The last day one can enter.
+	To     openapi_types.Date `json:"to"`
+	Venues []string           `json:"venues"`
+}
+
+// AvailabilityDay defines model for AvailabilityDay.
+type AvailabilityDay struct {
+	Day   openapi_types.Date `json:"day"`
+	Spans []Span             `json:"spans"`
+}
+
 // ClientConfig defines model for ClientConfig.
 type ClientConfig struct {
 	Features map[string]bool `json:"features"`
@@ -32,6 +51,71 @@ type Court struct {
 	Area *string `json:"area,omitempty"`
 	Free []Slot  `json:"free"`
 	Name string  `json:"name"`
+}
+
+// Group defines model for Group.
+type Group struct {
+	// How member, invited or listed (open, not joined); clients tolerate others.
+	How string `json:"how"`
+	Id  int64  `json:"id"`
+
+	// Invitations Only for members.
+	Invitations []GroupInvitation `json:"invitations"`
+
+	// Kind private, on_request or open; clients tolerate others.
+	Kind       GroupKind `json:"kind"`
+	MemberList []Member  `json:"memberList"`
+	Members    int       `json:"members"`
+	Name       string    `json:"name"`
+
+	// Requested The caller asked to join.
+	Requested bool `json:"requested"`
+
+	// Requests Only for members.
+	Requests []JoinRequest `json:"requests"`
+
+	// Role admin or member, for a member.
+	Role *string `json:"role,omitempty"`
+}
+
+// GroupChange defines model for GroupChange.
+type GroupChange struct {
+	// Kind private, on_request or open; clients tolerate others.
+	Kind *GroupKind `json:"kind,omitempty"`
+	Name *string    `json:"name,omitempty"`
+}
+
+// GroupInvitation defines model for GroupInvitation.
+type GroupInvitation struct {
+	Email     string    `json:"email"`
+	InvitedAt time.Time `json:"invitedAt"`
+	InvitedBy string    `json:"invitedBy"`
+}
+
+// GroupKind private, on_request or open; clients tolerate others.
+type GroupKind = string
+
+// GroupList defines model for GroupList.
+type GroupList struct {
+	Items []GroupSummary `json:"items"`
+}
+
+// GroupSummary defines model for GroupSummary.
+type GroupSummary struct {
+	// How member, invited or listed (open, not joined); clients tolerate others.
+	How string `json:"how"`
+	Id  int64  `json:"id"`
+
+	// Kind private, on_request or open; clients tolerate others.
+	Kind    GroupKind `json:"kind"`
+	Members int       `json:"members"`
+	Name    string    `json:"name"`
+
+	// Requested The caller asked to join.
+	Requested bool `json:"requested"`
+
+	// Role admin or member, for a member.
+	Role *string `json:"role,omitempty"`
 }
 
 // Invitation defines model for Invitation.
@@ -46,10 +130,39 @@ type InvitationPage struct {
 	NextCursor *string      `json:"nextCursor,omitempty"`
 }
 
+// JoinRequest defines model for JoinRequest.
+type JoinRequest struct {
+	AskedAt time.Time `json:"askedAt"`
+	Email   string    `json:"email"`
+	Name    string    `json:"name"`
+}
+
+// Joined defines model for Joined.
+type Joined struct {
+	// State member, or requested for a group open on request.
+	State string `json:"state"`
+}
+
 // Me defines model for Me.
 type Me struct {
+	// CanInvite Sees every invitation into the app (/invites); only the owner.
 	CanInvite bool   `json:"canInvite"`
 	Email     string `json:"email"`
+
+	// Name The name the others see; "" until given.
+	Name string `json:"name"`
+}
+
+// Member defines model for Member.
+type Member struct {
+	// DaysEntered On how many of the next 14 days they said when they can.
+	DaysEntered int       `json:"daysEntered"`
+	Email       string    `json:"email"`
+	JoinedAt    time.Time `json:"joinedAt"`
+
+	// Name "" until they gave one.
+	Name string `json:"name"`
+	Role string `json:"role"`
 }
 
 // Money defines model for Money.
@@ -59,6 +172,18 @@ type Money struct {
 
 	// Currency ISO 4217, EUR.
 	Currency string `json:"currency"`
+}
+
+// NameChange defines model for NameChange.
+type NameChange struct {
+	Name string `json:"name"`
+}
+
+// NewGroup defines model for NewGroup.
+type NewGroup struct {
+	// Kind private, on_request or open; clients tolerate others.
+	Kind GroupKind `json:"kind"`
+	Name string    `json:"name"`
 }
 
 // NewInvitation defines model for NewInvitation.
@@ -76,7 +201,7 @@ type Problem struct {
 
 // ReleaseNote One change, written for the people who use Padel.
 type ReleaseNote struct {
-	// Area courts, invites or app; clients tolerate others.
+	// Area courts, play, invites or app; clients tolerate others.
 	Area string             `json:"area"`
 	Date openapi_types.Date `json:"date"`
 
@@ -116,6 +241,30 @@ type Snapshot struct {
 	Venues  []Venue              `json:"venues"`
 }
 
+// Span Minutes after midnight in Vienna, on a 30-minute grid from 360 to 1440.
+type Span struct {
+	From int `json:"from"`
+	To   int `json:"to"`
+}
+
+// SpanList defines model for SpanList.
+type SpanList struct {
+	Spans []Span `json:"spans"`
+}
+
+// Template defines model for Template.
+type Template struct {
+	Spans []Span `json:"spans"`
+
+	// Weekday 1 Monday to 7 Sunday.
+	Weekday int `json:"weekday"`
+}
+
+// TemplateList defines model for TemplateList.
+type TemplateList struct {
+	Templates []Template `json:"templates"`
+}
+
 // Venue defines model for Venue.
 type Venue struct {
 	Address *string `json:"address,omitempty"`
@@ -141,14 +290,70 @@ type Venue struct {
 	Step int `json:"step"`
 }
 
+// VenueChoice defines model for VenueChoice.
+type VenueChoice struct {
+	Venues []string `json:"venues"`
+}
+
 // Version defines model for Version.
 type Version struct {
 	// Revision The commit the image was built from, or "dev".
 	Revision string `json:"revision"`
 }
 
+// GroupId defines model for GroupId.
+type GroupId = int64
+
 // IdempotencyKey defines model for IdempotencyKey.
 type IdempotencyKey = openapi_types.UUID
+
+// SetAvailabilityDayParams defines parameters for SetAvailabilityDay.
+type SetAvailabilityDayParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// SetAvailabilityTemplatesParams defines parameters for SetAvailabilityTemplates.
+type SetAvailabilityTemplatesParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// SetVenuesParams defines parameters for SetVenues.
+type SetVenuesParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// CreateGroupParams defines parameters for CreateGroup.
+type CreateGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// UpdateGroupParams defines parameters for UpdateGroup.
+type UpdateGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// InviteToGroupParams defines parameters for InviteToGroup.
+type InviteToGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// JoinGroupParams defines parameters for JoinGroup.
+type JoinGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// AdmitToGroupParams defines parameters for AdmitToGroup.
+type AdmitToGroupParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
 
 // ListInvitationsParams defines parameters for ListInvitations.
 type ListInvitationsParams struct {
@@ -158,6 +363,12 @@ type ListInvitationsParams struct {
 
 // InviteParams defines parameters for Invite.
 type InviteParams struct {
+	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
+// SetMyNameParams defines parameters for SetMyName.
+type SetMyNameParams struct {
 	// IdempotencyKey A UUID the client mints; a retry sends it again (standards/api/idempotency.md).
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
@@ -179,17 +390,80 @@ type RefreshSlotsParams struct {
 	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
 }
 
+// SetAvailabilityDayJSONRequestBody defines body for SetAvailabilityDay for application/json ContentType.
+type SetAvailabilityDayJSONRequestBody = SpanList
+
+// SetAvailabilityTemplatesJSONRequestBody defines body for SetAvailabilityTemplates for application/json ContentType.
+type SetAvailabilityTemplatesJSONRequestBody = TemplateList
+
+// SetVenuesJSONRequestBody defines body for SetVenues for application/json ContentType.
+type SetVenuesJSONRequestBody = VenueChoice
+
+// CreateGroupJSONRequestBody defines body for CreateGroup for application/json ContentType.
+type CreateGroupJSONRequestBody = NewGroup
+
+// UpdateGroupJSONRequestBody defines body for UpdateGroup for application/json ContentType.
+type UpdateGroupJSONRequestBody = GroupChange
+
+// InviteToGroupJSONRequestBody defines body for InviteToGroup for application/json ContentType.
+type InviteToGroupJSONRequestBody = NewInvitation
+
 // InviteJSONRequestBody defines body for Invite for application/json ContentType.
 type InviteJSONRequestBody = NewInvitation
+
+// SetMyNameJSONRequestBody defines body for SetMyName for application/json ContentType.
+type SetMyNameJSONRequestBody = NameChange
 
 // MarkReleaseNotesReadJSONRequestBody defines body for MarkReleaseNotesRead for application/json ContentType.
 type MarkReleaseNotesReadJSONRequestBody = ReleaseNotesRead
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// GetAvailability When the caller can play, their usual weekdays, and where they drive to
+	// (GET /api/v1/availability)
+	GetAvailability(w http.ResponseWriter, r *http.Request)
+	// SetAvailabilityDay Replace the spans of one day
+	// (PUT /api/v1/availability/days/{day})
+	SetAvailabilityDay(w http.ResponseWriter, r *http.Request, day openapi_types.Date, params SetAvailabilityDayParams)
+	// SetAvailabilityTemplates Replace the usual spans per weekday ("wie meistens")
+	// (PUT /api/v1/availability/templates)
+	SetAvailabilityTemplates(w http.ResponseWriter, r *http.Request, params SetAvailabilityTemplatesParams)
+	// SetVenues Replace the venues the caller drives to; none means every venue
+	// (PUT /api/v1/availability/venues)
+	SetVenues(w http.ResponseWriter, r *http.Request, params SetVenuesParams)
 	// GetClientConfig Feature flags for the app
 	// (GET /api/v1/client-config)
 	GetClientConfig(w http.ResponseWriter, r *http.Request)
+	// ListGroups The caller's groups, the ones they are invited into, and the open ones
+	// (GET /api/v1/groups)
+	ListGroups(w http.ResponseWriter, r *http.Request)
+	// CreateGroup Found a group, with the caller as its admin
+	// (POST /api/v1/groups)
+	CreateGroup(w http.ResponseWriter, r *http.Request, params CreateGroupParams)
+	// GetGroup One group, as the caller may see it
+	// (GET /api/v1/groups/{groupId})
+	GetGroup(w http.ResponseWriter, r *http.Request, groupId GroupId)
+	// UpdateGroup Rename it or change its kind; admins only
+	// (PATCH /api/v1/groups/{groupId})
+	UpdateGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params UpdateGroupParams)
+	// InviteToGroup Invite someone into the group; any member may
+	// (POST /api/v1/groups/{groupId}/invitations)
+	InviteToGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params InviteToGroupParams)
+	// DropGroupInvitation Decline an invitation, or take one back
+	// (DELETE /api/v1/groups/{groupId}/invitations/{email})
+	DropGroupInvitation(w http.ResponseWriter, r *http.Request, groupId GroupId, email string)
+	// JoinGroup Accept an invitation, join an open group, or ask into one open on request
+	// (POST /api/v1/groups/{groupId}/join)
+	JoinGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params JoinGroupParams)
+	// RemoveFromGroup Leave, or remove someone (admins)
+	// (DELETE /api/v1/groups/{groupId}/members/{email})
+	RemoveFromGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, email string)
+	// AdmitToGroup Let someone who asked in; any member may
+	// (PUT /api/v1/groups/{groupId}/members/{email})
+	AdmitToGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, email string, params AdmitToGroupParams)
+	// DropJoinRequest Turn a request down (a member), or take one's own back
+	// (DELETE /api/v1/groups/{groupId}/requests/{email})
+	DropJoinRequest(w http.ResponseWriter, r *http.Request, groupId GroupId, email string)
 	// ListInvitations Who Seb invited
 	// (GET /api/v1/invitations)
 	ListInvitations(w http.ResponseWriter, r *http.Request, params ListInvitationsParams)
@@ -202,6 +476,9 @@ type ServerInterface interface {
 	// GetMe Who is signed in, and what they may do
 	// (GET /api/v1/me)
 	GetMe(w http.ResponseWriter, r *http.Request)
+	// SetMyName The name the others see
+	// (PUT /api/v1/me/name)
+	SetMyName(w http.ResponseWriter, r *http.Request, params SetMyNameParams)
 	// ListReleaseNotes What's new, and what the caller has read of it
 	// (GET /api/v1/release-notes)
 	ListReleaseNotes(w http.ResponseWriter, r *http.Request)
@@ -223,9 +500,93 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// GetAvailability When the caller can play, their usual weekdays, and where they drive to
+// (GET /api/v1/availability)
+func (_ Unimplemented) GetAvailability(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAvailabilityDay Replace the spans of one day
+// (PUT /api/v1/availability/days/{day})
+func (_ Unimplemented) SetAvailabilityDay(w http.ResponseWriter, r *http.Request, day openapi_types.Date, params SetAvailabilityDayParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetAvailabilityTemplates Replace the usual spans per weekday ("wie meistens")
+// (PUT /api/v1/availability/templates)
+func (_ Unimplemented) SetAvailabilityTemplates(w http.ResponseWriter, r *http.Request, params SetAvailabilityTemplatesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetVenues Replace the venues the caller drives to; none means every venue
+// (PUT /api/v1/availability/venues)
+func (_ Unimplemented) SetVenues(w http.ResponseWriter, r *http.Request, params SetVenuesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetClientConfig Feature flags for the app
 // (GET /api/v1/client-config)
 func (_ Unimplemented) GetClientConfig(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListGroups The caller's groups, the ones they are invited into, and the open ones
+// (GET /api/v1/groups)
+func (_ Unimplemented) ListGroups(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateGroup Found a group, with the caller as its admin
+// (POST /api/v1/groups)
+func (_ Unimplemented) CreateGroup(w http.ResponseWriter, r *http.Request, params CreateGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetGroup One group, as the caller may see it
+// (GET /api/v1/groups/{groupId})
+func (_ Unimplemented) GetGroup(w http.ResponseWriter, r *http.Request, groupId GroupId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateGroup Rename it or change its kind; admins only
+// (PATCH /api/v1/groups/{groupId})
+func (_ Unimplemented) UpdateGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params UpdateGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// InviteToGroup Invite someone into the group; any member may
+// (POST /api/v1/groups/{groupId}/invitations)
+func (_ Unimplemented) InviteToGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params InviteToGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DropGroupInvitation Decline an invitation, or take one back
+// (DELETE /api/v1/groups/{groupId}/invitations/{email})
+func (_ Unimplemented) DropGroupInvitation(w http.ResponseWriter, r *http.Request, groupId GroupId, email string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// JoinGroup Accept an invitation, join an open group, or ask into one open on request
+// (POST /api/v1/groups/{groupId}/join)
+func (_ Unimplemented) JoinGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, params JoinGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RemoveFromGroup Leave, or remove someone (admins)
+// (DELETE /api/v1/groups/{groupId}/members/{email})
+func (_ Unimplemented) RemoveFromGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, email string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AdmitToGroup Let someone who asked in; any member may
+// (PUT /api/v1/groups/{groupId}/members/{email})
+func (_ Unimplemented) AdmitToGroup(w http.ResponseWriter, r *http.Request, groupId GroupId, email string, params AdmitToGroupParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DropJoinRequest Turn a request down (a member), or take one's own back
+// (DELETE /api/v1/groups/{groupId}/requests/{email})
+func (_ Unimplemented) DropJoinRequest(w http.ResponseWriter, r *http.Request, groupId GroupId, email string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -250,6 +611,12 @@ func (_ Unimplemented) WithdrawInvitation(w http.ResponseWriter, r *http.Request
 // GetMe Who is signed in, and what they may do
 // (GET /api/v1/me)
 func (_ Unimplemented) GetMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetMyName The name the others see
+// (PUT /api/v1/me/name)
+func (_ Unimplemented) SetMyName(w http.ResponseWriter, r *http.Request, params SetMyNameParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -292,11 +659,584 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// GetAvailability operation middleware
+func (siw *ServerInterfaceWrapper) GetAvailability(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAvailability(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAvailabilityDay operation middleware
+func (siw *ServerInterfaceWrapper) SetAvailabilityDay(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "day" -------------
+	var day openapi_types.Date
+
+	err = runtime.BindStyledParameterWithOptions("simple", "day", chi.URLParam(r, "day"), &day, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "date", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "day", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SetAvailabilityDayParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAvailabilityDay(w, r, day, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetAvailabilityTemplates operation middleware
+func (siw *ServerInterfaceWrapper) SetAvailabilityTemplates(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SetAvailabilityTemplatesParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetAvailabilityTemplates(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetVenues operation middleware
+func (siw *ServerInterfaceWrapper) SetVenues(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SetVenuesParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetVenues(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetClientConfig operation middleware
 func (siw *ServerInterfaceWrapper) GetClientConfig(w http.ResponseWriter, r *http.Request) {
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetClientConfig(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGroups operation middleware
+func (siw *ServerInterfaceWrapper) ListGroups(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGroups(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateGroup operation middleware
+func (siw *ServerInterfaceWrapper) CreateGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateGroup(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetGroup operation middleware
+func (siw *ServerInterfaceWrapper) GetGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetGroup(w, r, groupId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateGroup operation middleware
+func (siw *ServerInterfaceWrapper) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params UpdateGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// InviteToGroup operation middleware
+func (siw *ServerInterfaceWrapper) InviteToGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params InviteToGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.InviteToGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DropGroupInvitation operation middleware
+func (siw *ServerInterfaceWrapper) DropGroupInvitation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "email" -------------
+	var email string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DropGroupInvitation(w, r, groupId, email)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// JoinGroup operation middleware
+func (siw *ServerInterfaceWrapper) JoinGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params JoinGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.JoinGroup(w, r, groupId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveFromGroup operation middleware
+func (siw *ServerInterfaceWrapper) RemoveFromGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "email" -------------
+	var email string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveFromGroup(w, r, groupId, email)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// AdmitToGroup operation middleware
+func (siw *ServerInterfaceWrapper) AdmitToGroup(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "email" -------------
+	var email string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AdmitToGroupParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AdmitToGroup(w, r, groupId, email, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DropJoinRequest operation middleware
+func (siw *ServerInterfaceWrapper) DropJoinRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "groupId" -------------
+	var groupId GroupId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "groupId", chi.URLParam(r, "groupId"), &groupId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "groupId", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "email" -------------
+	var email string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "email", chi.URLParam(r, "email"), &email, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "email", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DropJoinRequest(w, r, groupId, email)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -428,6 +1368,51 @@ func (siw *ServerInterfaceWrapper) GetMe(w http.ResponseWriter, r *http.Request)
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetMyName operation middleware
+func (siw *ServerInterfaceWrapper) SetMyName(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SetMyNameParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Idempotency-Key", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: "uuid"})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Idempotency-Key", Err: err})
+			return
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+
+	} else {
+		err := fmt.Errorf("Header parameter Idempotency-Key is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Idempotency-Key", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetMyName(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -739,6 +1724,51 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/release-notes/read", wrapper.MarkReleaseNotesRead)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/groups", wrapper.ListGroups)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups", wrapper.CreateGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/groups/{groupId}", wrapper.GetGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v1/groups/{groupId}", wrapper.UpdateGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/invitations", wrapper.InviteToGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/groups/{groupId}/invitations/{email}", wrapper.DropGroupInvitation)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/groups/{groupId}/join", wrapper.JoinGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/groups/{groupId}/members/{email}", wrapper.RemoveFromGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/groups/{groupId}/members/{email}", wrapper.AdmitToGroup)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/groups/{groupId}/requests/{email}", wrapper.DropJoinRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/me/name", wrapper.SetMyName)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/availability", wrapper.GetAvailability)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/availability/days/{day}", wrapper.SetAvailabilityDay)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/availability/templates", wrapper.SetAvailabilityTemplates)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/availability/venues", wrapper.SetVenues)
+	})
 
 	return r
 }
@@ -748,52 +1778,84 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

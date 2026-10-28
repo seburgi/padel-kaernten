@@ -14,6 +14,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/idempotency"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/problem"
@@ -28,7 +30,10 @@ type Handler struct {
 	Slots       *slots.Service
 	Invitations *invitations.Service
 	WhatsNew    *whatsnew.Service
-	Gateway     *Gateway
+	Groups      *groups.Service
+	// Availability counts the days each member entered.
+	Availability *availability.Service
+	Gateway      *Gateway
 	// Owner is the one address that may invite (OWNER_EMAIL).
 	Owner    string
 	Revision string
@@ -57,7 +62,12 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, gen.Me{Email: email, CanInvite: email == h.Owner})
+	p, err := h.Groups.Seen(r.Context(), email)
+	if err != nil {
+		h.internal(w, r, "recording a visit", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, gen.Me{Email: email, Name: p.Name, CanInvite: email == h.Owner})
 }
 
 // GetSlots is the latest snapshot, 304 when the client has it.

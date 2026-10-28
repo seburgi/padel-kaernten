@@ -17,6 +17,8 @@ import (
 
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway"
 
+	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/config"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/database"
@@ -65,7 +67,10 @@ func run() error {
 		return err
 	}
 	booking := &sites.Client{HTTP: &http.Client{Timeout: 25 * time.Second}}
-	var platform invitations.Platform = &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
+	var platform interface {
+		invitations.Platform
+		groups.Platform
+	} = &platformsvc.Client{URL: cfg.PlatformURL, HTTP: &http.Client{Timeout: 20 * time.Second}}
 	gw := &transport.Gateway{Caller: cfg.GatewayCaller, Address: cfg.GatewayAudience, Keys: &gateway.Keys{
 		Audience: cfg.GatewayAudience, Audiences: cfg.GatewayAudiences, JWKS: cfg.GatewayJWKS,
 		Client: &http.Client{Timeout: 10 * time.Second},
@@ -81,14 +86,20 @@ func run() error {
 		}
 		log.Info("local sign-in", "at", "http://localhost:5173"+localgateway.Path)
 	}
+	groupsSvc := groups.NewService(pool, platform)
+	if err := groupsSvc.EnsureFirst(ctx, cfg.Owner); err != nil {
+		return fmt.Errorf("the first group: %w", err)
+	}
 	h := &transport.Handler{
-		Slots:       slots.NewService(pool, booking, nil, log),
-		Invitations: invitations.NewService(pool, platform),
-		WhatsNew:    news,
-		Gateway:     gw,
-		Owner:       cfg.Owner,
-		Revision:    buildRevision,
-		Log:         log,
+		Slots:        slots.NewService(pool, booking, nil, log),
+		Invitations:  invitations.NewService(pool, platform),
+		WhatsNew:     news,
+		Groups:       groupsSvc,
+		Availability: availability.NewService(pool, sites.Known),
+		Gateway:      gw,
+		Owner:        cfg.Owner,
+		Revision:     buildRevision,
+		Log:          log,
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
@@ -138,5 +149,15 @@ func (p loggedPlatform) Invite(ctx context.Context, email string) error {
 
 func (p loggedPlatform) Withdraw(ctx context.Context, email string) error {
 	p.log.InfoContext(ctx, "local: would withdraw", "email", email)
+	return nil
+}
+
+func (p loggedPlatform) InviteAs(ctx context.Context, email, ref string) error {
+	p.log.InfoContext(ctx, "local: would invite", "email", email, "ref", ref)
+	return nil
+}
+
+func (p loggedPlatform) WithdrawAs(ctx context.Context, email, ref string) error {
+	p.log.InfoContext(ctx, "local: would withdraw", "email", email, "ref", ref)
 	return nil
 }

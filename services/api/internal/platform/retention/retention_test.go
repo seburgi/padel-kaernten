@@ -15,8 +15,13 @@ func TestRun_deletesOnlyWhatIsOlderThanItsWindow(t *testing.T) {
 		VALUES ('00000000-0000-0000-0000-000000000001', 'a', 'p', '\x00', now() - interval '8 days'), ('00000000-0000-0000-0000-000000000002', 'a', 'p', '\x00', now())`); err != nil {
 		t.Fatal(err)
 	}
+	// Spans of days gone by go after two days.
+	if _, err := pool.Exec(ctx, `INSERT INTO availability_spans (email, day, from_min, to_min)
+		VALUES ('a', current_date - 3, 600, 660), ('a', current_date, 600, 660)`); err != nil {
+		t.Fatal(err)
+	}
 	dry, err := retention.Run(ctx, pool, retention.Tables, true)
-	if err != nil || len(dry) != 1 || dry[0].Rows != 1 || !dry[0].Dry {
+	if err != nil || len(dry) != 2 || dry[0].Rows != 1 || !dry[0].Dry || dry[1].Rows != 1 {
 		t.Fatalf("dry run: %+v %v", dry, err)
 	}
 	var n int
@@ -25,7 +30,7 @@ func TestRun_deletesOnlyWhatIsOlderThanItsWindow(t *testing.T) {
 		t.Fatalf("a dry run deleted: %d left", n)
 	}
 	got, err := retention.Run(ctx, pool, retention.Tables, false)
-	if err != nil || got[0].Rows != 1 || got[0].Days != 7 {
+	if err != nil || got[0].Rows != 1 || got[0].Days != 7 || got[1].Rows != 1 {
 		t.Fatalf("run: %+v %v", got, err)
 	}
 	_ = pool.QueryRow(ctx, `SELECT count(*) FROM idempotency_keys WHERE key = '00000000-0000-0000-0000-000000000002'`).Scan(&n)

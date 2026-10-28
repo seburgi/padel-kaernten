@@ -15,7 +15,8 @@ import (
 	"strings"
 )
 
-// Ref is Padel's key for its one invitation per person.
+// Ref is the key of Seb's invitation into the app (invitations); a group's
+// invitation is held under group-<id> (groups).
 const Ref = "padel"
 
 // metadataIdentity hands out an ID token for the service's own account.
@@ -34,15 +35,27 @@ type Client struct {
 
 // Invite puts email into the group padel (PUT /v1/invitations/{email}/padel).
 func (c *Client) Invite(ctx context.Context, email string) error {
-	return c.call(ctx, http.MethodPut, email)
+	return c.call(ctx, http.MethodPut, email, Ref)
 }
 
 // Withdraw takes Padel's invitation of email back.
 func (c *Client) Withdraw(ctx context.Context, email string) error {
-	return c.call(ctx, http.MethodDelete, email)
+	return c.call(ctx, http.MethodDelete, email, Ref)
 }
 
-func (c *Client) call(ctx context.Context, method, email string) error {
+// InviteAs holds an invitation of email under ref, such as group-7, which
+// puts them into the group padel too.
+func (c *Client) InviteAs(ctx context.Context, email, ref string) error {
+	return c.call(ctx, http.MethodPut, email, ref)
+}
+
+// WithdrawAs drops the invitation held under ref. The service takes the
+// person out of padel only when no invitation is left. Safe to repeat.
+func (c *Client) WithdrawAs(ctx context.Context, email, ref string) error {
+	return c.call(ctx, http.MethodDelete, email, ref)
+}
+
+func (c *Client) call(ctx context.Context, method, email, ref string) error {
 	if c.URL == "" {
 		return errors.New("PLATFORM_URL is not set")
 	}
@@ -54,7 +67,7 @@ func (c *Client) call(ctx context.Context, method, email string) error {
 	if err != nil {
 		return fmt.Errorf("ID token: %w", err)
 	}
-	u := strings.TrimSuffix(c.URL, "/") + "/v1/invitations/" + url.PathEscape(email) + "/" + Ref
+	u := strings.TrimSuffix(c.URL, "/") + "/v1/invitations/" + url.PathEscape(email) + "/" + url.PathEscape(ref)
 	req, err := http.NewRequestWithContext(ctx, method, u, nil)
 	if err != nil {
 		return err

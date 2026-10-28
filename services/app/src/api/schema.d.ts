@@ -187,6 +187,260 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/groups": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * The caller's groups, the ones they are invited into, and the open ones
+     * @description What group_visibility shows the caller (docs/design/groups.md): their own first, then invitations, then groups that are open or open on request, each by name. A short list, so it is not paged.
+     */
+    get: operations["listGroups"];
+    put?: never;
+    /**
+     * Found a group, with the caller as its admin
+     * @description 400 with type invalid-group for an empty or long name or an unknown kind.
+     */
+    post: operations["createGroup"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    /**
+     * One group, as the caller may see it
+     * @description Members always; invitations and requests only for members. 404 with type no-group when the group is gone or private to the caller.
+     */
+    get: operations["getGroup"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rename it or change its kind; admins only */
+    patch: operations["updateGroup"];
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/invitations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Invite someone into the group; any member may
+     * @description The platform service holds the invitation under group-<id>, which lets the person into the app (Rauthy mails someone new a link to set a password). Inviting someone already invited answers their invitation. 409 already-member; 429 invite-limit (20 open, 10 a day per person); 502 platform-failed, nothing recorded.
+     */
+    post: operations["inviteToGroup"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/invitations/{email}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Decline an invitation, or take one back
+     * @description The person invited declines; whoever invited, or an admin, takes it back. Safe to repeat.
+     */
+    delete: operations["dropGroupInvitation"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/join": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Accept an invitation, join an open group, or ask into one open on request */
+    post: operations["joinGroup"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/members/{email}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Let someone who asked in; any member may
+     * @description 404 with type no-request when they did not ask. Safe to repeat.
+     */
+    put: operations["admitToGroup"];
+    post?: never;
+    /**
+     * Leave, or remove someone (admins)
+     * @description When the last admin goes, the member longest in becomes admin; when the last member goes, so does the group. Safe to repeat.
+     */
+    delete: operations["removeFromGroup"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/groups/{groupId}/requests/{email}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Turn a request down (a member), or take one's own back */
+    delete: operations["dropJoinRequest"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/me/name": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** The name the others see */
+    put: operations["setMyName"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/availability": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * When the caller can play, their usual weekdays, and where they drive to
+     * @description For today in Vienna and the 13 days after it (docs/design/availability.md). Only days with spans are listed.
+     */
+    get: operations["getAvailability"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/availability/days/{day}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        day: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Replace the spans of one day
+     * @description Spans on a 30-minute grid from 6:00 to 24:00; overlapping or touching ones become one, and none clears the day. 400 invalid-spans; 400 outside-window for a day before today or more than 13 days ahead.
+     */
+    put: operations["setAvailabilityDay"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/availability/templates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Replace the usual spans per weekday ("wie meistens") */
+    put: operations["setAvailabilityTemplates"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/availability/venues": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Replace the venues the caller drives to; none means every venue
+     * @description 400 unknown-venue for an id that is not one of the venues.
+     */
+    put: operations["setVenues"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -208,7 +462,10 @@ export interface components {
     };
     Me: {
       email: string;
+      /** @description Sees every invitation into the app (/invites); only the owner. */
       canInvite: boolean;
+      /** @description The name the others see; "" until given. */
+      name: string;
     };
     Snapshot: {
       /** Format: date-time */
@@ -275,7 +532,7 @@ export interface components {
       slug: string;
       /** Format: date */
       date: string;
-      /** @description courts, invites or app; clients tolerate others. */
+      /** @description courts, play, invites or app; clients tolerate others. */
       area: string;
       title: string;
       paragraphs: string[];
@@ -288,6 +545,107 @@ export interface components {
     };
     ReleaseNotesRead: {
       slugs: string[];
+    };
+    /** @description private, on_request or open; clients tolerate others. */
+    GroupKind: string;
+    GroupSummary: {
+      /** Format: int64 */
+      id: number;
+      name: string;
+      kind: components["schemas"]["GroupKind"];
+      /** @description member, invited or listed (open, not joined); clients tolerate others. */
+      how: string;
+      /** @description admin or member, for a member. */
+      role?: string;
+      members: number;
+      /** @description The caller asked to join. */
+      requested: boolean;
+    };
+    GroupList: {
+      items: components["schemas"]["GroupSummary"][];
+    };
+    Member: {
+      email: string;
+      /** @description "" until they gave one. */
+      name: string;
+      role: string;
+      /** Format: date-time */
+      joinedAt: string;
+      /** @description On how many of the next 14 days they said when they can. */
+      daysEntered: number;
+    };
+    GroupInvitation: {
+      email: string;
+      invitedBy: string;
+      /** Format: date-time */
+      invitedAt: string;
+    };
+    JoinRequest: {
+      email: string;
+      name: string;
+      /** Format: date-time */
+      askedAt: string;
+    };
+    Group: components["schemas"]["GroupSummary"] & {
+      memberList: components["schemas"]["Member"][];
+      /** @description Only for members. */
+      invitations: components["schemas"]["GroupInvitation"][];
+      /** @description Only for members. */
+      requests: components["schemas"]["JoinRequest"][];
+    };
+    NewGroup: {
+      name: string;
+      kind: components["schemas"]["GroupKind"];
+    };
+    GroupChange: {
+      name?: string;
+      kind?: components["schemas"]["GroupKind"];
+    };
+    Joined: {
+      /** @description member, or requested for a group open on request. */
+      state: string;
+    };
+    NameChange: {
+      name: string;
+    };
+    /** @description Minutes after midnight in Vienna, on a 30-minute grid from 360 to 1440. */
+    Span: {
+      from: number;
+      to: number;
+    };
+    SpanList: {
+      spans: components["schemas"]["Span"][];
+    };
+    AvailabilityDay: {
+      /** Format: date */
+      day: string;
+      spans: components["schemas"]["Span"][];
+    };
+    Template: {
+      /** @description 1 Monday to 7 Sunday. */
+      weekday: number;
+      spans: components["schemas"]["Span"][];
+    };
+    TemplateList: {
+      templates: components["schemas"]["Template"][];
+    };
+    VenueChoice: {
+      venues: string[];
+    };
+    Availability: {
+      /**
+       * Format: date
+       * @description Today in Vienna.
+       */
+      from: string;
+      /**
+       * Format: date
+       * @description The last day one can enter.
+       */
+      to: string;
+      days: components["schemas"]["AvailabilityDay"][];
+      templates: components["schemas"]["Template"][];
+      venues: string[];
     };
   };
   responses: {
@@ -302,6 +660,7 @@ export interface components {
     };
   };
   parameters: {
+    GroupId: number;
     /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
     IdempotencyKey: string;
   };
@@ -545,6 +904,390 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listGroups: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The groups. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GroupList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  createGroup: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewGroup"];
+      };
+    };
+    responses: {
+      /** @description Founded. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Group"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The group. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Group"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  updateGroup: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["GroupChange"];
+      };
+    };
+    responses: {
+      /** @description Changed. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Group"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  inviteToGroup: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NewInvitation"];
+      };
+    };
+    responses: {
+      /** @description Invited. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GroupInvitation"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  dropGroupInvitation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Gone. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  joinGroup: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description What happened. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Joined"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  admitToGroup: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A member now. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  removeFromGroup: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Out. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  dropJoinRequest: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+        email: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Gone. */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  setMyName: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["NameChange"];
+      };
+    };
+    responses: {
+      /** @description The caller, with the name. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Me"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getAvailability: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description What the caller said. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Availability"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  setAvailabilityDay: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        day: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SpanList"];
+      };
+    };
+    responses: {
+      /** @description The day's spans as kept. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AvailabilityDay"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  setAvailabilityTemplates: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TemplateList"];
+      };
+    };
+    responses: {
+      /** @description The templates as kept. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TemplateList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  setVenues: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["VenueChoice"];
+      };
+    };
+    responses: {
+      /** @description The venues as kept. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VenueChoice"];
+        };
       };
       default: components["responses"]["Problem"];
     };

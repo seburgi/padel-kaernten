@@ -214,8 +214,312 @@ paths:
           description: Read.
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/groups:
+    get:
+      operationId: listGroups
+      summary: The caller's groups, the ones they are invited into, and the open ones
+      description: >-
+        What group_visibility shows the caller (docs/design/groups.md): their
+        own first, then invitations, then groups that are open or open on
+        request, each by name. A short list, so it is not paged.
+      responses:
+        "200":
+          description: The groups.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupList"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: createGroup
+      summary: Found a group, with the caller as its admin
+      description: 400 with type invalid-group for an empty or long name or an unknown kind.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGroup"
+      responses:
+        "201":
+          description: Founded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: getGroup
+      summary: One group, as the caller may see it
+      description: >-
+        Members always; invitations and requests only for members. 404 with
+        type no-group when the group is gone or private to the caller.
+      responses:
+        "200":
+          description: The group.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        default:
+          $ref: "#/components/responses/Problem"
+    patch:
+      operationId: updateGroup
+      summary: Rename it or change its kind; admins only
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupChange"
+      responses:
+        "200":
+          description: Changed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/invitations:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: inviteToGroup
+      summary: Invite someone into the group; any member may
+      description: >-
+        The platform service holds the invitation under group-<id>, which
+        lets the person into the app (Rauthy mails someone new a link to set
+        a password). Inviting someone already invited answers their
+        invitation. 409 already-member; 429 invite-limit (20 open, 10 a day
+        per person); 502 platform-failed, nothing recorded.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewInvitation"
+      responses:
+        "201":
+          description: Invited.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupInvitation"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/invitations/{email}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: dropGroupInvitation
+      summary: Decline an invitation, or take one back
+      description: The person invited declines; whoever invited, or an admin, takes it back. Safe to repeat.
+      responses:
+        "204":
+          description: Gone.
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/join:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    post:
+      operationId: joinGroup
+      summary: Accept an invitation, join an open group, or ask into one open on request
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: What happened.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Joined"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/members/{email}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: admitToGroup
+      summary: Let someone who asked in; any member may
+      description: 404 with type no-request when they did not ask. Safe to repeat.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: A member now.
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: removeFromGroup
+      summary: Leave, or remove someone (admins)
+      description: >-
+        When the last admin goes, the member longest in becomes admin; when
+        the last member goes, so does the group. Safe to repeat.
+      responses:
+        "204":
+          description: Out.
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/requests/{email}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+      - name: email
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      operationId: dropJoinRequest
+      summary: Turn a request down (a member), or take one's own back
+      responses:
+        "204":
+          description: Gone.
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/me/name:
+    put:
+      operationId: setMyName
+      summary: The name the others see
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NameChange"
+      responses:
+        "200":
+          description: The caller, with the name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/availability:
+    get:
+      operationId: getAvailability
+      summary: When the caller can play, their usual weekdays, and where they drive to
+      description: >-
+        For today in Vienna and the 13 days after it (docs/design/availability.md).
+        Only days with spans are listed.
+      responses:
+        "200":
+          description: What the caller said.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Availability"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/availability/days/{day}:
+    parameters:
+      - name: day
+        in: path
+        required: true
+        schema:
+          type: string
+          format: date
+    put:
+      operationId: setAvailabilityDay
+      summary: Replace the spans of one day
+      description: >-
+        Spans on a 30-minute grid from 6:00 to 24:00; overlapping or touching
+        ones become one, and none clears the day. 400 invalid-spans; 400
+        outside-window for a day before today or more than 13 days ahead.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SpanList"
+      responses:
+        "200":
+          description: The day's spans as kept.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailabilityDay"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/availability/templates:
+    put:
+      operationId: setAvailabilityTemplates
+      summary: Replace the usual spans per weekday ("wie meistens")
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TemplateList"
+      responses:
+        "200":
+          description: The templates as kept.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateList"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/availability/venues:
+    put:
+      operationId: setVenues
+      summary: Replace the venues the caller drives to; none means every venue
+      description: 400 unknown-venue for an id that is not one of the venues.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueChoice"
+      responses:
+        "200":
+          description: The venues as kept.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueChoice"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -261,12 +565,16 @@ components:
           type: string
     Me:
       type: object
-      required: [email, canInvite]
+      required: [email, canInvite, name]
       properties:
         email:
           type: string
         canInvite:
           type: boolean
+          description: Sees every invitation into the app (/invites); only the owner.
+        name:
+          type: string
+          description: The name the others see; "" until given.
     Snapshot:
       type: object
       required: [takenAt, days, venues]
@@ -399,7 +707,7 @@ components:
           format: date
         area:
           type: string
-          description: courts, invites or app; clients tolerate others.
+          description: courts, play, invites or app; clients tolerate others.
         title:
           type: string
         paragraphs:
@@ -429,3 +737,209 @@ components:
           items:
             type: string
             maxLength: 200
+    GroupKind:
+      type: string
+      description: private, on_request or open; clients tolerate others.
+    GroupSummary:
+      type: object
+      required: [id, name, kind, how, members, requested]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        kind:
+          $ref: "#/components/schemas/GroupKind"
+        how:
+          type: string
+          description: member, invited or listed (open, not joined); clients tolerate others.
+        role:
+          type: string
+          description: admin or member, for a member.
+        members:
+          type: integer
+        requested:
+          type: boolean
+          description: The caller asked to join.
+    GroupList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupSummary"
+    Member:
+      type: object
+      required: [email, name, role, joinedAt, daysEntered]
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+          description: '"" until they gave one.'
+        role:
+          type: string
+        joinedAt:
+          type: string
+          format: date-time
+        daysEntered:
+          type: integer
+          description: On how many of the next 14 days they said when they can.
+    GroupInvitation:
+      type: object
+      required: [email, invitedBy, invitedAt]
+      properties:
+        email:
+          type: string
+        invitedBy:
+          type: string
+        invitedAt:
+          type: string
+          format: date-time
+    JoinRequest:
+      type: object
+      required: [email, name, askedAt]
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        askedAt:
+          type: string
+          format: date-time
+    Group:
+      allOf:
+        - $ref: "#/components/schemas/GroupSummary"
+        - type: object
+          required: [memberList, invitations, requests]
+          properties:
+            memberList:
+              type: array
+              items:
+                $ref: "#/components/schemas/Member"
+            invitations:
+              type: array
+              description: Only for members.
+              items:
+                $ref: "#/components/schemas/GroupInvitation"
+            requests:
+              type: array
+              description: Only for members.
+              items:
+                $ref: "#/components/schemas/JoinRequest"
+    NewGroup:
+      type: object
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        kind:
+          $ref: "#/components/schemas/GroupKind"
+    GroupChange:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        kind:
+          $ref: "#/components/schemas/GroupKind"
+    Joined:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          description: member, or requested for a group open on request.
+    NameChange:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 40
+    Span:
+      type: object
+      required: [from, to]
+      description: Minutes after midnight in Vienna, on a 30-minute grid from 360 to 1440.
+      properties:
+        from:
+          type: integer
+        to:
+          type: integer
+    SpanList:
+      type: object
+      required: [spans]
+      properties:
+        spans:
+          type: array
+          maxItems: 36
+          items:
+            $ref: "#/components/schemas/Span"
+    AvailabilityDay:
+      type: object
+      required: [day, spans]
+      properties:
+        day:
+          type: string
+          format: date
+        spans:
+          type: array
+          items:
+            $ref: "#/components/schemas/Span"
+    Template:
+      type: object
+      required: [weekday, spans]
+      properties:
+        weekday:
+          type: integer
+          description: 1 Monday to 7 Sunday.
+        spans:
+          type: array
+          maxItems: 36
+          items:
+            $ref: "#/components/schemas/Span"
+    TemplateList:
+      type: object
+      required: [templates]
+      properties:
+        templates:
+          type: array
+          maxItems: 7
+          items:
+            $ref: "#/components/schemas/Template"
+    VenueChoice:
+      type: object
+      required: [venues]
+      properties:
+        venues:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+    Availability:
+      type: object
+      required: [from, to, days, templates, venues]
+      properties:
+        from:
+          type: string
+          format: date
+          description: Today in Vienna.
+        to:
+          type: string
+          format: date
+          description: The last day one can enter.
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/AvailabilityDay"
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Template"
+        venues:
+          type: array
+          items:
+            type: string

@@ -243,3 +243,9 @@ func TestHelpers(t *testing.T) {
 		t.Error("hm")
 	}
 }
+
+func TestKnown(t *testing.T) {
+	if !Known("padel-ten-villach") || Known("nowhere") || Known("") {
+		t.Error("Known")
+	}
+}

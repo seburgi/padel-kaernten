@@ -8,6 +8,7 @@ import { useReleaseNoteList, useReleaseNotes } from "./useReleaseNotes";
 
 const AREAS: Record<string, string> = {
   courts: "Plätze",
+  play: "Spielen",
   invites: "Einladen",
   app: "Überall",
 };

@@ -451,3 +451,17 @@ func (c *Client) do(req *http.Request, header http.Header) (*http.Response, erro
 	}
 	return resp, nil
 }
+
+// Known says whether id is a venue in venues.json that is switched on.
+func Known(id string) bool {
+	on, err := venues()
+	if err != nil {
+		return false
+	}
+	for _, v := range on {
+		if v.ID == id {
+			return true
+		}
+	}
+	return false
+}

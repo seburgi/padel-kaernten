@@ -17,6 +17,10 @@ import (
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway"
 	"github.com/seburgi/burgstaller-platform/kit/go/gateway/gatewaytest"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/seburgi/padel-kaernten/services/api/internal/availability"
+	"github.com/seburgi/padel-kaernten/services/api/internal/groups"
 	"github.com/seburgi/padel-kaernten/services/api/internal/invitations"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/localgateway"
 	"github.com/seburgi/padel-kaernten/services/api/internal/platform/retention"
@@ -50,12 +54,19 @@ type fakePlatform struct{ err error }
 func (f *fakePlatform) Invite(context.Context, string) error   { return f.err }
 func (f *fakePlatform) Withdraw(context.Context, string) error { return f.err }
 
+func (f *fakePlatform) InviteAs(context.Context, string, string) error   { return f.err }
+func (f *fakePlatform) WithdrawAs(context.Context, string, string) error { return f.err }
+
 type app struct {
 	t        *testing.T
 	h        http.Handler
 	signer   *gatewaytest.Signer
 	sites    *fakeSites
 	platform *fakePlatform
+	pool     *pgxpool.Pool
+	dist     string
+	log      *slog.Logger
+	news     *whatsnew.Service
 }
 
 func setup(t *testing.T) *app {
@@ -78,12 +89,22 @@ func setup(t *testing.T) *app {
 	if err != nil {
 		t.Fatal(err)
 	}
+	a.pool, a.dist, a.log, a.news = pool, dist, log, news
+	a.h = a.router(pool)
+	return a
+}
+
+// router is the app on pool; a closed pool is a database that is down.
+func (a *app) router(pool *pgxpool.Pool) http.Handler {
+	log, news := a.log, a.news
 	h := &transport.Handler{
-		Slots:       slots.NewService(pool, a.sites, nil, log),
-		Invitations: invitations.NewService(pool, a.platform),
-		WhatsNew:    news,
+		Slots:        slots.NewService(pool, a.sites, nil, log),
+		Invitations:  invitations.NewService(pool, a.platform),
+		WhatsNew:     news,
+		Groups:       groups.NewService(pool, a.platform),
+		Availability: availability.NewService(pool, func(v string) bool { return v == "villach" }),
 		Gateway: &transport.Gateway{Caller: gatewayAccount, Address: address,
-			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: signer.URL}},
+			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: a.signer.URL}},
 		Owner:    seb,
 		Revision: "abc123",
 		Log:      log,
@@ -92,8 +113,7 @@ func setup(t *testing.T) *app {
 		},
 		ReapCaller: reapAccount,
 	}
-	a.h = transport.Router(h, dist)
-	return a
+	return transport.Router(h, a.dist)
 }
 
 // as is a request from the gateway with who's note; "" for none.
@@ -383,7 +403,8 @@ func TestLocalSignIn(t *testing.T) {
 	}
 
 	h := &transport.Handler{Gateway: &transport.Gateway{Address: "localhost", Keys: local.Keys(), Local: local},
-		Owner: "seb@local.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
+		Groups: groups.NewService(testdb.Pool(t), &fakePlatform{}),
+		Owner:  "seb@local.test", Log: slog.New(slog.NewTextHandler(io.Discard, nil))}
 	router := transport.Router(h, "")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest("GET", "/dev-gateway/sign-in?as=seb&next=/invites", nil))
