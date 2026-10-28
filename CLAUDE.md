@@ -62,8 +62,10 @@ project's shared files, never in the repository.
 
 Go 1.27; the Dockerfile's base image tracks `go.mod`. `GOPRIVATE=github.com/seburgi/*`
 lets Go and pnpm fetch the platform's private kit (`kit/go`, `kit/web`)
-with the session's own GitHub access; CI gets a token from the GitHub App
-in the secrets `KIT_APP_ID` and `KIT_APP_KEY`.
+with the session's own GitHub access; CI's `kit-access` step signs in as
+`kit-reader` and reads the GitHub App's id and key from the platform's
+Secret Manager (`infra/platform/kit.tf` there), so the repository holds no
+secret for it.
 
 ## Layout
 

@@ -1,15 +1,15 @@
 name: Read the platform's kit
 description: >-
-  Lets go fetch github.com/seburgi/burgstaller-platform/kit/go, which is
-  private: a GitHub App with read access to that repository only hands out a
-  token for this run (burgstaller-platform/standards/architecture/shared-code.md).
-  The token is put out as `token` for the Docker build's secret.
-
-inputs:
-  app-id:
-    required: true
-  private-key:
-    required: true
+  Lets go fetch github.com/seburgi/burgstaller-platform/kit/go and pnpm
+  fetch @burgstaller/web (kit/web), which are private: a GitHub App with read
+  access to that repository only hands out a token for this run
+  (burgstaller-platform/standards/architecture/shared-code.md). The app's id
+  and key are in the platform's Secret Manager, read as kit-reader through
+  Workload Identity Federation (burgstaller-platform/infra/platform/kit.tf),
+  so the job needs `id-token: write`. That sign-in sets no credentials for
+  later steps. pnpm's lockfile names the repository in its SSH form, so that
+  form is sent through the token too. The token is put out as `token` for
+  the Docker build's secret.
 
 outputs:
   token:
@@ -18,16 +18,48 @@ outputs:
 runs:
   using: composite
   steps:
+    - id: google
+      uses: google-github-actions/auth@v3
+      with:
+        workload_identity_provider: projects/380479130740/locations/global/workloadIdentityPools/github/providers/apps
+        service_account: kit-reader@burgstaller-platform.iam.gserviceaccount.com
+        token_format: access_token
+        create_credentials_file: false
+        export_environment_variables: false
+    - id: app
+      shell: bash
+      env:
+        ACCESS_TOKEN: ${{ steps.google.outputs.access_token }}
+      run: |
+        read_secret() {
+          curl -fsS -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            "https://secretmanager.googleapis.com/v1/projects/burgstaller-platform/secrets/$1/versions/latest:access" |
+            jq -r .payload.data | base64 -d
+        }
+        id=$(read_secret kit-app-id)
+        key=$(read_secret kit-app-key)
+        while IFS= read -r line; do
+          [ -n "$line" ] && echo "::add-mask::$line"
+        done <<< "$key"
+        {
+          echo "id=$id"
+          echo "key<<KIT_APP_KEY_END"
+          echo "$key"
+          echo "KIT_APP_KEY_END"
+        } >> "$GITHUB_OUTPUT"
     - id: token
       uses: actions/create-github-app-token@v2
       with:
-        app-id: ${{ inputs.app-id }}
-        private-key: ${{ inputs.private-key }}
+        app-id: ${{ steps.app.outputs.id }}
+        private-key: ${{ steps.app.outputs.key }}
         owner: seburgi
         repositories: burgstaller-platform
     - shell: bash
       env:
         TOKEN: ${{ steps.token.outputs.token }}
       run: |
-        git config --global url."https://x-access-token:${TOKEN}@github.com/seburgi/burgstaller-platform".insteadOf "https://github.com/seburgi/burgstaller-platform"
+        url="https://x-access-token:${TOKEN}@github.com/seburgi/burgstaller-platform"
+        git config --global --add url."${url}".insteadOf "https://github.com/seburgi/burgstaller-platform"
+        git config --global --add url."${url}".insteadOf "git@github.com:seburgi/burgstaller-platform"
+        git config --global --add url."${url}".insteadOf "ssh://git@github.com/seburgi/burgstaller-platform"
         echo "GOPRIVATE=github.com/seburgi/*" >> "$GITHUB_ENV"
