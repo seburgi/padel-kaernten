@@ -37,6 +37,39 @@ describe("App", () => {
     expect(router.state.location.pathname).toBe("/");
   });
 
+  it("opens on Spielen for someone in a group, and Plätze stays a tap away", async () => {
+    serve({
+      "GET /api/v1/me": () =>
+        answer(200, { email: "anna@example.at", name: "Anna", canInvite: false, welcomed: true }),
+      "GET /api/v1/slots": () => answer(200, snapshot()),
+      "GET /api/v1/groups": () =>
+        answer(200, {
+          items: [
+            {
+              id: 1,
+              name: "Dienstagsrunde",
+              kind: "private",
+              area: "alle",
+              how: "member",
+              members: 4,
+              requested: false,
+            },
+          ],
+        }),
+      "GET /api/v1/games": () => answer(200, { items: [] }),
+      "GET /api/v1/availability": () =>
+        answer(200, { from: "2026-10-29", to: "2026-11-11", days: [], templates: [], venues: [] }),
+      "GET /api/v1/release-notes": () => answer(200, { items: [] }),
+    });
+    const { router } = renderWithQuery(<App />);
+    expect(await screen.findByRole("heading", { name: "Spielen" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/play");
+    const bar = (await screen.findAllByRole("navigation", { name: "Bereiche" }))[1]!;
+    await userEvent.click(within(bar).getByRole("link", { name: "Plätze" }));
+    expect(router.state.location.pathname).toBe("/");
+    expect(screen.queryByRole("heading", { name: "Spielen" })).toBeNull();
+  });
+
   it("goes to Spielen and back to Plätze", async () => {
     serve({
       "GET /api/v1/me": () =>

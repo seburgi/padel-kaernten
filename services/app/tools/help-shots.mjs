@@ -202,7 +202,9 @@ async function seed() {
 const shots = ({ group, game }) => [
   {
     name: "plaetze",
-    path: "/",
+    // Opening the app, Seb (in a group) starts on Spielen; a tap on Plätze.
+    path: "/play",
+    step: (page) => page.locator("[data-kit-tabbar] a", { hasText: "Plätze" }).click(),
     from: "section[aria-label=Suche]",
     to: "main article >> nth=0",
     top: 4,

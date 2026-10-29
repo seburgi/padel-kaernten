@@ -59,8 +59,11 @@ export async function openApp({ base, out, label, pace = 3000, headless = true }
       `${base}/dev-gateway/sign-in?as=${encodeURIComponent(who.toLowerCase())}&next=/`,
       { waitUntil: "networkidle" },
     );
-    // The courts keep their filter in the hash, so only the path is asserted.
-    await page.waitForURL((url) => url.origin === new URL(base).origin && url.pathname === "/");
+    // The courts keep their filter in the hash, so only the path is asserted;
+    // someone in a group opens on Spielen instead.
+    await page.waitForURL(
+      (url) => url.origin === new URL(base).origin && ["/", "/play"].includes(url.pathname),
+    );
     if (theme)
       await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
     const kind = phone ? "phone" : "desktop";

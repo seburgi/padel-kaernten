@@ -39,7 +39,7 @@ const APP = "Padel Kärnten";
 const CLOCK = ["M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18", "M12 7v5l3 2"];
 
 export function App() {
-  const { pathname: path, search, hash } = useLocation();
+  const { pathname: path, search, hash, key } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [path]);
@@ -54,6 +54,19 @@ export function App() {
   // they opened (docs/design/help.md). The Hilfe and their notes stay open.
   const newHere = me.data?.welcomed === false;
   const welcomeFirst = newHere && !["/welcome", "/help", "/feedback"].includes(path);
+  // Opening the app at its bare address, someone in a group starts on
+  // Spielen, where what waits for them is (Seb, 2026-10-29); anyone else,
+  // and a tap on Plätze later, stays on the courts. "default" is the
+  // router's key for the entry the app opened on.
+  const opening = path === "/" && key === "default";
+  const groups = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => (await call(api.GET("/api/v1/groups"))).items,
+    retry: false,
+    enabled: opening,
+  });
+  const toPlay = opening && (groups.data?.some((g) => g.how === "member") ?? false);
+  const deciding = opening && groups.isPending;
   useKeepPush();
   const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
   const when = path === "/availability";
@@ -122,6 +135,10 @@ export function App() {
       {["/", "/play"].includes(path) && !newHere && <WhatsNewCard />}
       {welcomeFirst ? (
         <Navigate to={`/welcome?next=${encodeURIComponent(path + search + hash)}`} replace />
+      ) : toPlay ? (
+        <Navigate to="/play" replace />
+      ) : deciding ? (
+        <div aria-busy="true" aria-label="Lädt" />
       ) : (
         <Routes>
           <Route path="/" element={<Courts />} />

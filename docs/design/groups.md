@@ -48,6 +48,10 @@
   group yet, the API founds "Padel Kärnten", private, with `OWNER_EMAIL`
   as admin and everyone in `invitations` as a member (`EnsureFirst`, under
   an advisory lock). Their invitation into the app stays.
+- **Where the app opens** (Seb, 2026-10-29): at its bare address, someone
+  in a group starts on Spielen; anyone else on Plätze. Only the entry the
+  app opened on (`App.tsx`, the router's key "default"); a tap on Plätze
+  stays there. `tools/browse.mjs` and `help-shots.mjs` expect it.
 - **In the app** (`services/app/src/groups`): the tab Spielen (`/play`)
   answers "Was steht an?" (Seb, 2026-10-29): it asks a person without a
   name for one, then shows "Wartet auf dich" (the games slice's unanswered
