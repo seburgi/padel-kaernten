@@ -428,20 +428,33 @@ describe("Upcoming", () => {
     const calls: Sent[] = [];
     serve(
       {
+        "GET /api/v1/me": () => answer(200, { ...seb, canInvite: false }),
         "GET /api/v1/games": (sent) =>
           answer(200, {
             items: sent.url.searchParams.get("groupId")
               ? []
-              : [game(), game({ id: 8, state: "booked", perHead: undefined, day: "2026-10-30" })],
+              : [
+                  game(),
+                  game({ id: 8, state: "booked", perHead: undefined, day: "2026-10-30" }),
+                  // Spielen shows only the games one is in or a reserve for.
+                  game({ id: 9, lineup: [{ ...seb, state: "reserve" }] }),
+                  game({ id: 10, lineup: [{ ...anna, state: "in" }] }),
+                  game({ id: 11, lineup: [{ ...seb, state: "out" }] }),
+                ],
           }),
       },
       calls,
     );
     const a = renderWithQuery(<Upcoming />);
+    expect(
+      await screen.findByRole("heading", { name: "Deine nächsten Spiele" }),
+    ).toBeInTheDocument();
     const list = await screen.findAllByRole("link");
+    expect(list).toHaveLength(3);
     expect(list[0]).toHaveTextContent("Do 29.10., 18:30–20:00 · Padel Villach");
     expect(list[0]).toHaveTextContent("1 von 4 dabei · Padel Kärnten");
     expect(list[1]).toHaveTextContent("Gebucht · Padel Kärnten");
+    expect(list[2]).toHaveTextContent("0 von 4 dabei · du bist Ersatz · Padel Kärnten");
     expect(list[0]).toHaveAttribute("href", "/games/7");
     a.unmount();
 
@@ -451,19 +464,25 @@ describe("Upcoming", () => {
       "href",
       "/groups/1/fits",
     );
-    expect(calls.at(-1)!.url.searchParams.get("groupId")).toBe("1");
+    expect(
+      calls
+        .filter((c) => c.url.pathname === "/api/v1/games")
+        .at(-1)!
+        .url.searchParams.get("groupId"),
+    ).toBe("1");
   });
 
   it("says when there is nothing, and when it does not load", async () => {
     let up = false;
     serve({
+      "GET /api/v1/me": () => answer(200, { ...seb, canInvite: false }),
       "GET /api/v1/games": () => (up ? answer(200, { items: [] }) : problem(500, "internal")),
     });
     renderWithQuery(<Upcoming />);
     expect(await screen.findByText("Die Spiele konnten nicht geladen werden.")).toBeInTheDocument();
     up = true;
     await userEvent.click(screen.getByRole("button", { name: "Nochmal versuchen" }));
-    expect(await screen.findByText(/In einer Gruppe siehst du/)).toBeInTheDocument();
+    expect(await screen.findByText("Noch kein Spiel, bei dem du dabei bist.")).toBeInTheDocument();
     expect(within(document.body).queryByRole("link")).toBeNull();
   });
 });

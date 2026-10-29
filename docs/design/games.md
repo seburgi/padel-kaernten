@@ -39,14 +39,24 @@
   a group's page (`/groups/:id/fits`, duration chips, fits by day, one tap
   to propose, near misses below); the game (`/games/:id`, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
-  Buchung, Gebucht, Spiel absagen); the coming games on Spielen and on the
-  group's page. A snapshot older than five minutes is refreshed once when
+  Buchung, Gebucht, Spiel absagen); the coming games on the group's page. On Spielen (Seb,
+  2026-10-29): "Wartet auf dich" (`Waiting`) holds every proposed game the
+  person has not answered, with Bin dabei and Kann nicht on its card and
+  the places as rounds (`Seats`); "Deine nächsten Spiele" (`Upcoming`)
+  only those they are in or a reserve for; "Passt für vier" (`BestFits`)
+  the three soonest 90-minute fits from all their groups, leaving out
+  times already a game, with Vorschlagen. Nothing new in the API: the
+  lineup says who answered, and the fits are asked per group. A snapshot older than five minutes is refreshed once when
   the fits open, as on the courts. The group screens get the games as
   props from `App.tsx`, so the slices stay apart.
 - **What happened** (`Service.Changed`): proposed, full, moved up, booked
   and cancelled, once per write; Mitteilungen tell people (`notify.md`).
 
 ## Deliberately not
+
+- **Spielen never refreshes the snapshot** for "Passt für vier": the
+  schedule keeps it within 30 minutes, and proposing checks the court
+  again. Only the group's own fits page asks when it is an hour old.
 
 - **No booking in the app.** The venues' sites take the money and the
   booking; the app links there and is told afterwards.

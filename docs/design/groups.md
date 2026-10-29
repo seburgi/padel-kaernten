@@ -48,8 +48,12 @@
   as admin and everyone in `invitations` as a member (`EnsureFirst`, under
   an advisory lock). Their invitation into the app stays.
 - **In the app** (`services/app/src/groups`): the tab Spielen (`/play`)
-  asks a person without a name for one, shows invitations to accept or
-  decline and the groups one is in; `/groups` lists the groups one can
+  answers "Was steht an?" (Seb, 2026-10-29): it asks a person without a
+  name for one, then shows "Wartet auf dich" (the games slice's unanswered
+  games, with the invitations to accept or decline from here, as a card
+  the colour of a warning), the games and "Passt für vier" (both from the
+  games slice; `App.tsx` puts them in), and last the groups one is in,
+  with Gruppen finden and Neue Gruppe; `/groups` lists the groups one can
   join or ask into, `/groups/new` founds one, `/groups/{id}` shows the
   members with their days entered, and to members inviting, open
   invitations and requests, to admins the name and kind, and leaving.

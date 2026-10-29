@@ -1,15 +1,31 @@
-// Spielen (docs/design/groups.md): the groups one is in, the invitations
-// waiting for an answer, and the way to say when one can. A person without
-// a name is asked for one first, since the others see it.
+// Spielen (docs/design/groups.md): what is on. First what waits for the
+// person (the games slice's unanswered games, with the invitations from
+// here), then the games and the times that fit for four (from the games
+// slice too; App puts both in), then the groups one is in. A person
+// without a name is asked for one first, since the others see it.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { api, call, useWriteKey, type GroupSummary } from "../api/client";
-import { card, field, link, primary, quiet } from "../ui";
+import { card, field, link, primary, quiet, waits } from "../ui";
 import { errorText, kindLabel, useDropInvitation, useGroups, useJoin, useMe } from "./groups";
 
-/** games is the coming games, from the games slice (App puts it in). */
-export function Play({ games }: { games?: ReactNode }) {
+/** waiting is Wartet auf dich, given the invitations and how many there
+ * are; games is the coming games and the fits. Both are the games
+ * slice's (App puts them in). */
+export function Play({
+  waiting = (invites, n) =>
+    n > 0 && (
+      <section className="mb-6">
+        <h2 className="mb-2 font-semibold">Wartet auf dich</h2>
+        {invites}
+      </section>
+    ),
+  games,
+}: {
+  waiting?: (invites: ReactNode, count: number) => ReactNode;
+  games?: ReactNode;
+}) {
   const me = useMe();
   const groups = useGroups();
   const join = useJoin();
@@ -18,21 +34,51 @@ export function Play({ games }: { games?: ReactNode }) {
   const mine = groups.data?.filter((g) => g.how === "member") ?? [];
   const asked = groups.data?.filter((g) => g.how !== "member" && g.requested) ?? [];
 
+  const invites = invited.length > 0 && (
+    <>
+      <ul className="space-y-2">
+        {invited.map((g) => (
+          <li key={g.id} className={`${waits} flex flex-wrap items-center gap-3 p-4`}>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold">{g.name}</div>
+              <div className="text-sm text-ink-muted">Einladung · {members(g.members)}</div>
+            </div>
+            <button
+              type="button"
+              className={primary}
+              disabled={join.isPending}
+              onClick={() => join.mutate(g.id)}
+            >
+              Annehmen
+            </button>
+            <button
+              type="button"
+              className={quiet}
+              disabled={decline.isPending || !me.data}
+              onClick={() => me.data && decline.mutate({ id: g.id, email: me.data.email })}
+            >
+              Ablehnen
+            </button>
+          </li>
+        ))}
+      </ul>
+      {(join.isError || decline.isError) && (
+        <p role="alert" className="mt-2 text-sm text-danger-text">
+          {errorText(join.error ?? decline.error)}
+        </p>
+      )}
+    </>
+  );
+
   return (
     <main>
       <h1 className="mt-2 mb-1 text-2xl font-semibold">Spielen</h1>
       <p className="mb-4 text-ink-muted">
-        Sag, wann du kannst. Deine Gruppen sehen es und finden so eine Zeit, die für alle passt.
+        Was auf dich wartet, deine Spiele und wann es für vier passt.
       </p>
       {me.data && me.data.name === "" && <NamePrompt />}
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Link to="/availability" className={primary}>
-          Wann kann ich?
-        </Link>
-        <Link to="/groups" className={quiet}>
-          Gruppen finden
-        </Link>
-      </div>
+
+      {waiting(invites, invited.length)}
 
       {games}
 
@@ -55,50 +101,18 @@ export function Play({ games }: { games?: ReactNode }) {
         </div>
       )}
 
-      {invited.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-2 font-semibold">Einladungen</h2>
-          <ul className="space-y-2">
-            {invited.map((g) => (
-              <li key={g.id} className={`${card} flex flex-wrap items-center gap-3 p-4`}>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold">{g.name}</div>
-                  <div className="text-sm text-ink-muted">{members(g.members)}</div>
-                </div>
-                <button
-                  type="button"
-                  className={primary}
-                  disabled={join.isPending}
-                  onClick={() => join.mutate(g.id)}
-                >
-                  Annehmen
-                </button>
-                <button
-                  type="button"
-                  className={quiet}
-                  disabled={decline.isPending || !me.data}
-                  onClick={() => me.data && decline.mutate({ id: g.id, email: me.data.email })}
-                >
-                  Ablehnen
-                </button>
-              </li>
-            ))}
-          </ul>
-          {(join.isError || decline.isError) && (
-            <p role="alert" className="mt-2 text-sm text-danger-text">
-              {errorText(join.error ?? decline.error)}
-            </p>
-          )}
-        </section>
-      )}
-
       {groups.data && (
         <section>
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="font-semibold">Deine Gruppen</h2>
-            <Link to="/groups/new" className={`${link} text-sm`}>
-              Neue Gruppe
-            </Link>
+            <span className="flex gap-3">
+              <Link to="/groups" className={`${link} text-sm`}>
+                Gruppen finden
+              </Link>
+              <Link to="/groups/new" className={`${link} text-sm`}>
+                Neue Gruppe
+              </Link>
+            </span>
           </div>
           {mine.length === 0 ? (
             <p className="text-ink-muted">

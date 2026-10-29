@@ -74,11 +74,16 @@ describe("App", () => {
       "aria-current",
       "page",
     );
-    expect(within(bar).getByRole("link", { name: "Spielen" })).not.toHaveAttribute("aria-current");
-    expect(within(head).getByRole("link", { name: "Spielen" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    // The head shows the same sections, without Mehr.
+    for (const nav of [head, bar]) {
+      expect(within(nav).getByRole("link", { name: "Spielen" })).not.toHaveAttribute(
+        "aria-current",
+      );
+      expect(within(nav).getByRole("link", { name: "Wann kann ich?" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    }
     await userEvent.click(within(bar).getByRole("link", { name: "Plätze" }));
     expect(router.state.location.pathname).toBe("/");
     expect(within(head).getByRole("link", { name: "Plätze" })).toHaveAttribute(

@@ -15,7 +15,7 @@ import type { Shot } from "./chapters";
 const STEPS: { title: string; text: string; shot: Shot }[] = [
   {
     title: "Sag, wann du kannst",
-    text: "Unter Spielen „Wann kann ich?“: für die nächsten zwei Wochen, in halben Stunden. Deine Gruppen sehen es.",
+    text: "Unter „Wann kann ich?“: für die nächsten zwei Wochen, in halben Stunden. Deine Gruppen sehen es.",
     shot: { name: "zeiten", alt: "Wann kannst du?: die nächsten Tage mit eingetragenen Zeiten." },
   },
   {

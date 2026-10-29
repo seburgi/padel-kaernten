@@ -1,24 +1,28 @@
-// The coming games, on Spielen (every group) and on a group's page (that
-// group, with the way to its fits). The group screens get this from App, so
-// the slices stay apart.
-import { useQuery } from "@tanstack/react-query";
+// The coming games, on Spielen (the ones one is in or a reserve for, from
+// every group; the unanswered ones wait above, under Wartet auf dich) and
+// on a group's page (all of that group's, with the way to its fits). The
+// group screens get this from App, so the slices stay apart.
 import { Link } from "react-router";
-import { api, call } from "../api/client";
 import { card, primary, quiet } from "../ui";
-import { dayLabel, euros, playing, span } from "./games";
+import { answerOf, dayLabel, euros, playing, span, useGames, useMe } from "./games";
 
 export function Upcoming({ group }: { group?: number }) {
-  const games = useQuery({
-    queryKey: ["games", group ?? "all"],
-    queryFn: async () =>
-      (await call(api.GET("/api/v1/games", { params: { query: group ? { groupId: group } : {} } })))
-        .items,
-    retry: false,
-  });
+  const all = useGames(group);
+  const me = useMe();
+  const email = me.data?.email;
+  const mine = (s: string) => s === "in" || s === "reserve";
+  const games =
+    group !== undefined
+      ? all
+      : {
+          ...all,
+          isPending: all.isPending || email === undefined,
+          data: email === undefined ? undefined : all.data?.filter((g) => mine(answerOf(g, email))),
+        };
 
   return (
     <section className="mb-6">
-      <h2 className="mb-2 font-semibold">{group ? "Spiele" : "Nächste Spiele"}</h2>
+      <h2 className="mb-2 font-semibold">{group ? "Spiele" : "Deine nächsten Spiele"}</h2>
       {group !== undefined && (
         <Link to={`/groups/${group}/fits`} className={`${primary} mb-3`}>
           Wann passt es für vier?
@@ -31,18 +35,19 @@ export function Upcoming({ group }: { group?: number }) {
           className="h-16 animate-skeleton rounded-2xl border border-line bg-sunken"
         />
       )}
-      {games.isError && (
+      {all.isError && (
         <div className={`${card} p-4`} role="alert">
           <p className="mb-3">Die Spiele konnten nicht geladen werden.</p>
-          <button type="button" className={quiet} onClick={() => void games.refetch()}>
+          <button type="button" className={quiet} onClick={() => void all.refetch()}>
             Nochmal versuchen
           </button>
         </div>
       )}
       {games.data?.length === 0 && (
         <p className="text-sm text-ink-muted">
-          Noch kein Spiel geplant.
-          {group === undefined && " In einer Gruppe siehst du, wann es für vier passt."}
+          {group === undefined
+            ? "Noch kein Spiel, bei dem du dabei bist."
+            : "Noch kein Spiel geplant."}
         </p>
       )}
       {games.data && games.data.length > 0 && (
@@ -55,6 +60,7 @@ export function Upcoming({ group }: { group?: number }) {
                 </div>
                 <div className="text-sm text-ink-muted">
                   {g.state === "booked" ? "Gebucht" : `${playing(g).length} von ${g.players} dabei`}
+                  {email !== undefined && answerOf(g, email) === "reserve" && " · du bist Ersatz"}
                   {group === undefined && ` · ${g.groupName}`}
                   {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
                 </div>

@@ -33,8 +33,9 @@ export const CHAPTERS: Chapter[] = [
         </p>
         <p>
           Am Handy wechselst du unten zwischen den Bereichen, auf einem größeren Bildschirm oben.{" "}
-          {b("Plätze")} zeigt, was frei ist. {b("Spielen")} ist für deine Zeiten, deine Gruppen und
-          eure Spiele; am Handy hat {b("Wann kann ich?")} unten einen eigenen Platz.
+          {b("Plätze")} zeigt, was frei ist, unter {b("Wann kann ich?")} sagst du, wann du kannst,
+          und {b("Spielen")} zeigt, was ansteht: was auf deine Antwort wartet, deine Spiele, wann es
+          für vier passt, und deine Gruppen.
         </p>
       </>
     ),
@@ -80,9 +81,9 @@ export const CHAPTERS: Chapter[] = [
     body: (
       <>
         <p>
-          Am Handy unten, sonst unter Spielen, führt {b("Wann kann ich?")} zu den nächsten 14 Tagen,
-          jeder als Zeile von 6 bis 24 Uhr. Tipp auf einen Tag und wähl, von wann bis wann du
-          kannst, in halben Stunden. Schneller geht es mit {b("Früh 7–9")}, {b("Mittag 12–14")},{" "}
+          {b("Wann kann ich?")}, am Handy unten, sonst oben, führt zu den nächsten 14 Tagen, jeder
+          als Zeile von 6 bis 24 Uhr. Tipp auf einen Tag und wähl, von wann bis wann du kannst, in
+          halben Stunden. Schneller geht es mit {b("Früh 7–9")}, {b("Mittag 12–14")},{" "}
           {b("Abend ab 18")} oder {b("Ganzer Tag")}. Mit {b("+ Noch eine Zeit")} trägst du mehrere
           Zeiten an einem Tag ein.
         </p>
@@ -188,7 +189,13 @@ export const CHAPTERS: Chapter[] = [
           Wer vorgeschlagen hat, bucht: {b("Zur Buchung")} öffnet die Seite der Anlage, danach sagt{" "}
           {b("Gebucht")} allen Bescheid. {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
         </p>
-        <p>Deine nächsten Spiele stehen unter Spielen und auf der Seite der Gruppe.</p>
+        <p>
+          Unter Spielen steht ganz oben {b("Wartet auf dich")}: Spiele, auf die du noch nicht
+          geantwortet hast, mit {b("Bin dabei")} und {b("Kann nicht")} gleich auf der Karte, und
+          Einladungen in Gruppen. Darunter {b("Deine nächsten Spiele")}, bei denen du dabei oder
+          Ersatz bist, und {b("Passt für vier")}: die nächsten passenden Zeiten aus all deinen
+          Gruppen, zum Vorschlagen mit einem Tipp. Alle Spiele einer Gruppe stehen auf ihrer Seite.
+        </p>
       </>
     ),
     shots: [
@@ -206,7 +213,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "spielen",
-        alt: "Spielen: Nächste Spiele, eines gebucht und eines mit 3 von 4, darunter deine Gruppen.",
+        alt: "Spielen: Wartet auf dich mit einem Spiel und Bin dabei, deine nächsten Spiele, Passt für vier und deine Gruppen.",
       },
     ],
   },

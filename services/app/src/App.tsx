@@ -14,9 +14,11 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
 import { Availability } from "./availability/Availability";
 import { Courts } from "./courts/Courts";
+import { BestFits } from "./games/BestFits";
 import { Fits } from "./games/Fits";
 import { Game } from "./games/Game";
 import { Upcoming } from "./games/Upcoming";
+import { Waiting } from "./games/Waiting";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play } from "./groups/Play";
@@ -94,11 +96,13 @@ export function App() {
             Wo ist noch ein Platz frei? Alle Anlagen auf einen Blick.
           </p>
         )}
-        {/* The two halves of the app: free courts, and playing together. */}
+        {/* The sections, as in the tab bar on a phone (without Mehr, whose
+            pages sit in the head here). */}
         <nav className="mt-3 hidden gap-1 rounded-xl bg-sunken p-1 md:flex" aria-label="Bereiche">
           {[
             { to: "/", label: "Plätze", on: path === "/" },
-            { to: "/play", label: "Spielen", on: playing },
+            { to: "/availability", label: "Wann kann ich?", on: when },
+            { to: "/play", label: "Spielen", on: playing && !when },
           ].map((tab) => (
             <Link
               key={tab.to}
@@ -125,10 +129,12 @@ export function App() {
             path="/play"
             element={
               <Play
+                waiting={(invites, n) => <Waiting invites={invites} invited={n} />}
                 games={
                   <>
                     <PushCard where="play" />
                     <Upcoming />
+                    <BestFits />
                   </>
                 }
               />

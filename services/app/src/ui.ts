@@ -13,3 +13,5 @@ export const field =
 export const card = "rounded-2xl border border-line bg-card";
 export const pressed = (on: boolean) =>
   on ? "border-accent bg-accent text-accent-ink" : "border-line bg-card text-ink hover:bg-hover";
+/** A card that waits for the person: an answer, an invitation. */
+export const waits = "rounded-2xl border border-warning-border bg-warning-subtle";

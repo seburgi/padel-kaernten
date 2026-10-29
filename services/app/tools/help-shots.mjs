@@ -183,6 +183,15 @@ async function seed() {
   });
   await as("anna", "PUT", `/api/v1/games/${proposed.id}/players/me`, { answer: "in" });
   await as("markus", "PUT", `/api/v1/games/${proposed.id}/players/me`, { answer: "in" });
+  // One Anna proposed, which waits for Seb's answer on Spielen.
+  const asks = await as("anna", "POST", `/api/v1/groups/${group.id}/games`, {
+    venueId: first.id,
+    court: "Platz 1",
+    day: DAYS[5],
+    start: 18 * 60,
+    minutes: 90,
+  });
+  await as("lisa", "PUT", `/api/v1/games/${asks.id}/players/me`, { answer: "in" });
   return { group: group.id, game: proposed.id };
 }
 

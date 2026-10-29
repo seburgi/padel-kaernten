@@ -1,6 +1,7 @@
 // What the game screens share (docs/design/games.md): times, money, names,
 // and what each problem means in German.
-import { ApiError, type Game } from "../api/client";
+import { useQuery } from "@tanstack/react-query";
+import { api, ApiError, call, type Game } from "../api/client";
 
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
@@ -33,6 +34,29 @@ export function euros(cents: number): string {
 export function shown(p: { email: string; name: string }): string {
   return p.name || p.email.split("@")[0]!;
 }
+
+/** The coming games: a group's, or of every group one is in. */
+export function useGames(group?: number) {
+  return useQuery({
+    queryKey: ["games", group ?? "all"],
+    queryFn: async () =>
+      (await call(api.GET("/api/v1/games", { params: { query: group ? { groupId: group } : {} } })))
+        .items,
+    retry: false,
+  });
+}
+
+export function useMe() {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: () => call(api.GET("/api/v1/me")),
+    retry: false,
+  });
+}
+
+/** How one stands in a game: in, reserve, out, or not answered yet. */
+export const answerOf = (g: Game, email: string) =>
+  g.lineup.find((p) => p.email === email)?.state ?? "none";
 
 export const playing = (g: Game) => g.lineup.filter((p) => p.state === "in");
 export const reserves = (g: Game) => g.lineup.filter((p) => p.state === "reserve");
