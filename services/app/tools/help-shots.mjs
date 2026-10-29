@@ -213,7 +213,12 @@ const shots = ({ group, game }) => [
   {
     name: "zeiten-tag",
     path: "/availability",
-    step: (page) => page.locator("main ul li button").nth(2).click(),
+    // On a phone the day is a sheet fixed to the bottom; in its row it
+    // photographs the same and stays where the clip measures it.
+    step: async (page) => {
+      await page.locator("main ul li button").nth(2).click();
+      await page.addStyleTag({ content: "[role=dialog] { position: static !important }" });
+    },
     from: "main ul li:has(h2)",
     to: "main ul li:has(h2)",
     top: 0,

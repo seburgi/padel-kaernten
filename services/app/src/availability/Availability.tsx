@@ -313,8 +313,16 @@ function DayEditor({
   const set = (i: number, s: Span) => setDraft(draft.map((d, j) => (j === i ? s : d)));
   const wdName = WEEKDAYS_LONG[weekday(day) - 1];
 
+  // On a phone the day opens as a sheet from the bottom, just above the
+  // tab bar, so the editor is where the thumb is, whatever row was tapped
+  // (Seb, 2026-10-29); wider, it opens in its row.
   return (
-    <div className="px-4 py-3">
+    <div
+      role="dialog"
+      aria-label={dayLabel(day)}
+      className="px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(var(--size-tabbar)+env(safe-area-inset-bottom))] max-md:z-30 max-md:max-h-[70vh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:border-t max-md:border-line max-md:bg-card max-md:pt-2"
+    >
+      <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line md:hidden" aria-hidden="true" />
       <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
       <div className="mb-3 flex flex-wrap gap-2">
         {QUICK.map((q) => (
