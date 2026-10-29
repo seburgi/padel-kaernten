@@ -61,10 +61,21 @@ describe("App", () => {
         "aria-current",
         "page",
       );
-    await userEvent.click(screen.getByRole("link", { name: "Wann kann ich?" }));
+    // On a phone Wann kann ich? is a tab of its own, after Plätze.
+    expect(
+      within(bar)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["Plätze", "Wann kann ich?", "Spielen", "Mehr"]);
+    await userEvent.click(within(bar).getByRole("link", { name: "Wann kann ich?" }));
     expect(await screen.findByRole("heading", { name: "Wann kannst du?" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/availability");
-    expect(within(bar).getByRole("link", { name: "Spielen" })).toHaveAttribute(
+    expect(within(bar).getByRole("link", { name: "Wann kann ich?" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(within(bar).getByRole("link", { name: "Spielen" })).not.toHaveAttribute("aria-current");
+    expect(within(head).getByRole("link", { name: "Spielen" })).toHaveAttribute(
       "aria-current",
       "page",
     );

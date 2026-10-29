@@ -206,6 +206,27 @@ describe("PushCard", () => {
     view.unmount();
   });
 
+  it("says on Mehr that they are on, and on Spielen only on a wide screen", async () => {
+    browser({ permission: "granted", sub: subOf() });
+    api();
+    let view = renderWithQuery(<PushCard where="more" />);
+    expect(await screen.findByText(/Mitteilungen sind an/)).toBeVisible();
+    view.unmount();
+    view = renderWithQuery(<PushCard where="play" />);
+    expect(await screen.findByText(/Mitteilungen sind an/)).toHaveClass("hidden", "md:block");
+    view.unmount();
+
+    // Not on yet: the way to turn them on stays on Spielen.
+    browser();
+    api();
+    view = renderWithQuery(<PushCard where="play" />);
+    expect(await screen.findByRole("button", { name: "Mitteilungen einschalten" })).toBeVisible();
+    view.unmount();
+    view = renderWithQuery(<PushCard where="more" />);
+    await waitFor(() => expect(document.body.textContent).toBe(""));
+    view.unmount();
+  });
+
   it("tells an iPhone in Safari to use the home screen", async () => {
     Object.defineProperty(navigator, "userAgent", {
       value: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",

@@ -1,15 +1,25 @@
 // Mehr: on a phone, what is not one of the two halves of the app sits
 // behind the tab bar's third tab, as on iOS (Seb, 2026-10-28). Each row
 // is a page of its own; wide screens reach the same pages from the head.
+// Under them, the line that Mitteilungen are on (Seb, 2026-10-29).
 import { Icon } from "@burgstaller/web/icons";
 import type { IconName } from "@burgstaller/web/icons";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { card } from "./ui";
 
 /** The pages the tab Mehr stands for, so it is marked on them too. */
 export const MORE = ["/more", "/whats-new", "/help", "/feedback", "/invites"];
 
-export function More({ unread, canInvite }: { unread: number; canInvite: boolean }) {
+export function More({
+  unread,
+  canInvite,
+  push,
+}: {
+  unread: number;
+  canInvite: boolean;
+  push?: ReactNode;
+}) {
   const rows: { to: string; label: string; icon: IconName; note?: string }[] = [
     {
       to: "/whats-new",
@@ -42,6 +52,7 @@ export function More({ unread, canInvite }: { unread: number; canInvite: boolean
           </li>
         ))}
       </ul>
+      {push}
     </main>
   );
 }

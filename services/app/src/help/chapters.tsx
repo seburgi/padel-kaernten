@@ -34,7 +34,7 @@ export const CHAPTERS: Chapter[] = [
         <p>
           Am Handy wechselst du unten zwischen den Bereichen, auf einem größeren Bildschirm oben.{" "}
           {b("Plätze")} zeigt, was frei ist. {b("Spielen")} ist für deine Zeiten, deine Gruppen und
-          eure Spiele.
+          eure Spiele; am Handy hat {b("Wann kann ich?")} unten einen eigenen Platz.
         </p>
       </>
     ),
@@ -80,10 +80,11 @@ export const CHAPTERS: Chapter[] = [
     body: (
       <>
         <p>
-          Unter Spielen führt {b("Wann kann ich?")} zu den nächsten 14 Tagen, jeder als Zeile von 6
-          bis 24 Uhr. Tipp auf einen Tag und wähl, von wann bis wann du kannst, in halben Stunden.
-          Schneller geht es mit {b("Früh 7–9")}, {b("Mittag 12–14")}, {b("Abend ab 18")} oder{" "}
-          {b("Ganzer Tag")}. Mit {b("+ Noch eine Zeit")} trägst du mehrere Zeiten an einem Tag ein.
+          Am Handy unten, sonst unter Spielen, führt {b("Wann kann ich?")} zu den nächsten 14 Tagen,
+          jeder als Zeile von 6 bis 24 Uhr. Tipp auf einen Tag und wähl, von wann bis wann du
+          kannst, in halben Stunden. Schneller geht es mit {b("Früh 7–9")}, {b("Mittag 12–14")},{" "}
+          {b("Abend ab 18")} oder {b("Ganzer Tag")}. Mit {b("+ Noch eine Zeit")} trägst du mehrere
+          Zeiten an einem Tag ein.
         </p>
         <p>
           Passt ein Tag gar nicht, tipp auf {b("Passt nicht")}. Die Zeile ist dann schraffiert, und
@@ -223,7 +224,8 @@ export const CHAPTERS: Chapter[] = [
         <p>
           Einschalten kannst du sie unter Spielen mit {b("Mitteilungen einschalten")}; dein Browser
           fragt dann um Erlaubnis. Das gilt für dieses Gerät, auf jedem weiteren schaltest du sie
-          eigens ein. Ausschalten geht an derselben Stelle.
+          eigens ein. Sind sie an, steht das am Handy unter {b("Mehr")}, auf einem größeren
+          Bildschirm unter Spielen; dort schaltest du sie auch wieder aus.
         </p>
         <p>
           Auf dem iPhone gehen Mitteilungen nur, wenn Padel Kärnten auf dem Home-Bildschirm liegt

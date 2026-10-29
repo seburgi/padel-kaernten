@@ -1,7 +1,8 @@
 // The app's frame: the head with What's new, Hilfe and the feedback button on every
 // screen, Plätze and Spielen, and the screens by path (react-router). On a
-// phone Plätze, Spielen and Mehr (Neu, Hilfe, Einladen) sit in the kit's
-// tab bar at the bottom instead (standards/frontend/navigation.md). The
+// phone Plätze, Wann kann ich?, Spielen and Mehr (Neu, Hilfe, Einladen) sit
+// in the kit's tab bar at the bottom instead (standards/frontend/navigation.md;
+// Wann kann ich? a tab of its own, Seb 2026-10-29). The
 // page Einladen is Seb's alone; members invite into their groups.
 import { FeedbackButton, FeedbackLayer, YourNotes } from "@burgstaller/web/feedback";
 import { Icon } from "@burgstaller/web/icons";
@@ -31,6 +32,8 @@ import { WhatsNewCard } from "./whatsnew/WhatsNewCard";
 import { useReleaseNotes } from "./whatsnew/useReleaseNotes";
 
 const APP = "Padel Kärnten";
+// The tab Wann kann ich?: a clock, which the kit's set has not.
+const CLOCK = ["M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18", "M12 7v5l3 2"];
 
 export function App() {
   const { pathname: path, search, hash } = useLocation();
@@ -50,6 +53,7 @@ export function App() {
   const welcomeFirst = newHere && !["/welcome", "/help", "/feedback"].includes(path);
   useKeepPush();
   const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
+  const when = path === "/availability";
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-[env(safe-area-inset-top)]">
@@ -139,7 +143,12 @@ export function App() {
           <Route path="/groups/:id/fits" element={<Fits />} />
           <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />
           <Route path="/availability" element={<Availability />} />
-          <Route path="/more" element={<More unread={unread.length} canInvite={canInvite} />} />
+          <Route
+            path="/more"
+            element={
+              <More unread={unread.length} canInvite={canInvite} push={<PushCard where="more" />} />
+            }
+          />
           <Route path="/whats-new" element={<WhatsNew />} />
           <Route path="/help" element={<Help />} />
           <Route path="/welcome" element={<Welcome onWelcome={() => void markRead()} />} />
@@ -160,7 +169,8 @@ export function App() {
           dotLabel="neu"
           tabs={[
             { to: "/", label: "Plätze", icon: "pin", on: path === "/" },
-            { to: "/play", label: "Spielen", icon: "calendar", on: playing },
+            { to: "/availability", label: "Wann kann ich?", icon: CLOCK, on: when },
+            { to: "/play", label: "Spielen", icon: "calendar", on: playing && !when },
             {
               to: "/more",
               label: "Mehr",

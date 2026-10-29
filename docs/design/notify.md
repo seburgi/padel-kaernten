@@ -41,8 +41,9 @@
   and not retried, so nobody gets a message twice.
 - **In the app** (`services/app/src/push`): the card "Mitteilungen" on
   Spielen, and "Erfahren, wer zusagt?" on a game for whoever is in. Once
-  on, Spielen says so in a line with "Ausschalten"; blocked in the
-  browser, it says where to allow them. On an iPhone, push works only
+  on, a line says so with "Ausschalten"; blocked in the browser, it says
+  where to allow them. On a phone that line sits on Mehr (Seb,
+  2026-10-29), on a wide screen, which has no Mehr, on Spielen. On an iPhone, push works only
   from the home screen, and the card says so. `src/sw.ts` shows the push
   and opens the game on a tap (`push/notification.ts`, kept apart so the
   worker takes nothing of the app with it).
