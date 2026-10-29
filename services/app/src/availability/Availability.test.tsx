@@ -10,7 +10,7 @@ import { Availability } from "./Availability";
 const start = (): Mine => ({
   from: "2026-10-29",
   to: "2026-11-11",
-  days: [{ day: "2026-10-29", spans: [{ from: 1110, to: 1320 }] }],
+  days: [{ day: "2026-10-29", spans: [{ from: 1110, to: 1320 }], declined: false }],
   templates: [{ weekday: 5, spans: [{ from: 1080, to: 1260 }] }],
   venues: [],
 });
@@ -47,13 +47,14 @@ function api(mine: Mine, calls: Sent[], opts: { dayErrors?: string[] } = {}) {
     const req = input instanceof Request ? input : new Request(String(input), init);
     const m = new URL(req.url).pathname.match(/^\/api\/v1\/availability\/days\/(.+)$/);
     if (req.method === "PUT" && m) {
-      const body = (await req.clone().json()) as { spans: Span[] };
+      const body = (await req.clone().json()) as { spans: Span[]; declined: boolean };
       calls.push({ method: "PUT", url: new URL(req.url), headers: req.headers, body });
       const error = errors.shift();
       if (error) return problem(400, error);
+      const day = { day: m[1]!, spans: body.spans, declined: body.declined };
       mine.days = mine.days.filter((d) => d.day !== m[1]);
-      if (body.spans.length) mine.days.push({ day: m[1]!, spans: body.spans });
-      return answer(200, { day: m[1], spans: body.spans });
+      if (body.spans.length || body.declined) mine.days.push(day);
+      return answer(200, day);
     }
     return exact(input, init);
   };
@@ -67,11 +68,12 @@ describe("Availability", () => {
     api(mine, calls);
     renderWithQuery(<Availability />);
     const thu = await screen.findByRole("button", { name: "Do 29.10.: 18:30–22:00" });
-    expect(screen.getAllByRole("button", { name: /kein Eintrag/ })).toHaveLength(13);
+    expect(screen.getAllByRole("button", { name: /noch offen/ })).toHaveLength(13);
 
     // Saturday: a quick choice, another span, then save.
-    await userEvent.click(screen.getByRole("button", { name: "Sa 31.10.: kein Eintrag" }));
-    expect(screen.getByText(/Kein Eintrag: da kann ich nicht/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Sa 31.10.: noch offen" }));
+    expect(screen.getByText(/Noch offen: zählt wie „kann nicht“/)).toBeInTheDocument();
+    expect(screen.getByText("Noch offen: 13 von 14 Tagen")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Früh 7–9" }));
     await userEvent.click(screen.getByRole("button", { name: "+ Noch eine Zeit" }));
     await userEvent.selectOptions(screen.getByLabelText("Von", { selector: "#from-1" }), "1080");
@@ -86,25 +88,39 @@ describe("Availability", () => {
         { from: 420, to: 540 },
         { from: 1080, to: 1200 },
       ],
+      declined: false,
     });
     expect(put.headers.get("Idempotency-Key")).toBeTruthy();
 
-    // Thursday: can't after all.
+    // Thursday: does not suit after all, and saving without times keeps it so.
     await userEvent.click(thu);
-    await userEvent.click(screen.getByRole("button", { name: "Kann nicht" }));
+    await userEvent.click(screen.getByRole("button", { name: "Passt nicht" }));
+    const no = await screen.findByRole("button", { name: "Do 29.10.: passt nicht" });
+    expect(within(no).getByText("Passt nicht")).toBeInTheDocument();
+    expect(calls.at(-1)!.body).toEqual({ spans: [], declined: true });
+    await userEvent.click(no);
+    expect(screen.getByText(/an diesem Tag spielst du nicht/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Passt nicht" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    await screen.findByRole("button", { name: "Do 29.10.: passt nicht" });
+    expect(calls.at(-1)!.body).toEqual({ spans: [], declined: true });
+    // And open again.
+    await userEvent.click(screen.getByRole("button", { name: "Do 29.10.: passt nicht" }));
+    await userEvent.click(screen.getByRole("button", { name: "Wieder offen" }));
     expect(
-      await screen.findByRole("button", { name: "Do 29.10.: kein Eintrag" }),
+      await screen.findByRole("button", { name: "Do 29.10.: noch offen" }),
     ).toBeInTheDocument();
+    expect(calls.at(-1)!.body).toEqual({ spans: [], declined: false });
 
     // Cancel leaves a day as it was; a span can go again.
-    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: kein Eintrag" }));
+    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
     await userEvent.click(screen.getByRole("button", { name: "+ Noch eine Zeit" }));
     await userEvent.click(screen.getByRole("button", { name: "+ Noch eine Zeit" }));
     await userEvent.click(screen.getByRole("button", { name: "18:00–19:00 weg" }));
     await userEvent.selectOptions(screen.getByLabelText("Von", { selector: "#from-0" }), "1380");
     expect(screen.getByLabelText("Bis", { selector: "#to-0" })).toHaveValue("1440");
     await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
-    expect(screen.getByRole("button", { name: "So 1.11.: kein Eintrag" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "So 1.11.: noch offen" })).toBeInTheDocument();
   });
 
   it("uses the usual times and remembers new ones", async () => {
@@ -130,7 +146,7 @@ describe("Availability", () => {
     await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
 
     // A Monday becomes the usual for Mondays.
-    await userEvent.click(screen.getByRole("button", { name: "Mo 2.11.: kein Eintrag" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mo 2.11.: noch offen" }));
     await userEvent.click(screen.getByRole("button", { name: "Abend ab 18" }));
     await userEvent.click(screen.getByLabelText("So ist es meistens am Montag"));
     await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
@@ -144,26 +160,54 @@ describe("Availability", () => {
       screen.getByRole("button", { name: "1 leere Tag wie meistens füllen" }),
     ).toBeInTheDocument();
 
-    // Clearing a Friday that is remembered forgets Fridays.
+    // A Friday that does not suit, remembered, forgets Fridays.
     await userEvent.click(screen.getByRole("button", { name: "Fr 6.11.: 18:00–21:00" }));
     await userEvent.click(screen.getByLabelText("So ist es meistens am Freitag"));
-    await userEvent.click(screen.getByRole("button", { name: "Kann nicht" }));
-    await screen.findByRole("button", { name: "Fr 6.11.: kein Eintrag" });
+    await userEvent.click(screen.getByRole("button", { name: "Passt nicht" }));
+    await screen.findByRole("button", { name: "Fr 6.11.: passt nicht" });
     expect(mine.templates).toEqual([{ weekday: 1, spans: [{ from: 1080, to: 1440 }] }]);
+  });
+
+  it("leaves a day that does not suit as it is when filling", async () => {
+    const mine = start();
+    mine.days.push({ day: "2026-10-30", spans: [], declined: true });
+    const calls: Sent[] = [];
+    api(mine, calls);
+    renderWithQuery(<Availability />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "1 leere Tag wie meistens füllen" }),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Fr 6.11.: 18:00–21:00" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fr 30.10.: passt nicht" })).toBeInTheDocument();
+    expect(screen.getByText("Noch offen: 11 von 14 Tagen")).toBeInTheDocument();
+  });
+
+  it("says when every day is entered", async () => {
+    const mine = start();
+    mine.to = "2026-10-29";
+    api(mine, []);
+    renderWithQuery(<Availability />);
+    expect(await screen.findByText("Alle Tage sind eingetragen.")).toBeInTheDocument();
   });
 
   it("says what went wrong", async () => {
     const mine = start();
     mine.days = [];
     const calls: Sent[] = [];
-    api(mine, calls, { dayErrors: ["boom", "invalid-spans", "outside-window"] });
+    api(mine, calls, { dayErrors: ["boom", "boom", "invalid-spans", "outside-window"] });
     renderWithQuery(<Availability />);
     await userEvent.click(
       await screen.findByRole("button", { name: "2 leere Tage wie meistens füllen" }),
     );
     expect(await screen.findByText(/Nicht alle Tage wurden gefüllt/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Sa 31.10.: kein Eintrag" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sa 31.10.: noch offen" }));
     await userEvent.click(screen.getByRole("button", { name: "Mittag 12–14" }));
+    await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
+    expect(
+      await screen.findByText("Das hat nicht geklappt. Versuch es nochmal."),
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
     expect(await screen.findByText(/halbe Stunden von 6 bis 24/)).toBeInTheDocument();
     // The retries of the same day keep its key.
@@ -172,7 +216,7 @@ describe("Availability", () => {
     await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
     await screen.findByRole("button", { name: "Sa 31.10.: 12:00–14:00" });
     const sat = calls.filter((c) => c.url.pathname.endsWith("2026-10-31"));
-    expect(sat).toHaveLength(3);
+    expect(sat).toHaveLength(4);
     expect(new Set(sat.map((c) => c.headers.get("Idempotency-Key"))).size).toBe(1);
   });
 

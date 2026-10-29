@@ -17,6 +17,7 @@ export type GroupSummary = components["schemas"]["GroupSummary"];
 export type Group = components["schemas"]["Group"];
 export type Span = components["schemas"]["Span"];
 export type Availability = components["schemas"]["Availability"];
+export type AvailabilityDay = components["schemas"]["AvailabilityDay"];
 export type Template = components["schemas"]["Template"];
 export type Fit = components["schemas"]["Fit"];
 export type FitList = components["schemas"]["FitList"];

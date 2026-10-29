@@ -410,8 +410,8 @@ export interface paths {
     };
     get?: never;
     /**
-     * Replace the spans of one day
-     * @description Spans on a 30-minute grid from 6:00 to 24:00; overlapping or touching ones become one, and none clears the day. 400 invalid-spans; 400 outside-window for a day before today or more than 13 days ahead.
+     * Replace one day
+     * @description Spans on a 30-minute grid from 6:00 to 24:00; overlapping or touching ones become one. declined with no spans says the day does not suit; no spans and not declined leaves the day open. 400 invalid-spans, also for spans on a declined day; 400 outside-window for a day before today or more than 13 days ahead.
      */
     put: operations["setAvailabilityDay"];
     post?: never;
@@ -733,7 +733,7 @@ export interface components {
       role: string;
       /** Format: date-time */
       joinedAt: string;
-      /** @description On how many of the next 14 days they said when they can. */
+      /** @description On how many of the next 14 days they said when they can, or that the day does not suit. */
       daysEntered: number;
     };
     GroupInvitation: {
@@ -778,11 +778,18 @@ export interface components {
     };
     SpanList: {
       spans: components["schemas"]["Span"][];
+      /**
+       * @description The day does not suit ("passt nicht"); spans must be empty.
+       * @default false
+       */
+      declined: boolean;
     };
     AvailabilityDay: {
       /** Format: date */
       day: string;
       spans: components["schemas"]["Span"][];
+      /** @description Said not to suit; such a day has no spans. */
+      declined: boolean;
     };
     Template: {
       /** @description 1 Monday to 7 Sunday. */
@@ -825,7 +832,7 @@ export interface components {
       link?: string;
       /** @description The members free for the whole game, in the group's order. */
       can: components["schemas"]["Person"][];
-      /** @description On a near miss, members who entered nothing for the day. */
+      /** @description On a near miss, members who entered nothing for the day, not even that it does not suit. */
       ask: components["schemas"]["Person"][];
     };
     Person: {

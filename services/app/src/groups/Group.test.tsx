@@ -100,10 +100,10 @@ describe("Group", () => {
     expect(screen.getByText("Privat · 3 Mitglieder")).toBeInTheDocument();
     const seb = screen.getByText(/Seb/, { selector: "div" }).closest("li")!;
     expect(seb).toHaveTextContent("Seb (du)Admin");
-    expect(seb).toHaveTextContent("Zeiten an 5 von 14 Tagen");
+    expect(seb).toHaveTextContent("5 von 14 Tagen eingetragen");
     expect(within(seb).queryByRole("button")).toBeNull();
     expect(screen.getByText("markus@example.at").closest("li")).toHaveTextContent(
-      "hat noch keine Zeiten eingetragen",
+      "hat noch nichts eingetragen",
     );
 
     // Requests: let Eva in; turning Tom down is refused.

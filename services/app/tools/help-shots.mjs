@@ -116,7 +116,7 @@ const EMAIL = (who) => `${who}@local.test`;
 
 async function seed() {
   sql(`TRUNCATE people, invitations, idempotency_keys, release_note_reads, groups, memberships,
-       group_invitations, join_requests, availability_spans, availability_templates,
+       group_invitations, join_requests, availability_spans, availability_declined, availability_templates,
        game_players, venue_choices, games, push_subscriptions CASCADE;`);
   writeSnapshot();
   for (const [who, name] of Object.entries(NAMES)) {
@@ -148,6 +148,8 @@ async function seed() {
     for (const who of Object.keys(NAMES))
       if (!off[who].includes(i % (who === "lisa" ? 3 : 7)))
         await as(who, "PUT", `/api/v1/availability/days/${day}`, evening);
+  // Seb has thought about his day off; Lisa's stay open.
+  await as("seb", "PUT", `/api/v1/availability/days/${DAYS[3]}`, { spans: [], declined: true });
   await as("seb", "PUT", `/api/v1/availability/days/${DAYS[2]}`, {
     spans: [
       { from: 7 * 60, to: 9 * 60 },

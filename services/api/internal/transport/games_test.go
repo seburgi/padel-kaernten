@@ -58,6 +58,11 @@ func TestGames(t *testing.T) {
 		len(fits.Nearly) == 0 || fits.Nearly[0].Ask[0].Email != lisa {
 		t.Fatalf("nearly: %d %s", w.Code, w.Body)
 	}
+	// Once Lisa says the day does not suit, nobody is left to ask.
+	_ = a.send(lisa, "PUT", "/api/v1/availability/days/"+tomorrow, `{"spans":[],"declined":true}`)
+	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); !strings.Contains(w.Body.String(), `"nearly":[]`) {
+		t.Errorf("asked after declining: %s", w.Body)
+	}
 	_ = a.send(lisa, "PUT", "/api/v1/availability/days/"+tomorrow, `{"spans":[{"from":1080,"to":1260}]}`)
 	w = a.do(a.as(seb, "GET", group+"/fits?minutes=90", ""))
 	if body := w.Body.String(); w.Code != 200 || !strings.Contains(body, `"perHead":{"amount":1500,"currency":"EUR"}`) ||

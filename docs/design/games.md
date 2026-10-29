@@ -17,7 +17,8 @@
 - **Near misses** ("Fast: eine Person fehlt"): three can, and someone who
   drives there entered nothing for that day, so they might be the fourth.
   A day with no entry still means "can't" for fits (`availability.md`);
-  it only makes someone worth asking.
+  it only makes someone worth asking. Someone who said the day does not
+  suit ("Passt nicht") is never asked for it (Seb, 2026-10-29).
 - **Order**: most people first, then day, start and price. At most 40
   fits and 10 near misses; the price per head is the prorated court price
   over four, and none when any part of the game has no price.

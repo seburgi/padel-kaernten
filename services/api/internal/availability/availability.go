@@ -30,7 +30,8 @@ const (
 )
 
 var (
-	// ErrInvalid means spans off the grid, outside 6:00 to 24:00, or empty.
+	// ErrInvalid means spans off the grid, outside 6:00 to 24:00, or empty,
+	// or spans on a day declined.
 	ErrInvalid = errors.New("invalid spans")
 	// ErrOutside means a day before today or more than 13 days ahead.
 	ErrOutside = errors.New("day outside the window")
@@ -51,10 +52,12 @@ func mustZone(name string) *time.Location {
 // Span is from..to in minutes after midnight, to exclusive.
 type Span struct{ From, To int }
 
-// Day is the spans of one day, YYYY-MM-DD.
+// Day is the spans of one day, YYYY-MM-DD. Declined is a day someone said
+// does not suit them, which has no spans; a day with neither is open.
 type Day struct {
-	Day   string
-	Spans []Span
+	Day      string
+	Spans    []Span
+	Declined bool
 }
 
 // Template is what someone usually has on a weekday, 1 Monday to 7 Sunday.
@@ -67,7 +70,7 @@ type Template struct {
 type Mine struct {
 	// From and To are the window, YYYY-MM-DD, both included.
 	From, To  string
-	Days      []Day // only days with spans, in order
+	Days      []Day // only days with spans or declined, in order
 	Templates []Template
 	Venues    []string // none means every venue
 }
@@ -131,23 +134,34 @@ func (s *Service) Get(ctx context.Context, email string) (Mine, error) {
 	from, to := s.Window()
 	m := Mine{From: from, To: to, Days: []Day{}, Templates: []Template{}, Venues: []string{}}
 	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		// A declined day comes as one row with no span.
 		rows, err := tx.Query(ctx,
 			`SELECT to_char(day, 'YYYY-MM-DD'), from_min, to_min FROM availability_spans
-			  WHERE email = $1 AND day BETWEEN $2::date AND $3::date ORDER BY day, from_min`, email, from, to)
+			  WHERE email = $1 AND day BETWEEN $2::date AND $3::date
+			 UNION ALL
+			 SELECT to_char(day, 'YYYY-MM-DD'), NULL, NULL FROM availability_declined
+			  WHERE email = $1 AND day BETWEEN $2::date AND $3::date
+			 ORDER BY 1, 2`, email, from, to)
 		if err != nil {
 			return err
 		}
 		var day string
-		var sp Span
-		if _, err := pgx.ForEachRow(rows, []any{&day, &sp.From, &sp.To}, func() error {
+		var fromMin, toMin *int
+		if _, err := pgx.ForEachRow(rows, []any{&day, &fromMin, &toMin}, func() error {
 			if n := len(m.Days); n == 0 || m.Days[n-1].Day != day {
-				m.Days = append(m.Days, Day{Day: day})
+				m.Days = append(m.Days, Day{Day: day, Spans: []Span{}})
 			}
-			m.Days[len(m.Days)-1].Spans = append(m.Days[len(m.Days)-1].Spans, sp)
+			d := &m.Days[len(m.Days)-1]
+			if fromMin == nil || toMin == nil {
+				d.Declined = true
+				return nil
+			}
+			d.Spans = append(d.Spans, Span{From: *fromMin, To: *toMin})
 			return nil
 		}); err != nil {
 			return err
 		}
+		var sp Span
 		rows, err = tx.Query(ctx,
 			`SELECT weekday, from_min, to_min FROM availability_templates WHERE email = $1 ORDER BY weekday, from_min`, email)
 		if err != nil {
@@ -191,17 +205,28 @@ func (s *Service) write(ctx context.Context, email, key, op string, body any, fn
 	})
 }
 
-// SetDay replaces the spans of one day; none clears it.
-func (s *Service) SetDay(ctx context.Context, email, key, day string, spans []Span) ([]Span, error) {
+// SetDay replaces one day: its spans, or declined for a day that does not
+// suit, or neither, which leaves it open.
+func (s *Service) SetDay(ctx context.Context, email, key, day string, spans []Span, declined bool) (Day, error) {
 	if !s.inWindow(day) {
-		return nil, ErrOutside
+		return Day{}, ErrOutside
+	}
+	if declined && len(spans) > 0 {
+		return Day{}, ErrInvalid
 	}
 	merged, err := Merge(spans)
 	if err != nil {
-		return nil, err
+		return Day{}, err
 	}
-	err = s.write(ctx, email, key, "availability-day", []any{day, merged}, func(tx pgx.Tx) error {
+	err = s.write(ctx, email, key, "availability-day", []any{day, merged, declined}, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `DELETE FROM availability_spans WHERE email = $1 AND day = $2::date`, email, day); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, `DELETE FROM availability_declined WHERE email = $1 AND day = $2::date`, email, day); err != nil {
+			return err
+		}
+		if declined {
+			_, err := tx.Exec(ctx, `INSERT INTO availability_declined (email, day) VALUES ($1, $2::date)`, email, day)
 			return err
 		}
 		for _, sp := range merged {
@@ -213,7 +238,7 @@ func (s *Service) SetDay(ctx context.Context, email, key, day string, spans []Sp
 		}
 		return nil
 	})
-	return merged, err
+	return Day{Day: day, Spans: merged, Declined: declined}, err
 }
 
 // SetTemplates replaces every weekday's usual spans.
@@ -278,12 +303,14 @@ func (s *Service) SetVenues(ctx context.Context, email, key string, venues []str
 	return out, err
 }
 
-// Entered is, per address, on how many days of the window it has spans.
-// Addresses with none are left out.
+// Entered is, per address, how many days of the window it has said
+// something about: spans, or declined. Addresses with none are left out.
 func (s *Service) Entered(ctx context.Context, emails []string) (map[string]int, error) {
 	from, to := s.Window()
 	rows, err := s.pool.Query(ctx,
-		`SELECT email, count(DISTINCT day) FROM availability_spans
+		`SELECT email, count(DISTINCT day) FROM (
+		   SELECT email, day FROM availability_spans
+		   UNION ALL SELECT email, day FROM availability_declined) d
 		  WHERE email = ANY($1::text[]) AND day BETWEEN $2::date AND $3::date GROUP BY email`, emails, from, to)
 	if err != nil {
 		return nil, err
@@ -299,10 +326,12 @@ func (s *Service) Entered(ctx context.Context, emails []string) (map[string]int,
 }
 
 // Person is what one person said, as the fits read it: spans per day of
-// the window, and the venues they drive to (none means every venue).
+// the window, the days they declined, and the venues they drive to (none
+// means every venue).
 type Person struct {
-	Days   map[string][]Span
-	Venues []string
+	Days     map[string][]Span
+	Declined map[string]bool
+	Venues   []string
 }
 
 // Of is what each of emails said; everyone asked is in the answer.
@@ -310,7 +339,7 @@ func (s *Service) Of(ctx context.Context, emails []string) (map[string]Person, e
 	from, to := s.Window()
 	out := make(map[string]Person, len(emails))
 	for _, e := range emails {
-		out[e] = Person{Days: map[string][]Span{}, Venues: []string{}}
+		out[e] = Person{Days: map[string][]Span{}, Declined: map[string]bool{}, Venues: []string{}}
 	}
 	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
 		rows, err := tx.Query(ctx,
@@ -324,6 +353,18 @@ func (s *Service) Of(ctx context.Context, emails []string) (map[string]Person, e
 		var sp Span
 		if _, err := pgx.ForEachRow(rows, []any{&e, &day, &sp.From, &sp.To}, func() error {
 			out[e].Days[day] = append(out[e].Days[day], sp)
+			return nil
+		}); err != nil {
+			return err
+		}
+		rows, err = tx.Query(ctx,
+			`SELECT email, to_char(day, 'YYYY-MM-DD') FROM availability_declined
+			  WHERE email = ANY($1::text[]) AND day BETWEEN $2::date AND $3::date`, emails, from, to)
+		if err != nil {
+			return err
+		}
+		if _, err := pgx.ForEachRow(rows, []any{&e, &day}, func() error {
+			out[e].Declined[day] = true
 			return nil
 		}); err != nil {
 			return err

@@ -64,28 +64,28 @@ func TestDays(t *testing.T) {
 		t.Fatalf("window: %s %s", from, to)
 	}
 	k := key()
-	got, err := s.SetDay(ctx, anna, k, "2026-10-29", []span{{1110, 1320}, {420, 540}, {480, 510}})
-	if err != nil || !reflect.DeepEqual(got, []span{{420, 540}, {1110, 1320}}) {
+	got, err := s.SetDay(ctx, anna, k, "2026-10-29", []span{{1110, 1320}, {420, 540}, {480, 510}}, false)
+	if err != nil || !reflect.DeepEqual(got, availability.Day{Day: "2026-10-29", Spans: []span{{420, 540}, {1110, 1320}}}) {
 		t.Fatalf("set: %v %v", got, err)
 	}
-	if _, err := s.SetDay(ctx, anna, k, "2026-10-29", []span{{420, 540}, {1110, 1320}}); err != nil {
+	if _, err := s.SetDay(ctx, anna, k, "2026-10-29", []span{{420, 540}, {1110, 1320}}, false); err != nil {
 		t.Errorf("replay: %v", err)
 	}
-	if _, err := s.SetDay(ctx, anna, k, "2026-10-30", nil); !errors.Is(err, idempotency.ErrKeyReused) {
+	if _, err := s.SetDay(ctx, anna, k, "2026-10-30", nil, false); !errors.Is(err, idempotency.ErrKeyReused) {
 		t.Errorf("a key for another day: %v", err)
 	}
-	if _, err := s.SetDay(ctx, anna, key(), "2026-11-10", []span{{1080, 1200}}); err != nil {
+	if _, err := s.SetDay(ctx, anna, key(), "2026-11-10", []span{{1080, 1200}}, false); err != nil {
 		t.Errorf("the last day: %v", err)
 	}
 	for _, day := range []string{"2026-10-27", "2026-11-11", "2026-13-01", "28.10.2026"} {
-		if _, err := s.SetDay(ctx, anna, key(), day, nil); !errors.Is(err, availability.ErrOutside) {
+		if _, err := s.SetDay(ctx, anna, key(), day, nil, false); !errors.Is(err, availability.ErrOutside) {
 			t.Errorf("%s: %v", day, err)
 		}
 	}
-	if _, err := s.SetDay(ctx, anna, key(), "2026-10-30", []span{{420, 425}}); !errors.Is(err, availability.ErrInvalid) {
+	if _, err := s.SetDay(ctx, anna, key(), "2026-10-30", []span{{420, 425}}, false); !errors.Is(err, availability.ErrInvalid) {
 		t.Errorf("off the grid: %v", err)
 	}
-	_, _ = s.SetDay(ctx, lisa, key(), "2026-10-29", []span{{600, 660}})
+	_, _ = s.SetDay(ctx, lisa, key(), "2026-10-29", []span{{600, 660}}, false)
 
 	m, err := s.Get(ctx, anna)
 	if err != nil || len(m.Days) != 2 || m.Days[0].Day != "2026-10-29" || len(m.Days[0].Spans) != 2 ||
@@ -93,12 +93,49 @@ func TestDays(t *testing.T) {
 		t.Fatalf("get: %+v %v", m, err)
 	}
 	// Clearing a day.
-	if got, err := s.SetDay(ctx, anna, key(), "2026-11-10", nil); err != nil || len(got) != 0 {
+	if got, err := s.SetDay(ctx, anna, key(), "2026-11-10", nil, false); err != nil || len(got.Spans) != 0 || got.Declined {
 		t.Errorf("clear: %v %v", got, err)
 	}
 	entered, err := s.Entered(ctx, []string{anna, lisa, "markus@example.at"})
 	if err != nil || !reflect.DeepEqual(entered, map[string]int{anna: 1, lisa: 1}) {
 		t.Errorf("entered: %v %v", entered, err)
+	}
+}
+
+func TestDeclined(t *testing.T) {
+	s := setup(t)
+	ctx := t.Context()
+	if _, err := s.SetDay(ctx, anna, key(), "2026-10-30", []span{{600, 660}}, true); !errors.Is(err, availability.ErrInvalid) {
+		t.Errorf("spans on a declined day: %v", err)
+	}
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-29", []span{{600, 660}}, false)
+	got, err := s.SetDay(ctx, anna, key(), "2026-10-31", nil, true)
+	if err != nil || !reflect.DeepEqual(got, availability.Day{Day: "2026-10-31", Spans: []span{}, Declined: true}) {
+		t.Fatalf("decline: %+v %v", got, err)
+	}
+	m, err := s.Get(ctx, anna)
+	want := []availability.Day{
+		{Day: "2026-10-29", Spans: []span{{600, 660}}},
+		{Day: "2026-10-31", Spans: []span{}, Declined: true},
+	}
+	if err != nil || !reflect.DeepEqual(m.Days, want) {
+		t.Fatalf("get: %+v %v", m.Days, err)
+	}
+	if entered, _ := s.Entered(ctx, []string{anna}); entered[anna] != 2 {
+		t.Errorf("a declined day counts as entered: %v", entered)
+	}
+	if of, _ := s.Of(ctx, []string{anna}); !of[anna].Declined["2026-10-31"] || len(of[anna].Days["2026-10-31"]) != 0 {
+		t.Errorf("of: %+v", of[anna])
+	}
+	// Spans replace "passt nicht", and nothing leaves the day open.
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-31", []span{{1080, 1200}}, false)
+	if m, _ := s.Get(ctx, anna); len(m.Days) != 2 || m.Days[1].Declined || len(m.Days[1].Spans) != 1 {
+		t.Errorf("spans after declined: %+v", m.Days)
+	}
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-31", nil, true)
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-31", nil, false)
+	if m, _ := s.Get(ctx, anna); len(m.Days) != 1 {
+		t.Errorf("open again: %+v", m.Days)
 	}
 }
 
@@ -145,19 +182,19 @@ func TestTemplatesAndVenues(t *testing.T) {
 func TestOf(t *testing.T) {
 	s := setup(t)
 	ctx := t.Context()
-	_, _ = s.SetDay(ctx, anna, key(), "2026-10-29", []span{{1110, 1320}, {420, 540}})
-	_, _ = s.SetDay(ctx, anna, key(), "2026-10-30", []span{{600, 660}})
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-29", []span{{1110, 1320}, {420, 540}}, false)
+	_, _ = s.SetDay(ctx, anna, key(), "2026-10-30", []span{{600, 660}}, false)
 	_, _ = s.SetVenues(ctx, anna, key(), []string{"villach"})
-	_, _ = s.SetDay(ctx, lisa, key(), "2026-10-29", []span{{600, 660}})
+	_, _ = s.SetDay(ctx, lisa, key(), "2026-10-29", []span{{600, 660}}, false)
 	got, err := s.Of(ctx, []string{anna, lisa, "markus@example.at"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := map[string]availability.Person{
 		anna: {Days: map[string][]span{"2026-10-29": {{420, 540}, {1110, 1320}}, "2026-10-30": {{600, 660}}},
-			Venues: []string{"villach"}},
-		lisa:                {Days: map[string][]span{"2026-10-29": {{600, 660}}}, Venues: []string{}},
-		"markus@example.at": {Days: map[string][]span{}, Venues: []string{}},
+			Declined: map[string]bool{}, Venues: []string{"villach"}},
+		lisa:                {Days: map[string][]span{"2026-10-29": {{600, 660}}}, Declined: map[string]bool{}, Venues: []string{}},
+		"markus@example.at": {Days: map[string][]span{}, Declined: map[string]bool{}, Venues: []string{}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("of: %+v", got)

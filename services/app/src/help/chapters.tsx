@@ -83,10 +83,18 @@ export const CHAPTERS: Chapter[] = [
           Unter Spielen führt {b("Wann kann ich?")} zu den nächsten 14 Tagen, jeder als Zeile von 6
           bis 24 Uhr. Tipp auf einen Tag und wähl, von wann bis wann du kannst, in halben Stunden.
           Schneller geht es mit {b("Früh 7–9")}, {b("Mittag 12–14")}, {b("Abend ab 18")} oder{" "}
-          {b("Ganzer Tag")}. Mit {b("+ Noch eine Zeit")} trägst du mehrere Zeiten an einem Tag ein,{" "}
-          {b("Kann nicht")} leert den Tag.
+          {b("Ganzer Tag")}. Mit {b("+ Noch eine Zeit")} trägst du mehrere Zeiten an einem Tag ein.
         </p>
-        <p>Ein Tag ohne Eintrag heißt: Da kannst du nicht.</p>
+        <p>
+          Passt ein Tag gar nicht, tipp auf {b("Passt nicht")}. Die Zeile ist dann schraffiert, und
+          oben siehst du, wie viele Tage noch offen sind. So weißt du, welche Tage du schon bedacht
+          hast. {b("Wieder offen")} nimmt den Eintrag zurück.
+        </p>
+        <p>
+          Ein offener Tag zählt für Spiele wie „kann nicht“. Fehlt in einer Gruppe nur noch eine
+          Person, nennt die App aber, wer den Tag noch offen hat, damit ihr fragen könnt. Wer „Passt
+          nicht“ gesagt hat, wird für diesen Tag nicht gefragt.
+        </p>
         <p>
           Mit {b("So ist es meistens am …")} merkt sich die App einen Tag als üblich für seinen
           Wochentag. Leere Tage füllt sie damit nur, wenn du {b("wie meistens füllen")} antippst,
@@ -101,11 +109,11 @@ export const CHAPTERS: Chapter[] = [
     shots: [
       {
         name: "zeiten",
-        alt: "Wann kannst du?: die nächsten Tage als Zeilen von 6 bis 24 Uhr, die eingetragenen Zeiten grün.",
+        alt: "Wann kannst du?: oben, wie viele Tage noch offen sind, darunter die nächsten Tage als Zeilen von 6 bis 24 Uhr, die eingetragenen Zeiten grün, ein Tag schraffiert mit „Passt nicht“.",
       },
       {
         name: "zeiten-tag",
-        alt: "Ein Tag offen: Schnellwahl Früh, Mittag, Abend, Ganzer Tag, zwei Zeiten mit von und bis, „+ Noch eine Zeit“, „So ist es meistens am Freitag“, Speichern und Kann nicht.",
+        alt: "Ein Tag offen: Schnellwahl Früh, Mittag, Abend, Ganzer Tag, zwei Zeiten mit von und bis, „+ Noch eine Zeit“, „So ist es meistens am …“, Speichern, Passt nicht und Wieder offen.",
       },
     ],
   },

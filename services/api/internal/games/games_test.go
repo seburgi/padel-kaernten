@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -86,6 +87,12 @@ func TestFits(t *testing.T) {
 		if f.Day == "2026-10-29" && f.Start < 1050 {
 			t.Errorf("a start already past: %+v", f)
 		}
+	}
+	// Someone who said the day does not suit is not asked.
+	declined := slices.Clone(people)
+	declined[5].Declined = map[string]bool{"2026-10-29": true}
+	if _, nf := games.Fits(venues, declined, 90, 4, w); len(nf) != 0 {
+		t.Errorf("asked on a declined day: %+v", nf)
 	}
 
 	// 19:30–21:00 on court 1 crosses into the dearer hour: 30 min at 40 €

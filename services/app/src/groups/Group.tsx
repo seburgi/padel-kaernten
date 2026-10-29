@@ -140,8 +140,8 @@ function Members({ g, me }: { g: G; me: string }) {
               </div>
               <div className="text-xs text-ink-muted">
                 {m.daysEntered === 0
-                  ? "hat noch keine Zeiten eingetragen"
-                  : `Zeiten an ${m.daysEntered} von 14 Tagen`}
+                  ? "hat noch nichts eingetragen"
+                  : `${m.daysEntered} von 14 Tagen eingetragen`}
               </div>
             </div>
             {g.role === "admin" &&

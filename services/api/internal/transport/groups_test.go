@@ -158,6 +158,16 @@ func TestAvailability(t *testing.T) {
 	if w := a.send(anna, "PUT", "/api/v1/availability/days/"+m.From, `{"spans":[{"from":0,"to":30}]}`); w.Code != 400 || problemType(w) != "invalid-spans" {
 		t.Errorf("at night: %d %s", w.Code, w.Body)
 	}
+	if w := a.send(anna, "PUT", "/api/v1/availability/days/"+m.To, `{"spans":[],"declined":true}`); w.Code != 200 ||
+		!strings.Contains(w.Body.String(), `"declined":true`) {
+		t.Errorf("declined: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(anna, "GET", "/api/v1/availability", "")); !strings.Contains(w.Body.String(), `"declined":true,"spans":[]`) {
+		t.Errorf("declined day listed: %s", w.Body)
+	}
+	if w := a.send(anna, "PUT", "/api/v1/availability/days/"+m.To, `{"spans":[{"from":420,"to":540}],"declined":true}`); w.Code != 400 || problemType(w) != "invalid-spans" {
+		t.Errorf("spans on a declined day: %d %s", w.Code, w.Body)
+	}
 	if w := a.send(anna, "PUT", "/api/v1/availability/templates", `{"templates":[{"weekday":4,"spans":[{"from":1110,"to":1320}]}]}`); w.Code != 200 {
 		t.Errorf("templates: %d %s", w.Code, w.Body)
 	}

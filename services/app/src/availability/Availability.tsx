@@ -1,8 +1,9 @@
 // When can I? (docs/design/availability.md): the next 14 days on a line from
 // 6 to 24, a day opens to say when, in half hours and as many spans as one
-// likes. A day with nothing means "can't". What someone usually has on a
-// weekday is kept, and fills empty days on request. Below, the venues they
-// drive to.
+// likes, or that it does not suit ("Passt nicht"). A day with nothing is
+// still open: it means "can't" too, but the others may ask. What someone
+// usually has on a weekday is kept, and fills open days on request. Below,
+// the venues they drive to.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   call,
   useWriteKey,
   type Availability as Mine,
+  type AvailabilityDay,
   type Span,
   type Template,
 } from "../api/client";
@@ -41,22 +43,32 @@ function errorText(e: unknown): string {
   return "Das hat nicht geklappt. Versuch es nochmal.";
 }
 
-async function put(day: string, spans: Span[], key: string): Promise<Span[]> {
-  const saved = await call(
+async function put(
+  day: string,
+  spans: Span[],
+  declined: boolean,
+  key: string,
+): Promise<AvailabilityDay> {
+  return call(
     api.PUT("/api/v1/availability/days/{day}", {
       params: { path: { day }, header: { "Idempotency-Key": key } },
-      body: { spans },
+      body: { spans, declined },
     }),
   );
-  return saved.spans;
 }
 
 /** The cache with one day replaced. */
-function withDay(m: Mine, day: string, spans: Span[]): Mine {
-  const days = m.days.filter((d) => d.day !== day);
-  if (spans.length > 0) days.push({ day, spans });
+function withDay(m: Mine, saved: AvailabilityDay): Mine {
+  const days = m.days.filter((d) => d.day !== saved.day);
+  if (saved.spans.length > 0 || saved.declined) days.push(saved);
   days.sort((a, b) => a.day.localeCompare(b.day));
   return { ...m, days };
+}
+
+/** What a row says of its day. */
+function dayText(d: AvailabilityDay | undefined): string {
+  if (d?.declined) return "passt nicht";
+  return (d && spansText(d.spans)) || "noch offen";
 }
 
 export function Availability() {
@@ -72,8 +84,8 @@ export function Availability() {
   const fill = useMutation({
     mutationFn: async (todo: { day: string; spans: Span[] }[]) => {
       for (const t of todo) {
-        const spans = await put(t.day, t.spans, fillKey(t));
-        client.setQueryData<Mine>(KEY, (m) => m && withDay(m, t.day, spans));
+        const saved = await put(t.day, t.spans, false, fillKey(t));
+        client.setQueryData<Mine>(KEY, (m) => m && withDay(m, saved));
       }
     },
   });
@@ -82,8 +94,9 @@ export function Availability() {
     <main>
       <h1 className="mt-2 mb-1 text-2xl font-semibold">Wann kannst du?</h1>
       <p className="mb-4 text-ink-muted">
-        Für die nächsten zwei Wochen. Tipp auf einen Tag und sag, von wann bis wann. Ein Tag ohne
-        Eintrag heißt: da kann ich nicht.{" "}
+        Für die nächsten zwei Wochen. Tipp auf einen Tag und sag, von wann bis wann, oder dass er
+        nicht passt. Ein offener Tag zählt wie „kann nicht“, aber die anderen fragen dich vielleicht
+        noch.{" "}
         <Link to="/help#zeiten" className={link}>
           So geht’s
         </Link>
@@ -114,6 +127,7 @@ export function Availability() {
             failed={fill.isError}
             onFill={(todo) => fill.mutate(todo)}
           />
+          <Open mine={mine.data} />
           <div className="mb-1 flex pl-24 text-xs text-ink-muted" aria-hidden="true">
             {[6, 12, 18].map((h) => (
               <span key={h} className="flex-1">
@@ -124,13 +138,16 @@ export function Availability() {
           </div>
           <ul className={`${card} divide-y divide-line`}>
             {daysBetween(mine.data.from, mine.data.to).map((day) => {
-              const spans = mine.data.days.find((d) => d.day === day)?.spans ?? [];
+              const said = mine.data.days.find((d) => d.day === day);
+              const spans = said?.spans ?? [];
+              const declined = said?.declined ?? false;
               return (
                 <li key={day}>
                   {open === day ? (
                     <DayEditor
                       day={day}
                       spans={spans}
+                      declined={declined}
                       usual={
                         mine.data.templates.find((t) => t.weekday === weekday(day))?.spans ?? []
                       }
@@ -141,14 +158,16 @@ export function Availability() {
                     <button
                       type="button"
                       className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
-                      aria-label={`${dayLabel(day)}: ${spansText(spans) || "kein Eintrag"}`}
+                      aria-label={`${dayLabel(day)}: ${dayText(said)}`}
                       onClick={() => setOpen(day)}
                     >
                       <span className="w-20 shrink-0 text-sm font-semibold">{dayLabel(day)}</span>
                       <span className="min-w-0 flex-1">
-                        <Line spans={spans} />
-                        <span className="mt-1 block truncate text-xs text-ink-muted">
-                          {spansText(spans) || "–"}
+                        <Line spans={spans} declined={declined} />
+                        <span
+                          className={`mt-1 block truncate text-xs ${declined ? "font-semibold text-ink-secondary" : "text-ink-muted"}`}
+                        >
+                          {declined ? "Passt nicht" : spansText(spans) || "–"}
                         </span>
                       </span>
                     </button>
@@ -164,9 +183,32 @@ export function Availability() {
   );
 }
 
-/** The day from 6 to 24, with the spans filled in. */
-function Line({ spans }: { spans: Span[] }) {
+/** How many days are still open, so one sees what is left to think about. */
+function Open({ mine }: { mine: Mine }) {
+  const all = daysBetween(mine.from, mine.to);
+  const open = all.filter((day) => !mine.days.some((d) => d.day === day)).length;
+  return (
+    <p className="mb-3 text-sm text-ink-muted">
+      {open === 0 ? "Alle Tage sind eingetragen." : `Noch offen: ${open} von ${all.length} Tagen`}
+    </p>
+  );
+}
+
+/** The day from 6 to 24, with the spans filled in; hatched when it does
+ * not suit. */
+function Line({ spans, declined }: { spans: Span[]; declined: boolean }) {
   const pct = (m: number) => `${((m - FIRST) / (LAST - FIRST)) * 100}%`;
+  if (declined)
+    return (
+      <span
+        className="block h-3 rounded-full bg-sunken"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(135deg, var(--color-line-strong) 0 2px, transparent 2px 7px)",
+        }}
+        aria-hidden="true"
+      />
+    );
   return (
     <span className="relative block h-3 rounded-full bg-sunken" aria-hidden="true">
       {spans.map((s) => (
@@ -192,6 +234,7 @@ function Fill({
   failed: boolean;
   onFill: (todo: { day: string; spans: Span[] }[]) => void;
 }) {
+  // A day that does not suit is not empty: it stays as it is.
   const todo = daysBetween(mine.from, mine.to)
     .filter((day) => !mine.days.some((d) => d.day === day))
     .map((day) => ({
@@ -227,12 +270,14 @@ function Fill({
 function DayEditor({
   day,
   spans,
+  declined,
   usual,
   templates,
   onClose,
 }: {
   day: string;
   spans: Span[];
+  declined: boolean;
   usual: Span[];
   templates: Template[];
   onClose: () => void;
@@ -243,15 +288,15 @@ function DayEditor({
   const dayKey = useWriteKey();
   const templateKey = useWriteKey();
   const save = useMutation({
-    mutationFn: async (next: Span[]) => {
-      const saved = await put(day, next, dayKey({ day, next }));
-      client.setQueryData<Mine>(KEY, (m) => m && withDay(m, day, saved));
+    mutationFn: async ({ next, no }: { next: Span[]; no: boolean }) => {
+      const saved = await put(day, next, no, dayKey({ day, next, no }));
+      client.setQueryData<Mine>(KEY, (m) => m && withDay(m, saved));
       if (remember) {
         const wd = weekday(day);
         const body = {
           templates: [
             ...templates.filter((t) => t.weekday !== wd),
-            ...(saved.length > 0 ? [{ weekday: wd, spans: saved }] : []),
+            ...(saved.spans.length > 0 ? [{ weekday: wd, spans: saved.spans }] : []),
           ],
         };
         const out = await call(
@@ -293,7 +338,11 @@ function DayEditor({
         )}
       </div>
       {draft.length === 0 && (
-        <p className="mb-3 text-sm text-ink-muted">Kein Eintrag: da kann ich nicht.</p>
+        <p className="mb-3 text-sm text-ink-muted">
+          {declined
+            ? "Passt nicht: an diesem Tag spielst du nicht."
+            : "Noch offen: zählt wie „kann nicht“, aber die anderen fragen dich vielleicht."}
+        </p>
       )}
       <ul className="mb-3 space-y-2">
         {draft.map((s, i) => (
@@ -365,18 +414,29 @@ function DayEditor({
           className={primary}
           disabled={save.isPending}
           aria-busy={save.isPending}
-          onClick={() => save.mutate(merge(draft))}
+          // With no times, a day that did not suit still does not.
+          onClick={() => save.mutate({ next: merge(draft), no: declined && draft.length === 0 })}
         >
           {save.isPending ? "Speichert …" : "Speichern"}
         </button>
-        {spans.length > 0 && (
+        {!declined && (
           <button
             type="button"
             className={danger}
             disabled={save.isPending}
-            onClick={() => save.mutate([])}
+            onClick={() => save.mutate({ next: [], no: true })}
           >
-            Kann nicht
+            Passt nicht
+          </button>
+        )}
+        {(declined || spans.length > 0) && (
+          <button
+            type="button"
+            className={quiet}
+            disabled={save.isPending}
+            onClick={() => save.mutate({ next: [], no: false })}
+          >
+            Wieder offen
           </button>
         )}
         <button type="button" className={quiet} onClick={onClose}>

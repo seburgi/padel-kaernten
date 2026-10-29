@@ -35,16 +35,18 @@ type Venue struct {
 type Span struct{ From, To int }
 
 // Person is a member as the fits see them: when they can, per day
-// (YYYY-MM-DD), and where they drive to, none meaning every venue.
+// (YYYY-MM-DD), the days they said do not suit, and where they drive to,
+// none meaning every venue.
 type Person struct {
-	Email  string
-	Days   map[string][]Span
-	Venues []string
+	Email    string
+	Days     map[string][]Span
+	Declined map[string]bool
+	Venues   []string
 }
 
 // Fit is a game that fits: a court free for the whole game while the
 // people in Can are all free. Ask, on a near miss, are the members who
-// entered nothing for that day and drive there.
+// entered nothing for that day, not even "passt nicht", and drive there.
 type Fit struct {
 	Day            string
 	Start, Minutes int
@@ -166,6 +168,9 @@ func who(people []Person, venue, day string, from, to int) (can, ask []string) {
 	can, ask = []string{}, []string{}
 	for _, p := range people {
 		if !drives(p, venue) {
+			continue
+		}
+		if p.Declined[day] {
 			continue
 		}
 		spans := p.Days[day]

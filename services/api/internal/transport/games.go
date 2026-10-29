@@ -157,7 +157,7 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 				days[day] = append(days[day], games.Span{From: s.From, To: s.To})
 			}
 		}
-		ps[i] = games.Person{Email: e, Days: days, Venues: said[e].Venues}
+		ps[i] = games.Person{Email: e, Days: days, Declined: said[e].Declined, Venues: said[e].Venues}
 	}
 	links := map[string]map[string]string{}
 	for _, v := range venues {

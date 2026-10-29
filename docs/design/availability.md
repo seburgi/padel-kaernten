@@ -10,10 +10,19 @@
   spans a day as one likes; `PUT /api/v1/availability/days/{day}`
   replaces a day's, and overlapping or touching spans become one. A day
   with no spans means "can't" (Seb, 2026-10-28).
+- **Three kinds of day**: with spans; **declined** ("Passt nicht",
+  `{"spans": [], "declined": true}`, table `availability_declined`,
+  migration 0008), which someone has thought about and does not suit;
+  and **open**, with neither, not thought about yet. Both declined and
+  open mean "can't" for the fits, but only an open day makes someone
+  worth asking in a near miss (`games.md`). Spans with `declined` answer
+  400 `invalid-spans`; spans replace a decline, and neither opens the day
+  again (Seb, 2026-10-29: "einfacher den Überblick zu behalten").
+  `daysEntered` on a group's members counts both kinds of entered day.
 - **"Wie meistens"**: spans per weekday (`PUT
   /api/v1/availability/templates`, 1 Monday to 7 Sunday), which the app
-  offers for days with nothing entered yet; it never fills days by
-  itself.
+  offers for open days; it never fills days by itself, and never a
+  declined one.
 - **Where one drives to**: venue ids from `venues.json` (`PUT
   /api/v1/availability/venues`); none chosen means every venue. An id
   that is not a venue answers 400 `unknown-venue`.
@@ -21,11 +30,15 @@
   kannst du?"): the 14 days as rows, each a line from 6 to 24 with its
   spans filled in. A row opens an editor: quick choices (Früh 7–9, Mittag
   12–14, Abend ab 18, Ganzer Tag), from–to selects per span on the half
-  hour, "+ Noch eine Zeit", "Kann nicht" to clear, and "So ist es meistens
-  am …" to keep the day as its weekday's usual. A button fills the empty
-  days that have a usual time, one day after another, on request. Venues
-  are chips from the latest snapshot.
-- The nightly `/reap` deletes spans of days two days gone
+  hour, "+ Noch eine Zeit", "Passt nicht" to decline the day, "Wieder
+  offen" to clear it, and "So ist es meistens am …" to keep the day as its
+  weekday's usual. A declined row is hatched and says "Passt nicht"; an
+  open one says "–", and above the rows "Noch offen: n von 14 Tagen" says
+  what is left to think about. Speichern with no times keeps a declined
+  day declined. A button fills the open days that have a usual time, one
+  day after another, on request. Venues are chips from the latest
+  snapshot.
+- The nightly `/reap` deletes spans and declined days two days gone
   (`internal/platform/retention`).
 
 ## Deliberately not
