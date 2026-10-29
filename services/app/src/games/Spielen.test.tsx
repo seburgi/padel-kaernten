@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Fit, Game as G } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
+import { AskGroup } from "./AskGroup";
 import { BestFits } from "./BestFits";
 import { Waiting } from "./Waiting";
 
@@ -269,5 +270,85 @@ describe("BestFits", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Die passenden Zeiten konnten nicht geladen werden.",
     );
+  });
+});
+
+describe("AskGroup", () => {
+  const slot = {
+    venueId: "villach",
+    venueName: "Padel Villach",
+    court: "Court 1",
+    day: "2026-11-03",
+    start: 1140,
+    minutes: 90,
+    href: "https://book.example/3",
+  };
+
+  it("says who of each group can, and proposes", async () => {
+    const calls: Sent[] = [];
+    let closed = false;
+    serve(
+      {
+        "GET /api/v1/groups": () =>
+          answer(200, {
+            items: [
+              summary(1, "Dienstagsrunde"),
+              summary(2, "Mittwochsliga"),
+              summary(3, "Fremd", "listed"),
+              summary(4, "Leer"),
+            ],
+          }),
+        "GET /api/v1/groups/1/fits": () => fits([fit()]),
+        "GET /api/v1/groups/2/fits": () =>
+          answer(200, {
+            takenAt: new Date().toISOString(),
+            need: 4,
+            fits: [],
+            nearly: [fit({ can: [seb, anna, markus], ask: [lisa] })],
+          }),
+        "GET /api/v1/groups/4/fits": () => fits([]),
+        "POST /api/v1/groups/2/games": () => answer(201, game({ id: 13, groupId: 2 })),
+      },
+      calls,
+    );
+    const { router } = at(<AskGroup slot={slot} onClose={() => (closed = true)} />);
+    const sheet = await screen.findByRole("dialog", { name: "Gruppe fragen" });
+    expect(sheet).toHaveTextContent("Di 3.11., 19:00–20:30 · Padel Villach");
+    expect(await within(sheet).findByText("4 können: Seb, Anna, Markus, Lisa")).toBeInTheDocument();
+    expect(
+      await within(sheet).findByText("Seb, Anna, Markus können. Frag Lisa."),
+    ).toBeInTheDocument();
+    expect(await within(sheet).findByText(/Noch nicht vier/)).toBeInTheDocument();
+    expect(within(sheet).queryByText("Fremd")).toBeNull();
+    expect(within(sheet).getByRole("link", { name: "Selbst buchen ↗" })).toHaveAttribute(
+      "href",
+      "https://book.example/3",
+    );
+    await userEvent.click(within(sheet).getByRole("button", { name: "Schließen" }));
+    expect(closed).toBe(true);
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: "In Mittwochsliga vorschlagen" }),
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games/13"));
+    expect(calls.find((c) => c.method === "POST")!.body).toEqual({
+      venueId: "villach",
+      court: "Court 1",
+      day: "2026-11-03",
+      start: 1140,
+      minutes: 90,
+    });
+  });
+
+  it("says when the court is gone", async () => {
+    serve({
+      "GET /api/v1/groups": () => answer(200, { items: [summary(1, "Dienstagsrunde")] }),
+      "GET /api/v1/groups/1/fits": () => problem(500, "internal"),
+      "POST /api/v1/groups/1/games": () => problem(409, "court-gone"),
+    });
+    at(<AskGroup slot={slot} onClose={() => {}} />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "In Dienstagsrunde vorschlagen" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Der Platz ist inzwischen weg.");
   });
 });

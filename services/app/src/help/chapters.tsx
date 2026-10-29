@@ -55,8 +55,11 @@ export const CHAPTERS: Chapter[] = [
           Anlage ihn nennt, dem Preis.
         </p>
         <p>
-          Eine Startzeit oder {b("Zur Buchung")} öffnet die Buchungsseite der Anlage. Ist nichts
-          frei, kannst du das Fenster erweitern, kürzer spielen oder den nächsten Tag ansehen.
+          {b("Zur Buchung")} öffnet die Buchungsseite der Anlage, eine Startzeit auch, solange du in
+          keiner Gruppe bist. Bist du in einer, zeigt ein Tipp auf die Startzeit, wer aus deinen
+          Gruppen dann kann, und mit {b("In … vorschlagen")} wird daraus ein Spiel;{" "}
+          {b("Selbst buchen")} führt weiter zur Anlage. Ist nichts frei, kannst du das Fenster
+          erweitern, kürzer spielen oder den nächsten Tag ansehen.
         </p>
         <p>
           Die App fragt die Anlagen alle 30 Minuten von selbst ab; wie alt die Zeiten sind, steht

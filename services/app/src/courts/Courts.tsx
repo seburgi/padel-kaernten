@@ -1,6 +1,8 @@
 // The courts screen: pick a day, a window and how long to play, and see
 // which venues have a court free for the whole game (docs/design/slots.md).
-import { useEffect, useMemo, useState } from "react";
+// For someone in a group, a start time opens ask (from the games slice; App
+// puts it in) to propose it to the group, instead of the venue's page.
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Venue } from "../api/client";
 import { card, field, link, pressed, quiet } from "../ui";
 import {
@@ -27,7 +29,18 @@ import { useSnapshot } from "./useSnapshot";
 const FROM_TIMES = Array.from({ length: 35 }, (_, i) => 360 + i * 30); // 06:00 to 23:00
 const TO_TIMES = Array.from({ length: 35 }, (_, i) => 420 + i * 30); // 07:00 to 24:00
 
-export function Courts() {
+/** One free start time, as a tap on it hands it on. */
+export type Slot = {
+  venueId: string;
+  venueName: string;
+  court: string;
+  day: string;
+  start: number;
+  minutes: number;
+  href: string;
+};
+
+export function Courts({ ask }: { ask?: (slot: Slot, close: () => void) => ReactNode }) {
   const { snapshot, loading, loadFailed, refreshing, refreshFailed, nextAt, refreshNow, retry } =
     useSnapshot();
   const [now, setNow] = useState(() => viennaNow());
@@ -57,6 +70,7 @@ export function Courts() {
   if (!snapshot) return <Skeleton />;
   return (
     <Found
+      ask={ask}
       venues={snapshot.venues}
       days={upcoming(snapshot.days, now.date)}
       now={now}
@@ -102,17 +116,20 @@ function clock(t: Date): string {
 }
 
 function Found({
+  ask,
   venues,
   days,
   now,
   stand,
 }: {
+  ask?: (slot: Slot, close: () => void) => ReactNode;
   venues: Venue[];
   days: string[];
   now: { date: string; minute: number };
   stand: React.ReactNode;
 }) {
   const [s, setS] = useState<Search>(() => fromHash(location.hash, days, now));
+  const [picked, setPicked] = useState<Slot | null>(null);
   useEffect(() => {
     try {
       history.replaceState(null, "", toHash(s));
@@ -244,7 +261,7 @@ function Found({
         )}
 
         {result.hits.map((hit) => (
-          <VenueCard key={hit.venue.id} hit={hit} search={s} />
+          <VenueCard key={hit.venue.id} hit={hit} search={s} onPick={ask ? setPicked : undefined} />
         ))}
 
         {result.bookedOut.length > 0 && (
@@ -272,6 +289,7 @@ function Found({
           </p>
         ))}
       </main>
+      {picked && ask?.(picked, () => setPicked(null))}
 
       <footer className="mt-6 border-t border-line pt-4 pb-10 text-xs text-ink-muted [&>p]:mb-1.5">
         <p>
@@ -327,6 +345,9 @@ function Segments<T extends string | number>({
   );
 }
 
+const chip =
+  "inline-flex min-w-14 flex-col items-center rounded-lg bg-accent-subtle px-2.5 py-1 font-mono text-[15px] leading-tight font-semibold text-accent-text tabular-nums hover:bg-accent-subtle-hover pointer-coarse:min-h-(--size-control-touch) pointer-coarse:justify-center";
+
 function Badge({ area }: { area: string | null | undefined }) {
   if (!area) return null;
   const tone =
@@ -342,7 +363,15 @@ function Badge({ area }: { area: string | null | undefined }) {
   );
 }
 
-function VenueCard({ hit, search: s }: { hit: Hit; search: Search }) {
+function VenueCard({
+  hit,
+  search: s,
+  onPick,
+}: {
+  hit: Hit;
+  search: Search;
+  onPick?: (slot: Slot) => void;
+}) {
   const { venue: v } = hit;
   const href = bookingLink(v, s.day);
   const map = mapLink(v);
@@ -396,21 +425,51 @@ function VenueCard({ hit, search: s }: { hit: Hit; search: Search }) {
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {options.map((o) => (
-              <a
-                key={o.start}
-                href={href}
-                target="_blank"
-                rel="noopener"
-                title={`${court.name} · ${hm(o.start)}–${hm(o.start + s.duration)}`}
-                className="inline-flex min-w-14 flex-col items-center rounded-lg bg-accent-subtle px-2.5 py-1 font-mono text-[15px] leading-tight font-semibold text-accent-text tabular-nums hover:bg-accent-subtle-hover pointer-coarse:min-h-(--size-control-touch) pointer-coarse:justify-center"
-              >
-                {hm(o.start)}
-                {o.priceCents != null && (
-                  <small className="text-[11px] font-normal opacity-80">{euro(o.priceCents)}</small>
-                )}
-              </a>
-            ))}
+            {options.map((o) => {
+              const title = `${court.name} · ${hm(o.start)}–${hm(o.start + s.duration)}`;
+              const face = (
+                <>
+                  {hm(o.start)}
+                  {o.priceCents != null && (
+                    <small className="text-[11px] font-normal opacity-80">
+                      {euro(o.priceCents)}
+                    </small>
+                  )}
+                </>
+              );
+              return onPick ? (
+                <button
+                  key={o.start}
+                  type="button"
+                  title={title}
+                  className={chip}
+                  onClick={() =>
+                    onPick({
+                      venueId: v.id,
+                      venueName: v.name,
+                      court: court.name,
+                      day: s.day,
+                      start: o.start,
+                      minutes: s.duration,
+                      href,
+                    })
+                  }
+                >
+                  {face}
+                </button>
+              ) : (
+                <a
+                  key={o.start}
+                  href={href}
+                  target="_blank"
+                  rel="noopener"
+                  title={title}
+                  className={chip}
+                >
+                  {face}
+                </a>
+              );
+            })}
           </div>
         </div>
       ))}

@@ -34,7 +34,10 @@
   transaction that saves the snapshot; a repeat returns the same answer.
 - The app filters locally: day, from, until, how long, indoor or outdoor.
   It shows each fitting court with its price per hour and a link to the
-  venue's booking page for that day.
+  venue's booking page for that day. For someone in a group a start time
+  opens "Gruppe fragen" instead (Seb, 2026-10-29; `games/AskGroup`, handed
+  to `Courts` by `App.tsx`): who of each group can then, from the group's
+  fits and near misses, "In … vorschlagen", and "Selbst buchen ↗".
 
 ## Deliberately not
 

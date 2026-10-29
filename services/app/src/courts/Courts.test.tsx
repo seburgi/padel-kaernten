@@ -118,6 +118,36 @@ describe("Courts", () => {
     );
   });
 
+  it("hands a start time on to ask, for someone in a group", async () => {
+    history.replaceState(null, "", "#ab=23:00&bis=24:00&dauer=60");
+    serve({ "GET /api/v1/slots": () => answer(200, snapshot(1)) });
+    const asked: unknown[] = [];
+    renderWithQuery(
+      <Courts
+        ask={(slot, close) => {
+          asked.push(slot);
+          return (
+            <button type="button" onClick={close}>
+              zu
+            </button>
+          );
+        }}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: /23:00\s*40 €/ }));
+    expect(asked.at(-1)).toEqual({
+      venueId: "a",
+      venueName: "Arena",
+      court: "Court 1",
+      day: today,
+      start: 1380,
+      minutes: 60,
+      href: "https://book/a",
+    });
+    await userEvent.click(screen.getByRole("button", { name: "zu" }));
+    expect(screen.queryByRole("button", { name: "zu" })).toBeNull();
+  });
+
   it("asks the sites by itself only when the schedule missed (an hour old)", async () => {
     const calls: Sent[] = [];
     serve(

@@ -14,6 +14,7 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
 import { Availability } from "./availability/Availability";
 import { Courts } from "./courts/Courts";
+import { AskGroup } from "./games/AskGroup";
 import { BestFits } from "./games/BestFits";
 import { Fits } from "./games/Fits";
 import { Game } from "./games/Game";
@@ -63,9 +64,10 @@ export function App() {
     queryKey: ["groups"],
     queryFn: async () => (await call(api.GET("/api/v1/groups"))).items,
     retry: false,
-    enabled: opening,
   });
-  const toPlay = opening && (groups.data?.some((g) => g.how === "member") ?? false);
+  // Someone in a group can propose a free court to it from Plätze.
+  const inGroup = groups.data?.some((g) => g.how === "member") ?? false;
+  const toPlay = opening && inGroup;
   const deciding = opening && groups.isPending;
   useKeepPush();
   const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
@@ -141,7 +143,16 @@ export function App() {
         <div aria-busy="true" aria-label="Lädt" />
       ) : (
         <Routes>
-          <Route path="/" element={<Courts />} />
+          <Route
+            path="/"
+            element={
+              <Courts
+                ask={
+                  inGroup ? (slot, close) => <AskGroup slot={slot} onClose={close} /> : undefined
+                }
+              />
+            }
+          />
           {/* Seb sees the page; anyone else lands on the courts. */}
           <Route path="/invites" element={canInvite ? <Invitations /> : <Courts />} />
           {/* The page's address until 2026-10-28; links to it keep working. */}
