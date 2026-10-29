@@ -37,7 +37,9 @@
   `game_visibility`, like `group_visibility`; anyone else gets 404.
 - **In the app** (`services/app/src/games`): "Wann passt es für vier?" on
   a group's page (`/groups/:id/fits`, duration chips, fits by day, one tap
-  to propose, near misses below); the game (`/games/:id`, Dabei n von 4,
+  to propose, near misses below); the game (`/games/:id`, its places as rounds with a line that says
+  what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
+  who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
   Buchung, Gebucht, Spiel absagen); the coming games on the group's page. On Spielen (Seb,
   2026-10-29): "Wartet auf dich" (`Waiting`) holds every proposed game the

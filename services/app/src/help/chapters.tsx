@@ -186,6 +186,10 @@ export const CHAPTERS: Chapter[] = [
           nach, wenn jemand absagt.
         </p>
         <p>
+          Auf der Seite eines Spiels zeigen vier Kreise, wer schon dabei ist, und{" "}
+          {b("So geht es weiter")} die drei Schritte bis zum gebuchten Platz.
+        </p>
+        <p>
           Wer vorgeschlagen hat, bucht: {b("Zur Buchung")} öffnet die Seite der Anlage, danach sagt{" "}
           {b("Gebucht")} allen Bescheid. {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
         </p>
@@ -209,7 +213,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "spiel",
-        alt: "Ein vorgeschlagenes Spiel: Dabei 3 von 4, noch keine Antwort von Lisa, für wer vorgeschlagen hat Zur Buchung, Gebucht und Spiel absagen.",
+        alt: "Ein vorgeschlagenes Spiel: drei Kreise besetzt, einer frei, darunter So geht es weiter mit Vorgeschlagen, Vier sagen zu und Du buchst, und für wer vorgeschlagen hat Zur Buchung, Gebucht und Spiel absagen.",
       },
       {
         name: "spielen",

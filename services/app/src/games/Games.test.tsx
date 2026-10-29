@@ -304,7 +304,11 @@ describe("Game", () => {
     // Whoever is in is asked about Mitteilungen.
     expect(screen.getByText("Mitteilungen?")).toBeInTheDocument();
     expect(screen.getByText(/Padel Villach · Court 1/)).toHaveTextContent("pro Kopf");
-    expect(screen.getByText(/voll, jetzt buchen/)).toHaveTextContent("Vorgeschlagen von dir");
+    expect(screen.getByText("Ihr seid vier. Du buchst jetzt.")).toBeInTheDocument();
+    expect(screen.getByText(/Vorgeschlagen von/)).toHaveTextContent("Vorgeschlagen von dir");
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent(
+      "Du buchst bei Padel Villach",
+    );
     expect(screen.getByText("Seb (du)")).toBeInTheDocument();
     expect(screen.getByText(/Ersatz:/).parentElement).toHaveTextContent("Ersatz: Eva");
     expect(screen.getByRole("link", { name: "Zur Buchung" })).toHaveAttribute(
@@ -355,10 +359,15 @@ describe("Game", () => {
       "PATCH /api/v1/games/7": () => problem(403, "not-allowed"),
     });
     at("/games/7", <Game />, "/games/:id");
-    expect(await screen.findByText(/noch 3 gesucht/)).toHaveTextContent("Vorgeschlagen von Seb");
+    expect(await screen.findByText("Noch 3 gesucht")).toBeInTheDocument();
+    expect(screen.getByText(/Vorgeschlagen von/)).toHaveTextContent("Vorgeschlagen von Seb");
+    expect(screen.getByRole("img", { name: "1 von 4 dabei" })).toHaveTextContent("SE???");
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent(
+      "Vier sagen zu 1 von 4",
+    );
+    expect(screen.getByText("Seb bucht bei Padel Villach")).toBeInTheDocument();
     expect(screen.getByText(/Können nicht:/)).toHaveTextContent("Lisa");
     expect(await screen.findByText(/Noch keine Antwort/)).toHaveTextContent("Anna, markus, Eva");
-    expect(screen.getAllByText("frei")).toHaveLength(3);
     expect(screen.queryByText("Buchen")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Bin dabei" }));
     expect(await screen.findByText(/abgesagt oder schon vorbei/)).toBeInTheDocument();
