@@ -43,6 +43,15 @@
   only logged. On a 401 the app sends a laptop to the stand-in's page and
   back. `services/app/tools/browse.mjs` drives a headless browser signed
   in this way.
+- **The app never follows the gateway to sign-in.** Every call goes out
+  with `redirect: "manual"` (`send` in `services/app/src/api/client.ts`).
+  With the 30-minute login token run out, the calls at start race to swap
+  the one refresh token; the losers get a 302 to Rauthy, which fetch would
+  follow into a CORS failure that the screens show as a lost connection
+  ("Die freien Plätze konnten nicht geladen werden", Seb's feedback #64,
+  2026-10-29). Such a call asks once more after 1.5 s, when the winner's
+  cookies have landed, and a second redirect counts as a 401: the app
+  reloads once and the gateway signs the person in again.
 - The service migrates at start-up and does not start on a failed
   migration, so Cloud Run keeps the revision before it.
 - Every request from the app says which build sent it (`X-Client:

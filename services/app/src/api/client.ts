@@ -72,11 +72,35 @@ const clientHeader: Middleware = {
   },
 };
 
+/** How long a call the gateway sent to sign-in waits before it asks again. */
+export const SIGN_IN_WAIT_MS = 1500;
+
+/** One call, which never follows the gateway to sign-in. With the login
+ * token run out, the requests at start race to swap the one refresh token;
+ * the losers get a 302 to auth.burgstaller.me, which fetch would follow
+ * into a CORS failure that looks like a lost connection
+ * (standards/auth/how-long-a-sign-in-lasts.md). So the redirect stays
+ * unfollowed, the call asks once more after the winner's cookies have
+ * landed, and when the gateway still sends it away it counts as a 401:
+ * the app reloads once and the gateway signs the person in again. */
+export async function send(
+  req: Request,
+  wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms)),
+): Promise<Response> {
+  const again = req.clone();
+  const first = await globalThis.fetch(new Request(req, { redirect: "manual" }));
+  if (first.type !== "opaqueredirect") return first;
+  await wait(SIGN_IN_WAIT_MS);
+  const second = await globalThis.fetch(new Request(again, { redirect: "manual" }));
+  if (second.type !== "opaqueredirect") return second;
+  return new Response(null, { status: 401 });
+}
+
 // The address is absolute (a Request needs one outside the browser), and
 // fetch is looked up on each call, so tests can stand in for it.
 export const api = createClient<paths>({
   baseUrl: location.origin,
-  fetch: (req) => globalThis.fetch(req),
+  fetch: (req) => send(req),
 });
 api.use(clientHeader);
 

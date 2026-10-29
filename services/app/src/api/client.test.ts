@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { serve, problem } from "../test/fetch";
-import { api, ApiError, call, isLocal, newKey, reloadOnce } from "./client";
+import { api, ApiError, call, isLocal, newKey, reloadOnce, send } from "./client";
 
 describe("client", () => {
   it("reloads once for an expired note", () => {
@@ -30,6 +30,42 @@ describe("client", () => {
     expect(sessionStorage.getItem("padel.reloaded-for-401")).toBe("1");
     vi.stubGlobal("fetch", () => Promise.reject(new TypeError("offline")));
     await expect(call(api.GET("/api/v1/me"))).rejects.toEqual(new ApiError(0, "network"));
+  });
+
+  // What fetch hands back for a redirect it did not follow.
+  const toSignIn = () => ({ type: "opaqueredirect", status: 0, ok: false }) as Response;
+
+  it("never follows the gateway to sign-in, and asks once more", async () => {
+    const seen: RequestRedirect[] = [];
+    const fake = vi
+      .fn()
+      .mockImplementationOnce((req: Request) => (seen.push(req.redirect), toSignIn()))
+      .mockImplementationOnce(async (req: Request) => {
+        seen.push(req.redirect);
+        return new Response(await req.text(), { status: 200 });
+      });
+    vi.stubGlobal("fetch", fake);
+    const wait = vi.fn(() => Promise.resolve());
+    const res = await send(
+      new Request("https://padel.test/x", { method: "POST", body: "b" }),
+      wait,
+    );
+    expect(await res.text()).toBe("b");
+    expect(seen).toEqual(["manual", "manual"]);
+    expect(wait).toHaveBeenCalledWith(1500);
+  });
+
+  it("counts a second trip to sign-in as an expired note", async () => {
+    vi.stubGlobal("fetch", () => Promise.resolve(toSignIn()));
+    const res = await send(new Request("https://padel.test/x"), () => Promise.resolve());
+    expect(res.status).toBe(401);
+  });
+
+  it("asks only once when the answer is no redirect", async () => {
+    const fake = vi.fn(() => Promise.resolve(new Response(null, { status: 500 })));
+    vi.stubGlobal("fetch", fake);
+    expect((await send(new Request("https://padel.test/x"))).status).toBe(500);
+    expect(fake).toHaveBeenCalledTimes(1);
   });
 
   it("mints keys", () => {
