@@ -34,7 +34,8 @@
   hour, "+ Noch eine Zeit", "Passt nicht" to decline the day, "Wieder
   offen" to clear it, and "So ist es meistens am …" to keep the day as its
   weekday's usual. A declined row is hatched and says "Passt nicht"; an
-  open one says "–", and above the rows "Noch offen: n von 14 Tagen" says
+  open one says "offen · antippen" in the warning colour (Seb,
+  2026-10-29), and above the rows "Noch offen: n von 14 Tagen" says
   what is left to think about. Speichern with no times keeps a declined
   day declined. A button fills the open days that have a usual time, one
   day after another, on request. Venues are chips from the latest

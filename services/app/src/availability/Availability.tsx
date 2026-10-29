@@ -165,9 +165,9 @@ export function Availability() {
                       <span className="min-w-0 flex-1">
                         <Line spans={spans} declined={declined} />
                         <span
-                          className={`mt-1 block truncate text-xs ${declined ? "font-semibold text-ink-secondary" : "text-ink-muted"}`}
+                          className={`mt-1 block truncate text-xs ${declined ? "font-semibold text-ink-secondary" : spans.length > 0 ? "text-ink-muted" : "text-warning-text"}`}
                         >
-                          {declined ? "Passt nicht" : spansText(spans) || "–"}
+                          {declined ? "Passt nicht" : spansText(spans) || "offen · antippen"}
                         </span>
                       </span>
                     </button>

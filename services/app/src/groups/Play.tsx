@@ -22,9 +22,12 @@ export function Play({
       </section>
     ),
   games,
+  start,
 }: {
   waiting?: (invites: ReactNode, count: number) => ReactNode;
   games?: ReactNode;
+  /** The first steps for someone new, from the help slice. */
+  start?: ReactNode;
 }) {
   const me = useMe();
   const groups = useGroups();
@@ -76,6 +79,7 @@ export function Play({
       <p className="mb-4 text-ink-muted">
         Was auf dich wartet, deine Spiele und wann es für vier passt.
       </p>
+      {start}
       {me.data && me.data.name === "" && <NamePrompt />}
 
       {waiting(invites, invited.length)}

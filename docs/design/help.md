@@ -10,6 +10,12 @@
   is, asks for the name the others see when there is none, shows three
   steps to a first game with a glimpse of each screen, and has one
   primary button, "Los geht's". "Alles erklärt" opens the Hilfe instead.
+- **"Dein erstes Spiel"** (`FirstSteps`, Seb 2026-10-29): on Spielen, the
+  welcome's three steps as a card (a name, some times, a group), with one
+  button to the next step that leads elsewhere; none for a group while an
+  invitation waits above. It reads `/me`, `/availability` and `/groups`
+  itself and is gone once all three are done; it comes back when every
+  time has run out or one left every group.
 - **Either records it at the server**: `people.welcomed_at` (migration
   0006, which counts everyone already in as welcomed), set by
   `POST /api/v1/me/welcomed`; `GET /api/v1/me` says `welcomed`. So a

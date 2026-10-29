@@ -34,8 +34,10 @@ export const CHAPTERS: Chapter[] = [
         <p>
           Am Handy wechselst du unten zwischen den Bereichen, auf einem größeren Bildschirm oben.{" "}
           {b("Plätze")} zeigt, was frei ist, unter {b("Wann kann ich?")} sagst du, wann du kannst,
-          und {b("Spielen")} zeigt, was ansteht: was auf deine Antwort wartet, deine Spiele, wann es
-          für vier passt, und deine Gruppen.
+          und {b("Spielen")} zeigt, was ansteht (wer neu ist, sieht dort zuerst{" "}
+          {b("Dein erstes Spiel")}
+          mit den drei Schritten): was auf deine Antwort wartet, deine Spiele, wann es für vier
+          passt, und deine Gruppen.
         </p>
       </>
     ),

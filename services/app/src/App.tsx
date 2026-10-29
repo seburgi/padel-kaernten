@@ -22,6 +22,7 @@ import { Waiting } from "./games/Waiting";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play, Profile } from "./groups/Play";
+import { FirstSteps } from "./help/FirstSteps";
 import { Help } from "./help/Help";
 import { Welcome } from "./help/Welcome";
 import { useKeepPush } from "./push/push";
@@ -132,6 +133,7 @@ export function App() {
             path="/play"
             element={
               <Play
+                start={<FirstSteps />}
                 waiting={(invites, n) => <Waiting invites={invites} invited={n} />}
                 games={
                   <>
