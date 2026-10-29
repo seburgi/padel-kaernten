@@ -21,7 +21,7 @@ import { Upcoming } from "./games/Upcoming";
 import { Waiting } from "./games/Waiting";
 import { Group } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
-import { Play } from "./groups/Play";
+import { Play, Profile } from "./groups/Play";
 import { Help } from "./help/Help";
 import { Welcome } from "./help/Welcome";
 import { useKeepPush } from "./push/push";
@@ -115,7 +115,10 @@ export function App() {
           ))}
         </nav>
       </header>
-      {path !== "/whats-new" && !newHere && <WhatsNewCard />}
+      {/* The card stays on the two first screens only, so it never pushes
+          the others down (Seb, 2026-10-29); Mehr and Neu in the head say
+          the rest. */}
+      {["/", "/play"].includes(path) && !newHere && <WhatsNewCard />}
       {welcomeFirst ? (
         <Navigate to={`/welcome?next=${encodeURIComponent(path + search + hash)}`} replace />
       ) : (
@@ -152,9 +155,15 @@ export function App() {
           <Route
             path="/more"
             element={
-              <More unread={unread.length} canInvite={canInvite} push={<PushCard where="more" />} />
+              <More
+                unread={unread.length}
+                canInvite={canInvite}
+                name={me.data?.name}
+                push={<PushCard where="more" />}
+              />
             }
           />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/whats-new" element={<WhatsNew />} />
           <Route path="/help" element={<Help />} />
           <Route path="/welcome" element={<Welcome onWelcome={() => void markRead()} />} />

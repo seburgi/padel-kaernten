@@ -270,8 +270,8 @@ export const CHAPTERS: Chapter[] = [
       <>
         <p>
           {b("Neu")} (am Handy unter {b("Mehr")}, sonst oben rechts) listet, was sich in der App
-          geändert hat. Gibt es etwas, das du noch nicht gesehen hast, steht einmal eine kleine
-          Karte unter dem Kopf.
+          geändert hat. Gibt es etwas, das du noch nicht gesehen hast, steht auf Plätze und Spielen
+          eine kleine Karte unter dem Kopf, und am Handy trägt {b("Mehr")} einen Punkt.
         </p>
         <p>
           Die {b("Sprechblase")} oben rechts öffnet ein Feld für deine Rückmeldung an Seb, zu genau
@@ -294,7 +294,8 @@ export const CHAPTERS: Chapter[] = [
         <li>Deine Zeiten und Anlagen sehen alle in den Gruppen, in denen du bist.</li>
         <li>
           Wer eine Gruppe sieht, sieht ihre Mitglieder mit Namen; wer noch keinen Namen angegeben
-          hat, erscheint mit der E-Mail-Adresse.
+          hat, erscheint mit der E-Mail-Adresse. Deinen Namen änderst du unter {b("Mehr")} ›{" "}
+          {b("Dein Name")}.
         </li>
         <li>Eine private Gruppe sieht niemand von außen, nicht einmal, dass es sie gibt.</li>
         <li>Ein Spiel sehen nur die Mitglieder seiner Gruppe.</li>

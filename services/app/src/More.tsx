@@ -9,15 +9,17 @@ import { Link } from "react-router";
 import { card } from "./ui";
 
 /** The pages the tab Mehr stands for, so it is marked on them too. */
-export const MORE = ["/more", "/whats-new", "/help", "/feedback", "/invites"];
+export const MORE = ["/more", "/whats-new", "/help", "/feedback", "/invites", "/profile"];
 
 export function More({
   unread,
   canInvite,
+  name,
   push,
 }: {
   unread: number;
   canInvite: boolean;
+  name?: string;
   push?: ReactNode;
 }) {
   const rows: { to: string; label: string; icon: IconName; note?: string }[] = [
@@ -29,6 +31,8 @@ export function More({
     },
     { to: "/help", label: "Hilfe", icon: "info" },
     { to: "/feedback", label: "Deine Rückmeldungen", icon: "feedback" },
+    { to: "/profile", label: "Dein Name", icon: "pencil", note: name || undefined },
+    { to: "/groups", label: "Gruppen finden", icon: "search" },
     ...(canInvite ? [{ to: "/invites", label: "Einladen", icon: "mail" as const }] : []),
   ];
   return (

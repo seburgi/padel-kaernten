@@ -20,7 +20,8 @@
   its open invitations and requests; others see only the members.
 - **`people` is everyone who opened the app**: `GET /api/v1/me` writes the
   row, `PUT /api/v1/me/name` sets the name the others see (1 to 40
-  characters). There is no other account row; a person is the lower-cased
+  characters). Spielen asks for it while there is none; Mehr › Dein Name
+  (`/profile`) changes it. There is no other account row; a person is the lower-cased
   email from the gateway's note. `welcomed_at` says they have seen the
   welcome (`help.md`).
 - **Every member invites** (Seb, 2026-10-28), into the group, by address

@@ -125,6 +125,10 @@ describe("App", () => {
       "href",
       "/feedback",
     );
+    expect(more.getByRole("link", { name: /Dein Name.*Seb/ })).toHaveAttribute("href", "/profile");
+    expect(more.getByRole("link", { name: "Gruppen finden" })).toHaveAttribute("href", "/groups");
+    // The card for what is new stays on the first screens, not on Mehr.
+    expect(screen.queryByText(/seit deinem letzten Besuch/)).toBeNull();
     await userEvent.click(more.getByRole("link", { name: "Einladen" }));
     expect(router.state.location.pathname).toBe("/invites");
     expect(within(bar).getByRole("link", { name: /^Mehr/ })).toHaveAttribute(

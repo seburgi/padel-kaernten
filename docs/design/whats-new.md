@@ -20,8 +20,9 @@
   be older than the deploy).
 - **The app** shows the page **Neu** at `/whats-new` (a link in the head
   on a wide screen; on a phone a row on Mehr, and the tab Mehr carries a
-  dot while a note is unread) and, while a note is unread, a small card under the head on every other
-  screen. Opening the page or putting the card away marks every unread
+  dot while a note is unread) and, while a note is unread, a small card under the head on
+  the two first screens, Plätze and Spielen, only (Seb, 2026-10-29: it
+  pushed every other screen down). Opening the page or putting the card away marks every unread
   note read, at once on screen; a failed write is not reported, and the
   card comes back on the next load.
 - **The check**: `tools/release_note.py`, run by `tools/checks.py` on push

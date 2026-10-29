@@ -157,9 +157,23 @@ function GroupCard({ g }: { g: GroupSummary }) {
   );
 }
 
-function NamePrompt() {
+/** Dein Name, reached from Mehr: the name the others see, to change. */
+export function Profile() {
+  const me = useMe();
+  return (
+    <main>
+      <h1 className="mt-2 mb-1 text-2xl font-semibold">Dein Name</h1>
+      <p className="mb-4 text-ink-muted">
+        So sehen dich die anderen in deinen Gruppen und Spielen.
+      </p>
+      {me.data && <NamePrompt initial={me.data.name} />}
+    </main>
+  );
+}
+
+function NamePrompt({ initial = "" }: { initial?: string }) {
   const client = useQueryClient();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initial);
   const key = useWriteKey();
   const save = useMutation({
     mutationFn: (n: string) =>
@@ -195,12 +209,17 @@ function NamePrompt() {
         <button
           type="submit"
           className={quiet}
-          disabled={!name.trim() || save.isPending}
+          disabled={!name.trim() || name.trim() === initial || save.isPending}
           aria-busy={save.isPending}
         >
           Speichern
         </button>
       </div>
+      {save.isSuccess && initial !== "" && (
+        <p role="status" className="mt-2 text-sm text-ink-muted">
+          Gespeichert.
+        </p>
+      )}
       {save.isError && (
         <p role="alert" className="mt-2 text-sm text-danger-text">
           {errorText(save.error)}

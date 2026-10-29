@@ -5,7 +5,7 @@ import type { GroupSummary } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
 import { Groups, NewGroup } from "./Groups";
-import { Play } from "./Play";
+import { Play, Profile } from "./Play";
 
 const g = (over: Partial<GroupSummary>): GroupSummary => ({
   id: 1,
@@ -16,6 +16,28 @@ const g = (over: Partial<GroupSummary>): GroupSummary => ({
   members: 4,
   requested: false,
   ...over,
+});
+
+describe("Profile", () => {
+  it("changes the name the others see", async () => {
+    let me = { email: "anna@example.at", name: "Anna", canInvite: false };
+    serve({
+      "GET /api/v1/me": () => answer(200, me),
+      "PUT /api/v1/me/name": (sent) => {
+        me = { ...me, name: (sent.body as { name: string }).name };
+        return answer(200, me);
+      },
+    });
+    renderWithQuery(<Profile />);
+    const field = await screen.findByLabelText("Wie sollen dich die anderen sehen?");
+    expect(field).toHaveValue("Anna");
+    const save = screen.getByRole("button", { name: "Speichern" });
+    expect(save).toBeDisabled();
+    await userEvent.clear(field);
+    await userEvent.type(field, "Anni");
+    await userEvent.click(save);
+    expect(await screen.findByRole("status")).toHaveTextContent("Gespeichert.");
+  });
 });
 
 describe("Play", () => {
