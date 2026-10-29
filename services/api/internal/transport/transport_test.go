@@ -45,6 +45,7 @@ const (
 	seb            = "seb@example.at"
 	anna           = "anna@example.at"
 	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
+	refreshAccount = "padel-refresh@burgstaller-platform.iam.gserviceaccount.com"
 	apiAccount     = "padel-api@burgstaller-platform.iam.gserviceaccount.com"
 )
 
@@ -175,10 +176,11 @@ func (a *app) router(pool *pgxpool.Pool) http.Handler {
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
-		ReapCaller:   reapAccount,
-		Push:         notify.NewService(pool, a.key, "mailto:seb@example.at"),
-		Queue:        a.queue,
-		NotifyCaller: apiAccount,
+		ReapCaller:    reapAccount,
+		RefreshCaller: refreshAccount,
+		Push:          notify.NewService(pool, a.key, "mailto:seb@example.at"),
+		Queue:         a.queue,
+		NotifyCaller:  apiAccount,
 	}
 	gamesSvc.Changed = h.GameChanged
 	return transport.Router(h, a.dist)
@@ -410,6 +412,38 @@ func TestReap_onlyTheScheduler(t *testing.T) {
 	}
 	if w := a.do(gatewaytest.From(reapAccount, "POST", "/reap", "")); w.Code != 200 || !strings.Contains(w.Body.String(), `"dryRun":false`) {
 		t.Errorf("a real run: %d %s", w.Code, w.Body)
+	}
+}
+
+func TestRefreshTask_onlyTheScheduler(t *testing.T) {
+	a := setup(t)
+	for name, req := range map[string]*http.Request{
+		"the gateway": gatewaytest.From(gatewayAccount, "POST", "/refresh", ""),
+		"the reaper":  gatewaytest.From(reapAccount, "POST", "/refresh", ""),
+		"nobody":      httptest.NewRequest("POST", "/refresh", nil),
+	} {
+		if w := a.do(req); w.Code != 403 || problemType(w) != "not-the-scheduler" {
+			t.Errorf("%s: %d %s", name, w.Code, w.Body)
+		}
+	}
+	// Every site down before the first snapshot: 502, so the scheduler's
+	// log shows it.
+	a.sites.err = errors.New("down")
+	if w := a.do(gatewaytest.From(refreshAccount, "POST", "/refresh", "")); w.Code != 502 || problemType(w) != "sites-failed" {
+		t.Errorf("sites down: %d %s", w.Code, w.Body)
+	}
+	a.sites.err = nil
+	w := a.do(gatewaytest.From(refreshAccount, "POST", "/refresh", ""))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"takenAt"`) {
+		t.Fatalf("the scheduler: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(anna, "GET", "/api/v1/slots", "")); w.Code != 200 {
+		t.Errorf("the snapshot after it: %d", w.Code)
+	}
+	// Within five minutes it asks nobody, so the sites being down is no matter.
+	a.sites.err = errors.New("down")
+	if w := a.do(gatewaytest.From(refreshAccount, "POST", "/refresh", "")); w.Code != 200 {
+		t.Errorf("within five minutes: %d %s", w.Code, w.Body)
 	}
 }
 

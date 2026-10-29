@@ -28,7 +28,8 @@ const FROM_TIMES = Array.from({ length: 35 }, (_, i) => 360 + i * 30); // 06:00 
 const TO_TIMES = Array.from({ length: 35 }, (_, i) => 420 + i * 30); // 07:00 to 24:00
 
 export function Courts() {
-  const { snapshot, loading, loadFailed, refreshing, refreshFailed, retry } = useSnapshot();
+  const { snapshot, loading, loadFailed, refreshing, refreshFailed, nextAt, refreshNow, retry } =
+    useSnapshot();
   const [now, setNow] = useState(() => viennaNow());
 
   // Today's start times run out: look again on coming back.
@@ -59,17 +60,31 @@ export function Courts() {
       venues={snapshot.venues}
       days={upcoming(snapshot.days, now.date)}
       now={now}
-      footer={
-        <p aria-live="polite">
-          {standLabel(snapshot.takenAt)}
-          {refreshing && " · wird aktualisiert …"}
-          {refreshFailed && !refreshing && (
-            <>
-              {" · "}Aktualisieren hat nicht geklappt.{" "}
+      stand={
+        <p
+          aria-live="polite"
+          className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted"
+        >
+          <span>{standLabel(snapshot.takenAt)}</span>
+          {refreshing ? (
+            <span>· wird aktualisiert …</span>
+          ) : refreshFailed ? (
+            <span>
+              · Aktualisieren hat nicht geklappt.{" "}
               <button type="button" className={link} onClick={retry}>
                 Nochmal versuchen
               </button>
-            </>
+            </span>
+          ) : nextAt ? (
+            <span>· aktuell, wieder abfragen ab {clock(nextAt)}</span>
+          ) : (
+            <button
+              type="button"
+              className={`${link} pointer-coarse:min-h-(--size-control-touch)`}
+              onClick={refreshNow}
+            >
+              Aktualisieren
+            </button>
           )}
         </p>
       }
@@ -77,16 +92,25 @@ export function Courts() {
   );
 }
 
+/** "18:10" in Vienna. */
+function clock(t: Date): string {
+  return t.toLocaleTimeString("de-AT", {
+    timeZone: "Europe/Vienna",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function Found({
   venues,
   days,
   now,
-  footer,
+  stand,
 }: {
   venues: Venue[];
   days: string[];
   now: { date: string; minute: number };
-  footer: React.ReactNode;
+  stand: React.ReactNode;
 }) {
   const [s, setS] = useState<Search>(() => fromHash(location.hash, days, now));
   useEffect(() => {
@@ -176,6 +200,7 @@ function Found({
             onChange={(area) => update({ area })}
           />
         </div>
+        {stand}
       </section>
 
       <main aria-live="polite">
@@ -249,11 +274,11 @@ function Found({
       </main>
 
       <footer className="mt-6 border-t border-line pt-4 pb-10 text-xs text-ink-muted [&>p]:mb-1.5">
-        {footer}
         <p>
-          Die Daten kommen von den öffentlichen Buchungsseiten der Anlagen und werden beim Öffnen
-          aktualisiert, höchstens alle 5 Minuten. Bis du buchst, kann ein Platz schon weg sein.
-          Gebucht wird direkt bei der Anlage, dafür brauchst du dort ein Konto.
+          Die Daten kommen von den öffentlichen Buchungsseiten der Anlagen und werden alle 30
+          Minuten abgefragt, mit „Aktualisieren“ auch sofort, höchstens alle 5 Minuten. Bis du
+          buchst, kann ein Platz schon weg sein. Gebucht wird direkt bei der Anlage, dafür brauchst
+          du dort ein Konto.
         </p>
         <p>
           Kein offizielles Angebot der Anlagen. Preise gelten für den ganzen Platz (bis 4 Spieler)

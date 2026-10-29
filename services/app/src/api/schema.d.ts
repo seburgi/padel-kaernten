@@ -469,7 +469,7 @@ export interface paths {
     };
     /**
      * Games of four the free courts and the members' times allow
-     * @description Computed from the latest snapshot on each call, never stored. Members only; 404 no-group otherwise. A snapshot older than five minutes is not refreshed here: the app asks /slots/refresh first. Only the courts of the group's area count (halle includes überdacht; a court of unknown area counts only for alle).
+     * @description Computed from the latest snapshot on each call, never stored. Members only; 404 no-group otherwise. The snapshot is never refreshed here: a schedule does every 30 minutes, and the app asks /slots/refresh. Only the courts of the group's area count (halle includes überdacht; a court of unknown area counts only for alle).
      */
     get: operations["listFits"];
     put?: never;

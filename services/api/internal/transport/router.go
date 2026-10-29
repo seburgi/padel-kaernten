@@ -36,6 +36,8 @@ func Router(h *Handler, dist string) http.Handler {
 	// The nightly retention run, outside the contract: only Cloud Scheduler
 	// calls it (standards/architecture/background-work.md).
 	r.Post("/reap", h.reap)
+	// The free courts every 30 minutes, the same way (docs/design/slots.md).
+	r.Post("/refresh", h.refreshTask)
 	// Web Push: the queue's tasks come back here (notify.Path).
 	r.Post(notify.Path, h.notifyTask)
 	// The sign-in stand-in, on a laptop only (localgateway).

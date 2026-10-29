@@ -56,10 +56,12 @@ export const CHAPTERS: Chapter[] = [
           frei, kannst du das Fenster erweitern, kürzer spielen oder den nächsten Tag ansehen.
         </p>
         <p>
-          Die Zeiten sind höchstens fünf Minuten alt: Ist der Stand älter, fragt die App die Anlagen
-          beim Öffnen von selbst neu. Ist eine Anlage gerade nicht erreichbar, steht das unten, und
-          alle anderen siehst du trotzdem. Manche Anlagen lassen nur wenige Tage im Voraus buchen;
-          sie stehen dann unter {b("Noch nicht buchbar")}.
+          Die App fragt die Anlagen alle 30 Minuten von selbst ab; wie alt die Zeiten sind, steht
+          unter der Suche bei {b("Stand")}. Mit {b("Aktualisieren")} fragt sie sofort neu, für alle,
+          höchstens alle fünf Minuten: Ist der Stand jünger, steht dort, ab wann es wieder geht. Ist
+          eine Anlage gerade nicht erreichbar, steht das unten, und alle anderen siehst du trotzdem.
+          Manche Anlagen lassen nur wenige Tage im Voraus buchen; sie stehen dann unter{" "}
+          {b("Noch nicht buchbar")}.
         </p>
         <p>Wer einen Platz gebucht hat, zeigt die App nie. Sie weiß nur, was frei ist.</p>
       </>

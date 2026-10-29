@@ -1,7 +1,8 @@
 // Wann passt es für vier? (docs/design/games.md): the games the group's
 // times and the free courts allow, one tap from proposing one. The fits come
-// from the latest snapshot; one older than five minutes is refreshed once
-// on opening, as on the courts. Where the group plays (Halle, Freiluft or
+// from the latest snapshot, which a schedule refreshes every 30 minutes; one
+// an hour old (the schedule missed), or none, is refreshed once on opening,
+// as on the courts. Where the group plays (Halle, Freiluft or
 // both) is the group's, and any member changes it here.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -16,7 +17,7 @@ const AREAS = [
   ["halle", "Halle"],
   ["freiluft", "Freiluft"],
 ] as const;
-const STALE_MS = 5 * 60 * 1000;
+const MISSED_MS = 60 * 60 * 1000;
 
 export function Fits() {
   const id = Number(useParams().id);
@@ -39,8 +40,8 @@ export function Fits() {
     retry: false,
   });
 
-  // Once per opening: a snapshot older than five minutes, or none, is
-  // asked for again, and the fits follow it.
+  // Once per opening: a snapshot an hour old, or none, is asked for again,
+  // and the fits follow it.
   const refresh = useMutation({
     mutationFn: () =>
       call(
@@ -53,7 +54,7 @@ export function Fits() {
   const takenAt = fits.data?.takenAt;
   const { mutate } = refresh;
   useEffect(() => {
-    const stale = takenAt !== undefined && Date.now() - new Date(takenAt).getTime() > STALE_MS;
+    const stale = takenAt !== undefined && Date.now() - new Date(takenAt).getTime() > MISSED_MS;
     if (asked.current || !(stale || noSnapshot)) return;
     asked.current = true;
     mutate();

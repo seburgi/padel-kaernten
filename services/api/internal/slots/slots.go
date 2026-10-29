@@ -1,6 +1,7 @@
 // Package slots is the free courts: the latest snapshot of what the booking
 // sites show, and a refresh that asks them again at most every five minutes
-// (docs/design/slots.md). There is no schedule; the app asks when it opens.
+// (docs/design/slots.md). A schedule asks every 30 minutes, and anyone may
+// ask now with Aktualisieren.
 package slots
 
 import (

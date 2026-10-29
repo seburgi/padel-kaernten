@@ -118,11 +118,11 @@ describe("Courts", () => {
     );
   });
 
-  it("asks the sites again when the snapshot is five minutes old", async () => {
+  it("asks the sites by itself only when the schedule missed (an hour old)", async () => {
     const calls: Sent[] = [];
     serve(
       {
-        "GET /api/v1/slots": () => answer(200, snapshot(30)),
+        "GET /api/v1/slots": () => answer(200, snapshot(61)),
         "POST /api/v1/slots/refresh": () => answer(200, snapshot(0, { venues: [] })),
       },
       calls,
@@ -132,9 +132,28 @@ describe("Courts", () => {
     expect(calls[1]!.headers.get("Idempotency-Key")).toMatch(/^[0-9a-f-]{36}$/);
     expect(await screen.findByText("Nichts frei")).toBeInTheDocument();
 
-    // Coming back to the app with a fresh snapshot asks nothing.
+    // Coming back to the app with a fresh snapshot asks nothing, and
+    // Aktualisieren waits for five minutes.
     act(() => document.dispatchEvent(new Event("visibilitychange")));
     expect(calls).toHaveLength(2);
+    expect(screen.getByText(/aktuell, wieder abfragen ab \d\d:\d\d/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aktualisieren" })).toBeNull();
+  });
+
+  it("opens on a half-hour-old snapshot without asking, and Aktualisieren asks", async () => {
+    const calls: Sent[] = [];
+    serve(
+      {
+        "GET /api/v1/slots": () => answer(200, snapshot(30)),
+        "POST /api/v1/slots/refresh": () => answer(200, snapshot(0, { venues: [] })),
+      },
+      calls,
+    );
+    renderWithQuery(<Courts />);
+    await userEvent.click(await screen.findByRole("button", { name: "Aktualisieren" }));
+    expect(await screen.findByText("Nichts frei")).toBeInTheDocument();
+    expect(calls.map((c) => c.method)).toEqual(["GET", "POST"]);
+    expect(screen.getByText(/wieder abfragen ab/)).toBeInTheDocument();
   });
 
   it("asks the sites before the first snapshot, and says when they fail", async () => {
@@ -160,7 +179,7 @@ describe("Courts", () => {
 
   it("keeps the old snapshot when a refresh fails, with Try again", async () => {
     serve({
-      "GET /api/v1/slots": () => answer(200, snapshot(30)),
+      "GET /api/v1/slots": () => answer(200, snapshot(61)),
       "POST /api/v1/slots/refresh": () => problem(502, "sites-failed"),
     });
     renderWithQuery(<Courts />);

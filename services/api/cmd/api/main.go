@@ -126,10 +126,11 @@ func run() error {
 		Reap: func(ctx context.Context, dry bool) ([]retention.Result, error) {
 			return retention.Run(ctx, pool, retention.Tables, dry)
 		},
-		ReapCaller:   cfg.ReapCaller,
-		Push:         push,
-		Queue:        queue,
-		NotifyCaller: cfg.NotifyCaller,
+		ReapCaller:    cfg.ReapCaller,
+		RefreshCaller: cfg.RefreshCaller,
+		Push:          push,
+		Queue:         queue,
+		NotifyCaller:  cfg.NotifyCaller,
 	}
 	gamesSvc.Changed = h.GameChanged
 	srv := &http.Server{

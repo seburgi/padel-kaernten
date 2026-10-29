@@ -22,7 +22,8 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 // The boot screen goes once the first screen and its data are there: what
-// is read, never what is written. The courts' refresh asks the booking
-// sites and takes seconds; the screen shows the last snapshot meanwhile
+// is read, never what is written. A schedule refreshes the courts every 30
+// minutes, so opening only reads; a refresh asks the booking sites and
+// takes seconds, and the screen shows the last snapshot meanwhile
 // (docs/design/slots.md).
 appReady(() => queryClient.isFetching());

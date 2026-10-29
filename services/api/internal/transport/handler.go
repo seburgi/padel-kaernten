@@ -45,6 +45,9 @@ type Handler struct {
 	// may start it (POST /reap).
 	Reap       func(ctx context.Context, dry bool) ([]retention.Result, error)
 	ReapCaller string
+	// RefreshCaller is the one account POST /refresh takes: the
+	// scheduler's, every 30 minutes (docs/design/slots.md).
+	RefreshCaller string
 	// Push keeps the browsers and sends; nil is no push at all. Queue takes
 	// the messages to send (Cloud Tasks, or at once on a laptop), and
 	// NotifyCaller is the one account POST /tasks/notify takes.

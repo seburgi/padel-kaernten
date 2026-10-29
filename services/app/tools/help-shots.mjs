@@ -49,7 +49,9 @@ function snapshot() {
   const list = Array.isArray(venues) ? venues : venues.venues;
   const place = (address = "") => address.replace(/^.*\d{4}\s+/, "");
   return {
-    takenAt: new Date().toISOString(),
+    // Ten minutes old: Plätze shows Aktualisieren, and nothing asks the
+    // sites by itself before an hour.
+    takenAt: new Date(Date.now() - 10 * 60000).toISOString(),
     days: DAYS,
     venues: list.map((v, n) => {
       // The venue's own kind of court, as venues.json says; the others
@@ -276,8 +278,8 @@ for (const theme of ["light", "dark"]) {
   const phone = await app.signIn({ phone: true });
   await phone.page.emulateMedia({ colorScheme: theme });
   for (const s of shots(ids)) {
-    // The courts and the fits ask the sites again once the snapshot is
-    // five minutes old; a fresh one keeps them on the starting point.
+    // The courts and the fits ask the sites by themselves once the
+    // snapshot is an hour old; a fresh one keeps them on the starting point.
     writeSnapshot();
     const page = await phone.go(s.path);
     await page
