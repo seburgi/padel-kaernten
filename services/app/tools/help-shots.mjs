@@ -221,8 +221,8 @@ const shots = ({ group, game }) => [
   { name: "gruppen-finden", path: "/groups", from: "h1", to: "main ul >> nth=0" },
   {
     name: "gruppe",
-    path: `/groups/${group}`,
-    from: "main section:has(h2:text-is('Mitglieder'))",
+    path: `/groups/${group}/settings`,
+    from: "main section:has(h2:text-is('Wo spielt ihr?'))",
     to: "main section:has(h2:text-is('Einladen'))",
   },
   {

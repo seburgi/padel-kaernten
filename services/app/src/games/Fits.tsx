@@ -3,7 +3,7 @@
 // from the latest snapshot, which a schedule refreshes every 30 minutes; one
 // an hour old (the schedule missed), or none, is refreshed once on opening,
 // as on the courts. Where the group plays (Halle, Freiluft or
-// both) is the group's, and any member changes it here.
+// both) is the group's; any member changes it under Verwalten.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -12,11 +12,11 @@ import { card, link, pressed, primary, quiet } from "../ui";
 import { clock, dayLabel, errorText, euros, shown, span } from "./games";
 
 const DURATIONS = [60, 90, 120] as const;
-const AREAS = [
-  ["alle", "Beides"],
-  ["halle", "Halle"],
-  ["freiluft", "Freiluft"],
-] as const;
+const AREA: Record<string, string> = {
+  alle: "Halle und Freiluft",
+  halle: "Nur Halle (mit überdachten Plätzen)",
+  freiluft: "Nur Freiluft",
+};
 const MISSED_MS = 60 * 60 * 1000;
 
 export function Fits() {
@@ -60,23 +60,6 @@ export function Fits() {
     mutate();
   }, [takenAt, noSnapshot, mutate]);
 
-  const areaKey = useWriteKey();
-  const setArea = useMutation({
-    mutationFn: (area: string) => {
-      const body = { area };
-      return call(
-        api.PATCH("/api/v1/groups/{groupId}", {
-          params: { path: { groupId: id }, header: { "Idempotency-Key": areaKey(body) } },
-          body,
-        }),
-      );
-    },
-    onSuccess: (next) => {
-      client.setQueryData(["group", id], next);
-      void client.invalidateQueries({ queryKey: ["groups"] });
-      void client.invalidateQueries({ queryKey: ["fits", id] });
-    },
-  });
   const area = group.data?.area ?? "alle";
 
   const key = useWriteKey();
@@ -146,28 +129,12 @@ export function Fits() {
           </button>
         ))}
       </div>
-      <div className="mb-1 flex gap-2" role="group" aria-label="Wo spielt ihr?">
-        {AREAS.map(([a, label]) => (
-          <button
-            key={a}
-            type="button"
-            aria-pressed={area === a}
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(area === a)}`}
-            disabled={!group.data || setArea.isPending}
-            onClick={() => area !== a && setArea.mutate(a)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       <p className="mb-4 text-sm text-ink-muted">
-        Gilt für die ganze Gruppe.{area === "halle" && " Überdachte Plätze zählen zur Halle."}
+        {AREA[area] ?? AREA.alle} ·{" "}
+        <Link to={`/groups/${id}/settings`} className={link}>
+          Ändern
+        </Link>
       </p>
-      {setArea.isError && (
-        <p role="alert" className="mb-3 text-sm text-danger-text">
-          {errorText(setArea.error)}
-        </p>
-      )}
       {refresh.isPending && (
         <p role="status" className="mb-3 text-sm text-ink-muted">
           Frage die Anlagen ab …

@@ -11,8 +11,8 @@
   0007) is `alle` (the default), `halle` or `freiluft`, and the fits leave
   the other courts out (`games.md`). Any member sets it (`PATCH
   /api/v1/groups/{id}` with only `area`); the name and the kind stay the
-  admins'. The app offers it as Beides, Halle, Freiluft at "Wann passt es
-  für vier?", and the group's page says "Nur Halle" or "Nur Freiluft".
+  admins'. The app offers it as Beides, Halle, Freiluft under Verwalten, and
+  the group's page and its fits say where it plays.
 - **Who sees a group is the view `group_visibility`** (migration 0003): a
   member, someone invited into it, or anyone in the app (`people`) when it
   is not private. Every read joins it; a group out of sight answers 404
@@ -59,9 +59,13 @@
   the colour of a warning), the games and "Passt für vier" (both from the
   games slice; `App.tsx` puts them in), and last the groups one is in,
   with Gruppen finden and Neue Gruppe; `/groups` lists the groups one can
-  join or ask into, `/groups/new` founds one, `/groups/{id}` shows the
-  members with their days entered, and to members inviting, open
-  invitations and requests, to admins the name and kind, and leaving.
+  join or ask into, `/groups/new` founds one, `/groups/{id}` is for playing: to members
+  its fits and games, a note when someone asks in, and to everyone the
+  members with their days entered. Everything about the group itself is
+  its own page Verwalten (`/groups/{id}/settings`, members only; Seb,
+  2026-10-29): where it plays, the members (removing them, admins),
+  requests, inviting and the open invitations, the name and kind
+  (admins), and leaving.
 - The member list carries `daysEntered`, on how many of the next 14 days
   each member said when they can (`availability.md`); transport joins the
   two slices.

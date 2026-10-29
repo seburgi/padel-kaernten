@@ -19,7 +19,7 @@ import { Fits } from "./games/Fits";
 import { Game } from "./games/Game";
 import { Upcoming } from "./games/Upcoming";
 import { Waiting } from "./games/Waiting";
-import { Group } from "./groups/Group";
+import { Group, GroupSettings } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play, Profile } from "./groups/Play";
 import { FirstSteps } from "./help/FirstSteps";
@@ -178,6 +178,7 @@ export function App() {
             }
           />
           <Route path="/groups/:id/fits" element={<Fits />} />
+          <Route path="/groups/:id/settings" element={<GroupSettings />} />
           <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />
           <Route path="/availability" element={<Availability />} />
           <Route

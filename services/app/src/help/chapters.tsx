@@ -141,15 +141,17 @@ export const CHAPTERS: Chapter[] = [
           {b("Neue Gruppe")} gründet eine; du bist dann ihr Admin und kannst Namen und Art ändern.
         </p>
         <p>
-          Auf der Seite einer Gruppe lädst du jemanden mit der E-Mail-Adresse ein. Wer noch nicht in
-          der App ist, kommt damit auch hinein und meldet sich auf padel.burgstaller.me an; wer neu
-          ist, bekommt eine Mail, um ein Passwort zu setzen. Einladungen findest du unter Spielen
-          und nimmst sie dort an oder lehnst sie ab. Du kannst bis zu 20 offene Einladungen haben
-          und 10 neue am Tag verschicken.
+          Alles, was die Gruppe selbst betrifft, steht auf ihrer Seite unter {b("Verwalten")}: wo
+          ihr spielt, die Mitglieder, wer hinein möchte, Einladen, Name und Art (für Admins) und
+          Verlassen. Dort lädst du jemanden mit der E-Mail-Adresse ein. Wer noch nicht in der App
+          ist, kommt damit auch hinein und meldet sich auf padel.burgstaller.me an; wer neu ist,
+          bekommt eine Mail, um ein Passwort zu setzen. Einladungen findest du unter Spielen und
+          nimmst sie dort an oder lehnst sie ab. Du kannst bis zu 20 offene Einladungen haben und 10
+          neue am Tag verschicken.
         </p>
         <p>
           Bei den Mitgliedern steht, an wie vielen der nächsten 14 Tage sie ihre Zeiten eingetragen
-          haben. Unten auf ihrer Seite steht {b("Gruppe verlassen …")}; geht der letzte Admin, wird
+          haben. Unten unter Verwalten steht {b("Gruppe verlassen …")}; geht der letzte Admin, wird
           wer am längsten dabei ist Admin.
         </p>
       </>
@@ -161,7 +163,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "gruppe",
-        alt: "Die Seite einer Gruppe: vier Mitglieder mit den Tagen, an denen sie Zeiten eingetragen haben, darunter Einladen mit der E-Mail-Adresse.",
+        alt: "Gruppe verwalten: Wo spielt ihr? mit Beides, Halle und Freiluft, die Mitglieder mit den Tagen, an denen sie Zeiten eingetragen haben, darunter Einladen mit der E-Mail-Adresse.",
       },
     ],
   },
@@ -179,9 +181,10 @@ export const CHAPTERS: Chapter[] = [
           Person könnt ihr fragen.
         </p>
         <p>
-          Darunter wählt ihr, wo ihr spielt: {b("Halle")}, {b("Freiluft")} oder {b("Beides")}. Das
-          gilt für die ganze Gruppe, und jedes Mitglied kann es ändern. Überdachte Plätze zählen zur
-          Halle. Steht nicht Beides, sieht man es auch auf der Seite der Gruppe.
+          Wo ihr spielt, wählt ihr unter {b("Verwalten")}: {b("Halle")}, {b("Freiluft")} oder{" "}
+          {b("Beides")}. Das gilt für die ganze Gruppe, und jedes Mitglied kann es ändern.
+          Überdachte Plätze zählen zur Halle. Steht nicht Beides, sieht man es auch auf der Seite
+          der Gruppe.
         </p>
         <p>
           {b("Vorschlagen")} macht aus einer Zeit ein Spiel, und du bist dabei. Die anderen sagen{" "}
@@ -208,7 +211,7 @@ export const CHAPTERS: Chapter[] = [
     shots: [
       {
         name: "spiele-passt",
-        alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, Halle, Freiluft oder Beides, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
+        alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, wo die Gruppe spielt, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
       },
       {
         name: "spiele-fast",
@@ -345,8 +348,8 @@ export const CHAPTERS: Chapter[] = [
         <div>
           <dt className="font-semibold">Wie komme ich wieder hinaus?</dt>
           <dd>
-            Aus einer Gruppe gehst du unten auf ihrer Seite. Willst du die App ganz verlassen, sag
-            es Seb mit der Sprechblase.
+            Aus einer Gruppe gehst du unter Verwalten auf ihrer Seite. Willst du die App ganz
+            verlassen, sag es Seb mit der Sprechblase.
           </dd>
         </div>
       </dl>

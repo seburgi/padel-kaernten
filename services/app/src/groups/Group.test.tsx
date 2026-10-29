@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { Group as G } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
-import { Group } from "./Group";
+import { Group, GroupSettings } from "./Group";
 
 const at = "2026-10-28T07:00:00Z";
 const member = (email: string, name: string, role = "member", daysEntered = 0) => ({
@@ -48,6 +48,7 @@ function show(path = "/groups/1") {
   return renderWithQuery(
     <Routes>
       <Route path="/groups/:id" element={<Group />} />
+      <Route path="/groups/:id/settings" element={<GroupSettings />} />
       <Route path="*" element={<p>woanders</p>} />
     </Routes>,
     { at: path },
@@ -95,9 +96,8 @@ describe("Group", () => {
       },
       calls,
     );
-    show();
-    expect(await screen.findByRole("heading", { name: "Padel Kärnten" })).toBeInTheDocument();
-    expect(screen.getByText("Privat · 3 Mitglieder")).toBeInTheDocument();
+    show("/groups/1/settings");
+    expect(await screen.findByRole("heading", { name: "Gruppe verwalten" })).toBeInTheDocument();
     const seb = screen.getByText(/Seb/, { selector: "div" }).closest("li")!;
     expect(seb).toHaveTextContent("Seb (du)Admin");
     expect(seb).toHaveTextContent("5 von 14 Tagen eingetragen");
@@ -150,7 +150,7 @@ describe("Group", () => {
     await userEvent.clear(name);
     await userEvent.type(name, "PK");
     await userEvent.click(screen.getByRole("button", { name: "Umbenennen" }));
-    expect(await screen.findByRole("heading", { name: "PK" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "← PK" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Privat" }));
     await userEvent.click(screen.getByRole("button", { name: "Offen" }));
     expect(await screen.findByText("Alle sehen sie und können beitreten.")).toBeInTheDocument();
@@ -169,9 +169,9 @@ describe("Group", () => {
       "DELETE /api/v1/groups/1/invitations/bert@example.at": () => problem(502, "platform-failed"),
       "PATCH /api/v1/groups/1": () => problem(403, "not-allowed"),
     });
-    const { router } = show();
-    await screen.findByRole("heading", { name: "Padel Kärnten" });
-    expect(screen.queryByText("Einstellungen")).toBeNull();
+    const { router } = show("/groups/1/settings");
+    await screen.findByRole("heading", { name: "Gruppe verwalten" });
+    expect(screen.queryByText("Name und wer hinein kann")).toBeNull();
     expect(screen.queryByRole("button", { name: "Entfernen …" })).toBeNull();
     // Only her own invitation can she take back.
     expect(
@@ -203,8 +203,8 @@ describe("Group", () => {
       "DELETE /api/v1/groups/1/members/seb@example.at": () => problem(500, "internal"),
       "PATCH /api/v1/groups/1": () => problem(400, "invalid-group"),
     });
-    show();
-    await screen.findByText("Privat · 1 Mitglied · Nur Halle");
+    show("/groups/1/settings");
+    await screen.findByRole("heading", { name: "Gruppe verwalten" });
     expect(screen.queryByText("Möchten hinein")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Auf Anfrage" }));
     expect(await screen.findByText("Ein Name hat 1 bis 40 Zeichen.")).toBeInTheDocument();
@@ -214,6 +214,73 @@ describe("Group", () => {
     expect(
       await screen.findByText("Das hat nicht geklappt. Versuch es nochmal."),
     ).toBeInTheDocument();
+  });
+
+  it("keeps the group's page to playing, with the way to Verwalten", async () => {
+    serve({
+      "GET /api/v1/me": me("seb@example.at"),
+      "GET /api/v1/groups/1": () => answer(200, group({ area: "halle" })),
+    });
+    const { router } = show();
+    await screen.findByText("Privat · 3 Mitglieder · Nur Halle");
+    expect(screen.getByRole("heading", { name: "Mitglieder" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Entfernen …" })).toBeNull();
+    expect(screen.queryByText("Einladen")).toBeNull();
+    expect(screen.queryByText(/Gruppe verlassen/)).toBeNull();
+    expect(screen.getByRole("link", { name: /2 möchten hinein/ })).toHaveAttribute(
+      "href",
+      "/groups/1/settings",
+    );
+    await userEvent.click(screen.getByRole("link", { name: "Verwalten" }));
+    expect(await screen.findByRole("heading", { name: "Gruppe verwalten" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/groups/1/settings");
+    expect(screen.getByRole("button", { name: "Halle" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("says one person asks in, and keeps Verwalten to members", async () => {
+    let g = group({ requests: [{ email: "eva@example.at", name: "Eva", askedAt: at }] });
+    serve({
+      "GET /api/v1/me": me("seb@example.at"),
+      "GET /api/v1/groups/1": () => answer(200, g),
+    });
+    const a = show();
+    expect(await screen.findByText("Eine Person möchte hinein")).toBeInTheDocument();
+    a.unmount();
+    g = group({ how: "listed", role: undefined });
+    show("/groups/1/settings");
+    expect(await screen.findByRole("heading", { name: "Nur für Mitglieder" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Zur Gruppe" })).toHaveAttribute("href", "/groups/1");
+  });
+
+  it("lets a member choose Halle or Freiluft for the group", async () => {
+    const calls: Sent[] = [];
+    let area = "alle";
+    serve(
+      {
+        "GET /api/v1/me": me("anna@example.at"),
+        "GET /api/v1/groups/1": () => answer(200, group({ role: "member", area })),
+        "PATCH /api/v1/groups/1": (sent) => {
+          if ((sent.body as { area: string }).area === "freiluft")
+            return problem(400, "invalid-group");
+          area = (sent.body as { area: string }).area;
+          return answer(200, group({ role: "member", area }));
+        },
+      },
+      calls,
+    );
+    show("/groups/1/settings");
+    const both = await screen.findByRole("button", { name: "Beides" });
+    expect(both).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(both);
+    expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Halle" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Halle" })).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(screen.getByText(/Überdachte Plätze zählen zur Halle/)).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PATCH")!.body).toEqual({ area: "halle" });
+    await userEvent.click(screen.getByRole("button", { name: "Freiluft" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 
   it("lets someone outside join, accept or ask", async () => {

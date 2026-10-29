@@ -1,11 +1,13 @@
-// One group (docs/design/groups.md): who is in it and how many days each
-// said when they can; for members, inviting, the open invitations and who
-// asked in; for admins, the name and who may join; and leaving.
+// One group (docs/design/groups.md): its page, with what fits and its games
+// for members and who is in it; and its own page Verwalten
+// (/groups/:id/settings, Seb 2026-10-29) with everything about the group
+// itself: where it plays, the members (removing them, for admins), who
+// asked in, inviting, the name and who may join (admins), and leaving.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Group as G } from "../api/client";
-import { card, danger, field, link, pressed, primary, quiet } from "../ui";
+import { card, danger, field, link, pressed, primary, quiet, waits } from "../ui";
 import {
   areaLabel,
   errorText,
@@ -16,9 +18,8 @@ import {
   useMe,
 } from "./groups";
 
-/** games is a member's view of the group's games, from the games slice
- * (App puts it in). */
-export function Group({ games }: { games?: (id: number) => ReactNode }) {
+/** Loads the group by the address and says when it cannot. */
+function GroupFrame({ children }: { children: (g: G, me: string) => ReactNode }) {
   const id = Number(useParams().id);
   const me = useMe();
   const group = useQuery({
@@ -27,7 +28,6 @@ export function Group({ games }: { games?: (id: number) => ReactNode }) {
     retry: false,
     enabled: Number.isSafeInteger(id),
   });
-  const join = useJoin();
 
   if (!Number.isSafeInteger(id) || (group.error instanceof ApiError && group.error.status === 404))
     return (
@@ -55,54 +55,167 @@ export function Group({ games }: { games?: (id: number) => ReactNode }) {
         </button>
       </main>
     );
+  return <>{children(group.data, me.data?.email ?? "")}</>;
+}
 
-  const g = group.data;
-  const member = g.how === "member";
-  const myEmail = me.data?.email ?? "";
+/** games is a member's view of the group's games, from the games slice
+ * (App puts it in). */
+export function Group({ games }: { games?: (id: number) => ReactNode }) {
+  const join = useJoin();
   return (
-    <main>
-      <Link to="/play" className={`${link} text-sm`}>
-        ← Spielen
-      </Link>
-      <h1 className="mt-1 mb-1 text-2xl font-semibold">{g.name}</h1>
-      <p className="mb-4 text-ink-muted">
-        {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
-        {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
-      </p>
-
-      {!member && (
-        <div className="mb-4">
-          {g.requested ? (
-            <p className="text-ink-muted">Du hast gefragt, ob du hinein darfst.</p>
-          ) : (
-            <button
-              type="button"
-              className={primary}
-              disabled={join.isPending}
-              onClick={() => join.mutate(g.id)}
-            >
-              {g.how === "invited" ? "Annehmen" : g.kind === "open" ? "Beitreten" : "Anfragen"}
-            </button>
-          )}
-          {join.isError && (
-            <p role="alert" className="mt-2 text-sm text-danger-text">
-              {errorText(join.error)}
+    <GroupFrame>
+      {(g, myEmail) => {
+        const member = g.how === "member";
+        return (
+          <main>
+            <Link to="/play" className={`${link} text-sm`}>
+              ← Spielen
+            </Link>
+            <div className="mt-1 mb-1 flex items-baseline justify-between gap-3">
+              <h1 className="text-2xl font-semibold">{g.name}</h1>
+              {member && (
+                <Link to={`/groups/${g.id}/settings`} className={`${link} shrink-0 text-sm`}>
+                  Verwalten
+                </Link>
+              )}
+            </div>
+            <p className="mb-4 text-ink-muted">
+              {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
+              {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
             </p>
-          )}
-        </div>
-      )}
 
-      {member && games?.(g.id)}
-      <Members g={g} me={myEmail} />
-      {member && (
-        <>
-          <Requests g={g} />
-          <Invite g={g} me={myEmail} />
-          {g.role === "admin" && <Settings g={g} />}
-          <Leave g={g} me={myEmail} />
-        </>
+            {member && g.requests.length > 0 && (
+              <Link
+                to={`/groups/${g.id}/settings`}
+                className={`${waits} mb-4 block p-4 font-semibold hover:opacity-90`}
+              >
+                {g.requests.length === 1
+                  ? "Eine Person möchte hinein"
+                  : `${g.requests.length} möchten hinein`}{" "}
+                <span className="font-normal text-ink-muted">· unter Verwalten</span>
+              </Link>
+            )}
+
+            {!member && (
+              <div className="mb-4">
+                {g.requested ? (
+                  <p className="text-ink-muted">Du hast gefragt, ob du hinein darfst.</p>
+                ) : (
+                  <button
+                    type="button"
+                    className={primary}
+                    disabled={join.isPending}
+                    onClick={() => join.mutate(g.id)}
+                  >
+                    {g.how === "invited"
+                      ? "Annehmen"
+                      : g.kind === "open"
+                        ? "Beitreten"
+                        : "Anfragen"}
+                  </button>
+                )}
+                {join.isError && (
+                  <p role="alert" className="mt-2 text-sm text-danger-text">
+                    {errorText(join.error)}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {member && games?.(g.id)}
+            <Members g={g} me={myEmail} />
+          </main>
+        );
+      }}
+    </GroupFrame>
+  );
+}
+
+/** Verwalten: everything about the group itself, for its members. */
+export function GroupSettings() {
+  return (
+    <GroupFrame>
+      {(g, myEmail) =>
+        g.how !== "member" ? (
+          <main>
+            <h1 className="mt-2 mb-2 text-2xl font-semibold">Nur für Mitglieder</h1>
+            <p className="mb-4 text-ink-muted">Verwalten kann eine Gruppe nur, wer drin ist.</p>
+            <Link to={`/groups/${g.id}`} className={quiet}>
+              Zur Gruppe
+            </Link>
+          </main>
+        ) : (
+          <main>
+            <Link to={`/groups/${g.id}`} className={`${link} text-sm`}>
+              ← {g.name}
+            </Link>
+            <h1 className="mt-1 mb-4 text-2xl font-semibold">Gruppe verwalten</h1>
+            <Area g={g} />
+            <Members g={g} me={myEmail} manage />
+            <Requests g={g} />
+            <Invite g={g} me={myEmail} />
+            {g.role === "admin" && <Settings g={g} />}
+            <Leave g={g} me={myEmail} />
+          </main>
+        )
+      }
+    </GroupFrame>
+  );
+}
+
+const AREAS = [
+  ["alle", "Beides"],
+  ["halle", "Halle"],
+  ["freiluft", "Freiluft"],
+] as const;
+
+/** Where the group plays; any member sets it, for the whole group. */
+function Area({ g }: { g: G }) {
+  const client = useQueryClient();
+  const key = useWriteKey();
+  const setArea = useMutation({
+    mutationFn: (area: string) => {
+      const body = { area };
+      return call(
+        api.PATCH("/api/v1/groups/{groupId}", {
+          params: { path: { groupId: g.id }, header: { "Idempotency-Key": key(body) } },
+          body,
+        }),
+      );
+    },
+    onSuccess: (next) => {
+      client.setQueryData(["group", g.id], next);
+      void client.invalidateQueries({ queryKey: ["groups"] });
+      void client.invalidateQueries({ queryKey: ["fits", g.id] });
+    },
+  });
+  return (
+    <section className="mb-6">
+      <h2 className="mb-2 font-semibold">Wo spielt ihr?</h2>
+      <div className="mb-1 flex gap-2" role="group" aria-label="Wo spielt ihr?">
+        {AREAS.map(([a, label]) => (
+          <button
+            key={a}
+            type="button"
+            aria-pressed={g.area === a}
+            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(g.area === a)}`}
+            disabled={setArea.isPending}
+            onClick={() => g.area !== a && setArea.mutate(a)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="text-sm text-ink-muted">
+        Gilt für die ganze Gruppe: „Passt für vier“ zeigt nur diese Plätze.
+        {g.area === "halle" && " Überdachte Plätze zählen zur Halle."}
+      </p>
+      {setArea.isError && (
+        <p role="alert" className="mt-2 text-sm text-danger-text">
+          {errorText(setArea.error)}
+        </p>
       )}
-    </main>
+    </section>
   );
 }
 
@@ -123,7 +236,7 @@ function useRemove(g: G, after?: () => void) {
   });
 }
 
-function Members({ g, me }: { g: G; me: string }) {
+function Members({ g, me, manage = false }: { g: G; me: string; manage?: boolean }) {
   const [asking, setAsking] = useState<string | null>(null);
   const remove = useRemove(g, () => setAsking(null));
   return (
@@ -144,7 +257,8 @@ function Members({ g, me }: { g: G; me: string }) {
                   : `${m.daysEntered} von 14 Tagen eingetragen`}
               </div>
             </div>
-            {g.role === "admin" &&
+            {manage &&
+              g.role === "admin" &&
               m.email !== me &&
               (asking === m.email ? (
                 <div className="flex shrink-0 gap-2">
@@ -359,7 +473,7 @@ function Settings({ g }: { g: G }) {
   });
   return (
     <section className="mb-6">
-      <h2 className="mb-2 font-semibold">Einstellungen</h2>
+      <h2 className="mb-2 font-semibold">Name und wer hinein kann</h2>
       <form
         className="mb-3 flex flex-wrap gap-2"
         onSubmit={(e) => {
