@@ -1,9 +1,9 @@
 // The coming games, on Spielen (the ones one is in or a reserve for, from
 // every group; the unanswered ones wait above, under Wartet auf dich) and
-// on a group's page (all of that group's, with the way to its fits). The
+// on a group's page (all of that group's, under its fits). The
 // group screens get this from App, so the slices stay apart.
 import { Link } from "react-router";
-import { card, primary, quiet } from "../ui";
+import { card, quiet } from "../ui";
 import { answerOf, dayLabel, euros, playing, span, useGames, useMe } from "./games";
 
 export function Upcoming({ group }: { group?: number }) {
@@ -23,11 +23,6 @@ export function Upcoming({ group }: { group?: number }) {
   return (
     <section className="mb-6">
       <h2 className="mb-2 font-semibold">{group ? "Spiele" : "Deine nächsten Spiele"}</h2>
-      {group !== undefined && (
-        <Link to={`/groups/${group}/fits`} className={`${primary} mb-3`}>
-          Wann passt es für vier?
-        </Link>
-      )}
       {games.isPending && (
         <div
           aria-busy="true"

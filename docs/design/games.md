@@ -41,7 +41,8 @@
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
-  Buchung, Gebucht, Spiel absagen); the coming games on the group's page. On Spielen (Seb,
+  Buchung, Gebucht, Spiel absagen); on the group's page "Passt für vier" (`BestFits` for that group alone,
+  with Alle Zeiten to its fits) above its coming games. On Spielen (Seb,
   2026-10-29): "Wartet auf dich" (`Waiting`) holds every proposed game the
   person has not answered, with Bin dabei and Kann nicht on its card and
   the places as rounds (`Seats`); "Deine nächsten Spiele" (`Upcoming`)

@@ -28,7 +28,7 @@ const STEPS: { title: string; text: string; shot: Shot }[] = [
   },
   {
     title: "Zu viert spielen",
-    text: "„Wann passt es für vier?“ zeigt, wann vier von euch können und ein Platz frei ist. Eine Person schlägt vor, bucht bei der Anlage und tippt „Gebucht“.",
+    text: "„Passt für vier“ zeigt, wann vier von euch können und ein Platz frei ist. Eine Person schlägt vor, bucht bei der Anlage und tippt „Gebucht“.",
     shot: {
       name: "spiele-passt",
       alt: "Wann passt es für vier?: passende Zeiten mit Anlage und Preis pro Kopf.",

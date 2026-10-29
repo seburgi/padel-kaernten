@@ -433,7 +433,7 @@ describe("Game", () => {
 });
 
 describe("Upcoming", () => {
-  it("lists every group's games, and one group's with the way to its fits", async () => {
+  it("lists every group's games, and one group's", async () => {
     const calls: Sent[] = [];
     serve(
       {
@@ -469,10 +469,6 @@ describe("Upcoming", () => {
 
     renderWithQuery(<Upcoming group={1} />);
     expect(await screen.findByText("Noch kein Spiel geplant.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Wann passt es für vier?" })).toHaveAttribute(
-      "href",
-      "/groups/1/fits",
-    );
     expect(
       calls
         .filter((c) => c.url.pathname === "/api/v1/games")

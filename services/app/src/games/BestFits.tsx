@@ -1,6 +1,7 @@
 // Passt für vier on Spielen (Seb, 2026-10-29): the soonest times, from
 // every group one is in, where four can and a court is free, one tap from
-// proposing. The whole list stays at a group's "Wann passt es für vier?".
+// proposing; on a group's page the same for that group alone. The whole
+// list stays at the group's "Wann passt es für vier?" (Alle Zeiten).
 // Times already proposed as a game are left out. 90 minutes, the default
 // there; the snapshot is not refreshed here, the schedule keeps it fresh.
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ const SHOWN = 3;
 
 type Pick = { f: Fit; groupId: number; groupName: string };
 
-export function BestFits() {
+export function BestFits({ group }: { group?: number }) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const groups = useQuery({
@@ -22,7 +23,8 @@ export function BestFits() {
     queryFn: async () => (await call(api.GET("/api/v1/groups"))).items,
     retry: false,
   });
-  const mine = groups.data?.filter((g) => g.how === "member") ?? [];
+  const mine =
+    groups.data?.filter((g) => g.how === "member" && (group === undefined || g.id === group)) ?? [];
   const fits = useQueries({
     queries: mine.map((g) => ({
       queryKey: ["fits", g.id, MINUTES],

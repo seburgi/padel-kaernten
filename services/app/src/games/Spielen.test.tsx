@@ -243,6 +243,22 @@ describe("BestFits", () => {
     );
   });
 
+  it("keeps to one group on its page", async () => {
+    serve({
+      "GET /api/v1/groups": () =>
+        answer(200, { items: [summary(1, "Dienstagsrunde"), summary(2, "Mittwochsliga")] }),
+      "GET /api/v1/groups/2/fits": () => fits([fit()]),
+      "GET /api/v1/games": () => answer(200, { items: [] }),
+    });
+    at(<BestFits group={2} />);
+    expect(await screen.findByRole("link", { name: "Alle Zeiten" })).toHaveAttribute(
+      "href",
+      "/groups/2/fits",
+    );
+    expect(await screen.findAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getByRole("listitem")).not.toHaveTextContent("Mittwochsliga");
+  });
+
   it("says when the times do not load", async () => {
     serve({
       "GET /api/v1/groups": () => answer(200, { items: [summary(1, "Dienstagsrunde")] }),

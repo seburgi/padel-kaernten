@@ -147,7 +147,16 @@ export function App() {
           <Route path="/groups/new" element={<NewGroup />} />
           <Route
             path="/groups/:id"
-            element={<Group games={(id) => <Upcoming key={id} group={id} />} />}
+            element={
+              <Group
+                games={(id) => (
+                  <>
+                    <BestFits key={`fits-${id}`} group={id} />
+                    <Upcoming key={id} group={id} />
+                  </>
+                )}
+              />
+            }
           />
           <Route path="/groups/:id/fits" element={<Fits />} />
           <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />

@@ -170,10 +170,11 @@ export const CHAPTERS: Chapter[] = [
     body: (
       <>
         <p>
-          Auf der Seite einer Gruppe öffnet {b("Wann passt es für vier?")} die passenden Zeiten,
-          nach Tagen, für 60, 90 oder 120 Minuten, mit Preis pro Kopf. Unter{" "}
-          {b("Fast: eine Person fehlt")} stehen Zeiten, zu denen drei können und jemand den Tag noch
-          nicht eingetragen hat. Die Person könnt ihr fragen.
+          Auf der Seite einer Gruppe stehen unter {b("Passt für vier")} die nächsten passenden
+          Zeiten. {b("Alle Zeiten")} öffnet {b("Wann passt es für vier?")} mit allen, nach Tagen,
+          für 60, 90 oder 120 Minuten, mit Preis pro Kopf. Unter {b("Fast: eine Person fehlt")}{" "}
+          stehen Zeiten, zu denen drei können und jemand den Tag noch nicht eingetragen hat. Die
+          Person könnt ihr fragen.
         </p>
         <p>
           Darunter wählt ihr, wo ihr spielt: {b("Halle")}, {b("Freiluft")} oder {b("Beides")}. Das
