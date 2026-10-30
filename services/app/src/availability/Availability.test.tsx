@@ -227,11 +227,26 @@ describe("Availability", () => {
     expect(new Set(sat.map((c) => c.headers.get("Idempotency-Key"))).size).toBe(1);
   });
 
+  it("names the chosen venues under the days, with a link to Mehr", async () => {
+    const mine = start();
+    api(mine, []);
+    const { unmount } = renderWithQuery(<Availability />);
+    expect(await screen.findByText("Deine Plätze:")).toBeInTheDocument();
+    expect(screen.getByText(/alle ·/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ändern" })).toHaveAttribute("href", "/more");
+    expect(screen.queryByRole("button", { name: "Annenheim" })).toBeNull();
+    unmount();
+
+    mine.venues = ["annenheim", "villach"];
+    renderWithQuery(<Availability />);
+    expect(await screen.findByText(/Padel Villach, Annenheim ·/)).toBeInTheDocument();
+  });
+
   it("chooses venues, and hides them without a snapshot", async () => {
     const mine = start();
     const calls: Sent[] = [];
     api(mine, calls);
-    const { unmount } = renderWithQuery(<Availability />);
+    const { unmount } = renderWithQuery(<MyVenues />);
     expect(await screen.findByText(/Überall hin/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Padel Villach" }));
     expect(await screen.findByText("Nur zu diesen:")).toBeInTheDocument();
@@ -251,7 +266,7 @@ describe("Availability", () => {
     });
     renderWithQuery(<Availability />);
     await screen.findByRole("button", { name: "Do 29.10.: 18:30–22:00" });
-    expect(screen.queryByText("Wohin fährst du?")).toBeNull();
+    expect(screen.queryByText("Deine Plätze:")).toBeNull();
   });
 
   it("chooses venues on Mehr too, as Deine Plätze", async () => {
@@ -272,7 +287,7 @@ describe("Availability", () => {
       "GET /api/v1/slots": () => answer(200, snapshot),
       "PUT /api/v1/availability/venues": () => problem(400, "unknown-venue"),
     });
-    const { unmount } = renderWithQuery(<Availability />);
+    const { unmount } = renderWithQuery(<MyVenues />);
     await userEvent.click(await screen.findByRole("button", { name: "Annenheim" }));
     expect(await screen.findByText("Diese Anlage gibt es nicht mehr.")).toBeInTheDocument();
     unmount();
@@ -290,6 +305,6 @@ describe("Availability", () => {
     await userEvent.click(screen.getByRole("button", { name: "Nochmal versuchen" }));
     const row = await screen.findByRole("button", { name: "Do 29.10.: 18:30–22:00" });
     expect(within(row).getByText("18:30–22:00")).toBeInTheDocument();
-    expect(screen.queryByText("Wohin fährst du?")).toBeNull();
+    expect(screen.queryByText("Deine Plätze:")).toBeNull();
   });
 });

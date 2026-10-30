@@ -3,7 +3,8 @@
 // likes, or that it does not suit ("Passt nicht"). A day with nothing is
 // still open: it means "can't" too, but the others may ask. What someone
 // usually has on a weekday is kept, and fills open days on request. Below,
-// the venues they drive to, which Mehr shows too.
+// a line names the venues they drive to; they are chosen on Mehr (Seb,
+// 2026-10-30).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -173,7 +174,7 @@ export function Availability() {
               );
             })}
           </ul>
-          <Venues chosen={mine.data.venues} />
+          <VenuesLine chosen={mine.data.venues} />
         </>
       )}
     </main>
@@ -468,13 +469,12 @@ export function useMyVenues(): string[] {
 export function MyVenues() {
   const mine = useMine();
   if (!mine.data) return null;
-  return <Venues chosen={mine.data.venues} title="Deine Plätze" />;
+  return <Venues chosen={mine.data.venues} />;
 }
 
-/** Where they drive to; none chosen means every venue. */
-function Venues({ chosen, title = "Wohin fährst du?" }: { chosen: string[]; title?: string }) {
-  const client = useQueryClient();
-  const venues = useQuery({
+/** The venues of the latest snapshot, none without one. */
+function useVenueList() {
+  return useQuery({
     queryKey: ["venues"],
     queryFn: async () => {
       try {
@@ -487,6 +487,28 @@ function Venues({ chosen, title = "Wohin fährst du?" }: { chosen: string[]; tit
     },
     retry: false,
   });
+}
+
+/** Under the days: where they drive to, and a link to choose it on Mehr. */
+function VenuesLine({ chosen }: { chosen: string[] }) {
+  const venues = useVenueList();
+  if (!venues.data || venues.data.length === 0) return null;
+  const names = venues.data.filter((v) => chosen.includes(v.id)).map((v) => v.name);
+  return (
+    <p className="mt-6 text-sm text-ink-muted">
+      <b className="font-semibold text-ink">Deine Plätze:</b>{" "}
+      {names.length > 0 ? names.join(", ") : "alle"} ·{" "}
+      <Link to="/more" className={link}>
+        Ändern
+      </Link>
+    </p>
+  );
+}
+
+/** Where they drive to; none chosen means every venue. */
+function Venues({ chosen }: { chosen: string[] }) {
+  const client = useQueryClient();
+  const venues = useVenueList();
   const key = useWriteKey();
   const save = useMutation({
     mutationFn: (next: string[]) =>
@@ -504,7 +526,7 @@ function Venues({ chosen, title = "Wohin fährst du?" }: { chosen: string[]; tit
 
   return (
     <section className="mt-6">
-      <h2 className="mb-1 font-semibold">{title}</h2>
+      <h2 className="mb-1 font-semibold">Deine Plätze</h2>
       <p className="mb-2 text-sm text-ink-muted">
         {chosen.length === 0 ? "Überall hin. Tipp an, wenn nur manche passen." : "Nur zu diesen:"}
       </p>

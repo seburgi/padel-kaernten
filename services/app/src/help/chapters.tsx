@@ -109,8 +109,9 @@ export const CHAPTERS: Chapter[] = [
           nie von selbst.
         </p>
         <p>
-          Unter {b("Wohin fährst du?")} (am Handy auch unter {b("Mehr")} als {b("Deine Plätze")})
-          wählst du die Anlagen, zu denen du fährst. Wählst du keine, gilt jede.
+          Unter {b("Mehr")} › {b("Deine Plätze")} wählst du die Anlagen, zu denen du fährst; unter
+          den Tagen steht, welche es sind, mit {b("Ändern")} kommst du hin. Wählst du keine, gilt
+          jede.
         </p>
       </>
     ),

@@ -25,10 +25,11 @@
   declined one.
 - **Where one drives to**: venue ids from `venues.json` (`PUT
   /api/v1/availability/venues`); none chosen means every venue. An id
-  that is not a venue answers 400 `unknown-venue`. The app asks under
-  "Wohin fährst du?" on Wann kann ich? and as "Deine Plätze" on Mehr,
-  under the rows (Seb, 2026-10-30), the same chips both times. Plätze
-  shows only the chosen venues too (`slots.md`).
+  that is not a venue answers 400 `unknown-venue`. The app asks on Mehr,
+  "Deine Plätze", as chips under the rows; Wann kann ich? only names
+  them in a line under the days, "Deine Plätze: … · Ändern", which leads
+  there (Seb, 2026-10-30: "Vielleicht reicht ein Link"). Plätze shows
+  only the chosen venues too (`slots.md`).
 - **In the app** (`services/app/src/availability`, `/availability`, "Wann
   kannst du?"; on a phone a tab of its own, "Wann kann ich?", after Spielen,
   then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
