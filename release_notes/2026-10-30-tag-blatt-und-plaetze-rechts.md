@@ -9,4 +9,5 @@ als großes Blatt von unten herein. Der Rest dahinter wird grau und
 unscharf, so siehst du nur deinen Tag. Ein Tipp daneben schließt ihn
 wieder, ohne zu speichern.
 
-In der Leiste unten steht **Plätze** jetzt ganz rechts, nach **Mehr**.
+Die Leiste unten beginnt jetzt links mit **Spielen**, dann kommen
+**Wann kann ich?** und **Mehr**, und ganz rechts steht **Plätze**.
