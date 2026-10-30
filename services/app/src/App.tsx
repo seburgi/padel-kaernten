@@ -1,9 +1,9 @@
 // The app's frame: the head with What's new, Hilfe and the feedback button on every
 // screen, Plätze and Spielen, and the screens by path (react-router). On a
-// phone Spielen, Wann kann ich?, Mehr (Neu, Hilfe, Einladen) and Plätze sit
+// phone Spielen, Wann kann ich?, Plätze and Mehr (Neu, Hilfe, Einladen) sit
 // in the kit's tab bar at the bottom instead (standards/frontend/navigation.md;
 // Wann kann ich? a tab of its own, Seb 2026-10-29; Spielen first and
-// Plätze last, Seb 2026-10-30). The
+// Plätze before Mehr, Seb 2026-10-30). The
 // page Einladen is Seb's alone; members invite into their groups.
 import { FeedbackButton, FeedbackLayer, YourNotes } from "@burgstaller/web/feedback";
 import { Icon } from "@burgstaller/web/icons";
@@ -226,6 +226,7 @@ export function App() {
           tabs={[
             { to: "/play", label: "Spielen", icon: "calendar", on: playing && !when },
             { to: "/availability", label: "Wann kann ich?", icon: CLOCK, on: when },
+            { to: "/", label: "Plätze", icon: "pin", on: path === "/" },
             {
               to: "/more",
               label: "Mehr",
@@ -233,7 +234,6 @@ export function App() {
               on: MORE.includes(path),
               dot: unread.length > 0,
             },
-            { to: "/", label: "Plätze", icon: "pin", on: path === "/" },
           ]}
         />
       )}

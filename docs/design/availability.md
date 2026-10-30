@@ -28,7 +28,7 @@
   that is not a venue answers 400 `unknown-venue`.
 - **In the app** (`services/app/src/availability`, `/availability`, "Wann
   kannst du?"; on a phone a tab of its own, "Wann kann ich?", after Spielen,
-  Plätze last, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
+  then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
   spans filled in. A row opens an editor (on a phone a tall sheet, 85% of the screen, that
   slides up from the bottom over the tab bar, the page behind dimmed and
   blurred; a tap there or Escape closes it without saving; Seb,
