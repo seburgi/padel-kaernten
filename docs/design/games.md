@@ -18,7 +18,9 @@
   drives there entered nothing for that day, so they might be the fourth.
   A day with no entry still means "can't" for fits (`availability.md`);
   it only makes someone worth asking. Someone who said the day does not
-  suit ("Passt nicht") is never asked for it (Seb, 2026-10-29).
+  suit ("Passt nicht") is never asked for it (Seb, 2026-10-29). A near
+  miss can be proposed like a fit (Seb, 2026-10-30): the same `POST`, and
+  the game waits with one place open until someone says Bin dabei.
 - **Order**: most people first, then day, start and price. At most 40
   fits and 10 near misses; the price per head is the prorated court price
   over four, and none when any part of the game has no price.
@@ -37,7 +39,7 @@
   `game_visibility`, like `group_visibility`; anyone else gets 404.
 - **In the app** (`services/app/src/games`): "Wann passt es für vier?" on
   a group's page (`/groups/:id/fits`, duration chips, fits by day, one tap
-  to propose, near misses below); the game (`/games/:id`, its places as rounds with a line that says
+  to propose, near misses below with their own Vorschlagen); the game (`/games/:id`, its places as rounds with a line that says
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur

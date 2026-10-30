@@ -183,7 +183,8 @@ export const CHAPTERS: Chapter[] = [
           Zeiten. {b("Alle Zeiten")} öffnet {b("Wann passt es für vier?")} mit allen, nach Tagen,
           für 60, 90 oder 120 Minuten, mit Preis pro Kopf. Unter {b("Fast: eine Person fehlt")}{" "}
           stehen Zeiten, zu denen drei können und jemand den Tag noch nicht eingetragen hat. Die
-          Person könnt ihr fragen.
+          Person könnt ihr fragen, oder du schlägst die Zeit gleich vor, und ein Platz bleibt frei,
+          bis jemand zusagt.
         </p>
         <p>
           Wo ihr spielt, wählt ihr unter {b("Verwalten")}: {b("Halle")}, {b("Freiluft")} oder{" "}
@@ -220,7 +221,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "spiele-fast",
-        alt: "Fast: eine Person fehlt: drei können, und die App sagt, wen ihr fragen könnt.",
+        alt: "Fast: eine Person fehlt: drei können, die App sagt, wen ihr fragen könnt, und Vorschlagen.",
       },
       {
         name: "spiel",

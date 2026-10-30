@@ -102,6 +102,8 @@ export function Fits() {
     );
 
   const days = groupByDay(fits.data?.fits ?? []);
+  // A near miss is proposed far below the fits, so its error shows there.
+  const shortOne = (propose.variables?.can.length ?? 4) < (fits.data?.need ?? 4);
   return (
     <main>
       <Link to={`/groups/${id}`} className={`${link} text-sm`}>
@@ -163,7 +165,7 @@ export function Fits() {
           </button>
         </div>
       )}
-      {propose.isError && (
+      {propose.isError && !shortOne && (
         <p role="alert" className="mb-3 text-sm text-danger-text">
           {errorText(propose.error)}
         </p>
@@ -220,16 +222,36 @@ export function Fits() {
           <h2 className="mb-1 font-semibold">Fast: eine Person fehlt</h2>
           <p className="mb-2 text-sm text-ink-muted">
             Drei können. Wer für den Tag noch nichts eingetragen hat, könnte die vierte sein.
+            Schlägst du so eine Zeit vor, bleibt ein Platz frei, bis jemand zusagt.
           </p>
+          {propose.isError && shortOne && (
+            <p role="alert" className="mb-2 text-sm text-danger-text">
+              {errorText(propose.error)}
+            </p>
+          )}
           <ul className={`${card} divide-y divide-line`}>
             {fits.data.nearly.map((f) => (
-              <li key={`${f.day}-${f.venueId}-${f.start}`} className="px-4 py-2.5 text-sm">
-                <div className="font-semibold">
-                  {dayLabel(f.day)} {span(f.start, f.minutes)} · {f.venueName}
+              <li
+                key={`${f.day}-${f.venueId}-${f.start}`}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">
+                    {dayLabel(f.day)} {span(f.start, f.minutes)} · {f.venueName}
+                  </div>
+                  <div className="text-ink-muted">
+                    {f.can.map(shown).join(", ")} können. Frag {f.ask.map(shown).join(" oder ")}.
+                  </div>
                 </div>
-                <div className="text-ink-muted">
-                  {f.can.map(shown).join(", ")} können. Frag {f.ask.map(shown).join(" oder ")}.
-                </div>
+                <button
+                  type="button"
+                  className={quiet}
+                  disabled={propose.isPending}
+                  aria-label={`${dayLabel(f.day)} ${clock(f.start)} in ${f.venueName} zu dritt vorschlagen`}
+                  onClick={() => propose.mutate(f)}
+                >
+                  Vorschlagen
+                </button>
               </li>
             ))}
           </ul>

@@ -166,6 +166,46 @@ describe("Fits", () => {
     expect(posts[0]!.headers.get("Idempotency-Key")).toBe(posts[1]!.headers.get("Idempotency-Key"));
   });
 
+  it("proposes a near miss, with the fourth place left open", async () => {
+    const calls: Sent[] = [];
+    let gone = true;
+    serve(
+      {
+        "GET /api/v1/groups/1/fits": () =>
+          answer(200, {
+            takenAt: fresh(),
+            need: 4,
+            fits: [],
+            nearly: [fit({ start: 1200, can: [seb, anna, markus], ask: [lisa] })],
+          }),
+        "GET /api/v1/groups/1": () => answer(200, group),
+        "POST /api/v1/groups/1/games": () => {
+          if (gone) {
+            gone = false;
+            return problem(409, "court-gone");
+          }
+          return answer(201, game());
+        },
+      },
+      calls,
+    );
+    const { router } = at("/groups/1/fits", <Fits />, "/groups/:id/fits");
+    expect(await screen.findByText(/bleibt ein Platz frei/)).toBeInTheDocument();
+    const name = "Do 29.10. 20:00 in Padel Villach zu dritt vorschlagen";
+    await userEvent.click(screen.getByRole("button", { name }));
+    const near = screen.getByRole("heading", { name: "Fast: eine Person fehlt" }).parentElement!;
+    expect(await within(near).findByText(/Der Platz ist inzwischen weg/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games/7"));
+    expect(calls.filter((c) => c.method === "POST")[1]!.body).toEqual({
+      venueId: "villach",
+      court: "Court 1",
+      day: "2026-10-29",
+      start: 1200,
+      minutes: 90,
+    });
+  });
+
   it("changes the length, and says when nothing fits", async () => {
     serve({
       "GET /api/v1/groups/1/fits": () =>
