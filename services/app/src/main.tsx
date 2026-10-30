@@ -1,5 +1,5 @@
 import "./styles.css";
-import { appReady } from "@burgstaller/web/boot";
+import { endBoot, updating, whenLoaded } from "@burgstaller/web/boot";
 import { startUpdates } from "@burgstaller/web/pwa";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
@@ -21,9 +21,16 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
-// The boot screen goes once the first screen and its data are there: what
-// is read, never what is written. A schedule refreshes the courts every 30
-// minutes, so opening only reads; a refresh asks the booking sites and
-// takes seconds, and the screen shows the last snapshot meanwhile
-// (docs/design/slots.md).
-appReady(() => queryClient.isFetching());
+// The boot screen goes once the first screen and its data are there, on
+// every start and not only on the reload for a new release (Seb,
+// 2026-10-30: after half an hour unused the gateway and the API wake for up
+// to ten seconds, and the app stood there empty meanwhile). It still never
+// shows when the data come within its short delay (kit/web's boot.ts). What
+// counts is what is read, never what is written: a refresh asks the booking
+// sites and takes seconds, and the screen shows the last snapshot meanwhile
+// (docs/design/slots.md). updating() only clears the release's mark.
+updating();
+whenLoaded(
+  () => queryClient.isFetching(),
+  () => endBoot(),
+);

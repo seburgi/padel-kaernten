@@ -53,7 +53,8 @@
   refresh answers 502 and waits for the next half hour.
 - **No warm instance.** The schedule does not keep Cloud Run awake
   (it scales to zero after about 15 minutes); an opening can still meet
-  a cold start of about a second.
+  a cold start of about a second, and the gateway's of about seven
+  (`platform.md`), under the boot screen.
 - **No separate scraper service** (Seb, 2026-10-27): the API asks the
   sites itself.
 

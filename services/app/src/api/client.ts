@@ -73,27 +73,33 @@ const clientHeader: Middleware = {
   },
 };
 
-/** How long a call the gateway sent to sign-in waits before it asks again. */
-export const SIGN_IN_WAIT_MS = 1500;
+/** How long a call the gateway sent to sign-in waits before each new ask:
+ * about ten seconds in all, as long as the gateway takes to wake. */
+export const SIGN_IN_WAITS_MS = [1500, 2000, 3000, 3500];
 
 /** One call, which never follows the gateway to sign-in. With the login
  * token run out, the requests at start race to swap the one refresh token;
  * the losers get a 302 to auth.burgstaller.me, which fetch would follow
  * into a CORS failure that looks like a lost connection
- * (standards/auth/how-long-a-sign-in-lasts.md). So the redirect stays
- * unfollowed, the call asks once more after the winner's cookies have
- * landed, and when the gateway still sends it away it counts as a 401:
- * the app reloads once and the gateway signs the person in again. */
+ * (standards/auth/how-long-a-sign-in-lasts.md). After half an hour unused
+ * the gateway is asleep too, and Rauthy, which swaps the token, takes about
+ * seven seconds to wake; until then every ask is sent away (Seb,
+ * 2026-10-30). So the redirect stays unfollowed and the call asks again,
+ * patiently, and only when the gateway still sends it away after
+ * SIGN_IN_WAITS_MS does it count as a 401: the app reloads once and the
+ * gateway signs the person in again. */
 export async function send(
   req: Request,
   wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms)),
 ): Promise<Response> {
   const again = req.clone();
-  const first = await globalThis.fetch(new Request(req, { redirect: "manual" }));
-  if (first.type !== "opaqueredirect") return first;
-  await wait(SIGN_IN_WAIT_MS);
-  const second = await globalThis.fetch(new Request(again, { redirect: "manual" }));
-  if (second.type !== "opaqueredirect") return second;
+  const answer = await globalThis.fetch(new Request(req, { redirect: "manual" }));
+  if (answer.type !== "opaqueredirect") return answer;
+  for (const ms of SIGN_IN_WAITS_MS) {
+    await wait(ms);
+    const next = await globalThis.fetch(new Request(again.clone(), { redirect: "manual" }));
+    if (next.type !== "opaqueredirect") return next;
+  }
   return new Response(null, { status: 401 });
 }
 

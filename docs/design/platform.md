@@ -49,9 +49,19 @@
   the one refresh token; the losers get a 302 to Rauthy, which fetch would
   follow into a CORS failure that the screens show as a lost connection
   ("Die freien Plätze konnten nicht geladen werden", Seb's feedback #64,
-  2026-10-29). Such a call asks once more after 1.5 s, when the winner's
-  cookies have landed, and a second redirect counts as a 401: the app
-  reloads once and the gateway signs the person in again.
+  2026-10-29). Such a call asks again after 1.5, 2, 3 and 3.5 s, ten
+  seconds in all, and only a redirect after that counts as a 401: the app
+  reloads once and the gateway signs the person in again. The ten seconds
+  are for a sleeping gateway (Seb, 2026-10-30): after about 15 minutes
+  unused it scales to zero, and Rauthy, which swaps the token, takes about
+  seven seconds to wake (two fixed waits of 2.5 s while its cache starts);
+  until then every call is sent to sign-in.
+- **The boot screen stays until the first screen's data are there**, on
+  every start (`services/app/src/main.tsx`; Seb, 2026-10-30), not only on
+  the reload for a new release as kit/web's `appReady` does: a cold
+  gateway and API take up to ten seconds, and the app stood there empty
+  meanwhile. It still never shows when the data come within 0.3 s, and
+  goes after ten seconds at most.
 - The service migrates at start-up and does not start on a failed
   migration, so Cloud Run keeps the revision before it.
 - Every request from the app says which build sent it (`X-Client:

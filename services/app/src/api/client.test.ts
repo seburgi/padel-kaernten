@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { serve, problem } from "../test/fetch";
-import { api, ApiError, call, isLocal, newKey, reloadOnce, send } from "./client";
+import { api, ApiError, call, isLocal, newKey, reloadOnce, send, SIGN_IN_WAITS_MS } from "./client";
 
 describe("client", () => {
   it("reloads once for an expired note", () => {
@@ -55,10 +55,18 @@ describe("client", () => {
     expect(wait).toHaveBeenCalledWith(1500);
   });
 
-  it("counts a second trip to sign-in as an expired note", async () => {
-    vi.stubGlobal("fetch", () => Promise.resolve(toSignIn()));
-    const res = await send(new Request("https://padel.test/x"), () => Promise.resolve());
+  it("waits about ten seconds for a waking gateway, then counts it as an expired note", async () => {
+    const fake = vi.fn(() => Promise.resolve(toSignIn()));
+    vi.stubGlobal("fetch", fake);
+    const wait = vi.fn<(ms: number) => Promise<void>>(() => Promise.resolve());
+    const res = await send(
+      new Request("https://padel.test/x", { method: "POST", body: "b" }),
+      wait,
+    );
     expect(res.status).toBe(401);
+    expect(fake).toHaveBeenCalledTimes(1 + SIGN_IN_WAITS_MS.length);
+    expect(wait.mock.calls.map(([ms]) => ms)).toEqual(SIGN_IN_WAITS_MS);
+    expect(SIGN_IN_WAITS_MS.reduce((a, b) => a + b)).toBe(10_000);
   });
 
   it("asks only once when the answer is no redirect", async () => {
