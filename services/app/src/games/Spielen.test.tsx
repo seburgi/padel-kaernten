@@ -231,10 +231,7 @@ describe("BestFits", () => {
       },
     });
     at(<BestFits />);
-    expect(await screen.findByRole("link", { name: "Alle Zeiten" })).toHaveAttribute(
-      "href",
-      "/groups/1/fits",
-    );
+    expect(screen.queryByRole("button", { name: /Alle Zeiten/ })).toBeNull();
     await userEvent.click(await screen.findByRole("button", { name: /vorschlagen/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Der Platz ist inzwischen weg.");
     expect(await screen.findByText(/Gerade passt nichts für vier/)).toBeInTheDocument();
@@ -242,6 +239,55 @@ describe("BestFits", () => {
       "href",
       "/availability",
     );
+  });
+
+  it("opens every fitting time from all groups in a sheet", async () => {
+    const calls: Sent[] = [];
+    serve(
+      {
+        "GET /api/v1/groups": () =>
+          answer(200, { items: [summary(1, "Dienstagsrunde"), summary(2, "Mittwochsliga")] }),
+        "GET /api/v1/groups/1/fits": () =>
+          fits([fit({ day: "2026-11-05" }), fit({ day: "2026-11-05", start: 1230 })]),
+        "GET /api/v1/groups/2/fits": () =>
+          fits([fit({ day: "2026-11-01" }), fit({ day: "2026-11-07" })]),
+        "GET /api/v1/games": () => answer(200, { items: [] }),
+        "POST /api/v1/groups/1/games": () => answer(201, game({ id: 13, groupId: 1 })),
+      },
+      calls,
+    );
+    const { router } = at(<BestFits />);
+    await userEvent.click(await screen.findByRole("button", { name: "Alle Zeiten (4)" }));
+    const sheet = screen.getByRole("dialog", { name: "Alle passenden Zeiten" });
+    expect(
+      within(sheet)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["So 1.11.", "Do 5.11.", "Sa 7.11."]);
+    expect(within(sheet).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(sheet).getByRole("link", { name: "Mittwochsliga" })).toHaveAttribute(
+      "href",
+      "/groups/2/fits",
+    );
+    await userEvent.click(
+      within(sheet).getByRole("button", { name: "Do 5.11. 20:30 in Padel Villach vorschlagen" }),
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe("/games/13"));
+  });
+
+  it("closes the sheet", async () => {
+    serve({
+      "GET /api/v1/groups": () => answer(200, { items: [summary(1, "Dienstagsrunde")] }),
+      "GET /api/v1/groups/1/fits": () =>
+        fits(["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04"].map((day) => fit({ day }))),
+      "GET /api/v1/games": () => answer(200, { items: [] }),
+    });
+    at(<BestFits />);
+    await userEvent.click(await screen.findByRole("button", { name: "Alle Zeiten (4)" }));
+    const sheet = screen.getByRole("dialog");
+    expect(within(sheet).getAllByRole("listitem")[0]).not.toHaveTextContent("Dienstagsrunde");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Schließen" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("keeps to one group on its page", async () => {

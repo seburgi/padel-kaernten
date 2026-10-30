@@ -107,9 +107,9 @@ export function Play({
 
       {groups.data && (
         <section>
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <h2 className="font-semibold">Deine Gruppen</h2>
-            <span className="flex gap-3">
+            <span className="flex gap-3 whitespace-nowrap">
               <Link to="/groups" className={`${link} text-sm`}>
                 Gruppen finden
               </Link>

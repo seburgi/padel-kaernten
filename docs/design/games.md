@@ -50,7 +50,11 @@
   the places as rounds (`Seats`); "Deine nächsten Spiele" (`Upcoming`)
   only those they are in or a reserve for; "Passt für vier" (`BestFits`)
   the three soonest 90-minute fits from all their groups, leaving out
-  times already a game, with Vorschlagen. Nothing new in the API: the
+  times already a game, with Vorschlagen. Alle Zeiten (shown only when
+  there are more than three) opens all of them, by day and from every
+  group, in the app's sheet; never one group's page, which made no sense
+  on Spielen (Seb, 2026-10-30). Each group's own fits (other lengths,
+  near misses) are linked from the bottom of the sheet. Nothing new in the API: the
   lineup says who answered, and the fits are asked per group. A snapshot older than five minutes is refreshed once when
   the fits open, as on the courts. The group screens get the games as
   props from `App.tsx`, so the slices stay apart.

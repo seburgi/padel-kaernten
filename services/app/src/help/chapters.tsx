@@ -210,7 +210,8 @@ export const CHAPTERS: Chapter[] = [
           geantwortet hast, mit {b("Bin dabei")} und {b("Kann nicht")} gleich auf der Karte, und
           Einladungen in Gruppen. Darunter {b("Deine nächsten Spiele")}, bei denen du dabei oder
           Ersatz bist, und {b("Passt für vier")}: die nächsten passenden Zeiten aus all deinen
-          Gruppen, zum Vorschlagen mit einem Tipp. Alle Spiele einer Gruppe stehen auf ihrer Seite.
+          Gruppen, zum Vorschlagen mit einem Tipp. Gibt es mehr als drei, öffnet {b("Alle Zeiten")}{" "}
+          sie alle, nach Tagen. Alle Spiele einer Gruppe stehen auf ihrer Seite.
         </p>
       </>
     ),
