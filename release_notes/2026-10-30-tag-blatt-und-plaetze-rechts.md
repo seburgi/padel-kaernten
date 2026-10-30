@@ -5,7 +5,7 @@ title: Ein Tag fährt von unten herein, Spielen steht jetzt links
 link: /availability
 ---
 Tippst du unter **Wann kann ich?** auf einen Tag, fährt er am Handy jetzt
-als großes Blatt von unten herein. Der Rest dahinter wird grau und
+als Blatt von unten herein. Der Rest dahinter wird grau und
 unscharf, so siehst du nur deinen Tag. Ein Tipp daneben schließt ihn
 wieder, ohne zu speichern.
 

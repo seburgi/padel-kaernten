@@ -313,7 +313,7 @@ function DayEditor({
   const set = (i: number, s: Span) => setDraft(draft.map((d, j) => (j === i ? s : d)));
   const wdName = WEEKDAYS_LONG[weekday(day) - 1];
 
-  // On a phone the day slides up as a tall sheet from the bottom, over the
+  // On a phone the day slides up as a sheet from the bottom, over the
   // tab bar, with the page behind it dimmed and blurred; a tap on it closes
   // the day (Seb, 2026-10-29/30). Wider, it opens in its row.
   useEffect(() => {
@@ -332,7 +332,7 @@ function DayEditor({
       <div
         role="dialog"
         aria-label={dayLabel(day)}
-        className="px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:h-[85dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:border-t max-md:border-line max-md:bg-card max-md:pt-2 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))] max-md:shadow-2xl max-md:motion-safe:animate-sheet-up"
+        className="px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[85dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:border-t max-md:border-line max-md:bg-card max-md:pt-2 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))] max-md:shadow-2xl max-md:motion-safe:animate-sheet-up"
       >
         <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line md:hidden" aria-hidden="true" />
         <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
