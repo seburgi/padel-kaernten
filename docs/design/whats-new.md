@@ -18,7 +18,7 @@
   `POST /api/v1/release-notes/read` (with an `Idempotency-Key`) records a
   list of slugs, and leaves out one the API does not ship (the page may
   be older than the deploy).
-- **The app** shows the page **Neu** at `/whats-new` (a link in the head
+- **The app** shows the page **Neuigkeiten** at `/whats-new` (Seb, 2026-10-30; it was "Neu") (a link in the head
   on a wide screen; on a phone a row on Mehr, and the tab Mehr carries a
   dot while a note is unread) and, while a note is unread, a small card under the head on
   the two first screens, Plätze and Spielen, only (Seb, 2026-10-29: it

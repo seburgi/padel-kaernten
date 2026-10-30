@@ -125,7 +125,7 @@ describe("App", () => {
     );
   });
 
-  it("puts Neu, Hilfe and Einladen behind Mehr, with a dot for what is unread", async () => {
+  it("puts Dein Name first, then Neuigkeiten, Hilfe and Einladen behind Mehr, with a dot for what is unread", async () => {
     serve({
       "GET /api/v1/me": () =>
         answer(200, { email: "seb@example.at", name: "Seb", canInvite: true, welcomed: true }),
@@ -150,14 +150,12 @@ describe("App", () => {
     await userEvent.click(await within(bar).findByRole("link", { name: "Mehr, neu" }));
     expect(router.state.location.pathname).toBe("/more");
     const more = within(screen.getByRole("main"));
-    expect(more.getByRole("link", { name: /Neu.*1 ungelesen/ })).toHaveAttribute(
+    expect(more.getAllByRole("link")[0]).toHaveAccessibleName(/Dein Name.*Seb/);
+    expect(more.getByRole("link", { name: /Neuigkeiten.*1 ungelesen/ })).toHaveAttribute(
       "href",
       "/whats-new",
     );
-    expect(more.getByRole("link", { name: "Deine Rückmeldungen" })).toHaveAttribute(
-      "href",
-      "/feedback",
-    );
+    expect(more.getByRole("link", { name: "Dein Feedback" })).toHaveAttribute("href", "/feedback");
     expect(more.getByRole("link", { name: /Dein Name.*Seb/ })).toHaveAttribute("href", "/profile");
     expect(more.getByRole("link", { name: "Gruppen finden" })).toHaveAttribute("href", "/groups");
     // The card for what is new stays on the first screens, not on Mehr.
@@ -247,7 +245,7 @@ describe("App", () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("link", { name: "Ansehen" }));
     expect(router.state.location.pathname).toBe("/whats-new");
-    expect(await screen.findByRole("heading", { name: "Neu" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Neuigkeiten" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Note 2026-10-28-new" })).toBeInTheDocument();
     await waitFor(() =>
       expect(calls.find((c) => c.method === "POST")?.body).toEqual({ slugs: ["2026-10-28-new"] }),

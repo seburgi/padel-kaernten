@@ -3,7 +3,7 @@
 // likes, or that it does not suit ("Passt nicht"). A day with nothing is
 // still open: it means "can't" too, but the others may ask. What someone
 // usually has on a weekday is kept, and fills open days on request. Below,
-// the venues they drive to.
+// the venues they drive to, which Mehr shows too.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -477,8 +477,19 @@ function DayEditor({
   );
 }
 
+/** The venues they drive to on a page of its own, Mehr (Seb, 2026-10-30). */
+export function MyVenues() {
+  const mine = useQuery({
+    queryKey: KEY,
+    queryFn: () => call(api.GET("/api/v1/availability")),
+    retry: false,
+  });
+  if (!mine.data) return null;
+  return <Venues chosen={mine.data.venues} title="Deine Plätze" />;
+}
+
 /** Where they drive to; none chosen means every venue. */
-function Venues({ chosen }: { chosen: string[] }) {
+function Venues({ chosen, title = "Wohin fährst du?" }: { chosen: string[]; title?: string }) {
   const client = useQueryClient();
   const venues = useQuery({
     queryKey: ["venues"],
@@ -510,7 +521,7 @@ function Venues({ chosen }: { chosen: string[] }) {
 
   return (
     <section className="mt-6">
-      <h2 className="mb-1 font-semibold">Wohin fährst du?</h2>
+      <h2 className="mb-1 font-semibold">{title}</h2>
       <p className="mb-2 text-sm text-ink-muted">
         {chosen.length === 0 ? "Überall hin. Tipp an, wenn nur manche passen." : "Nur zu diesen:"}
       </p>

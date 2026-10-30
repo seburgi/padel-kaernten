@@ -108,8 +108,8 @@ export const CHAPTERS: Chapter[] = [
           nie von selbst.
         </p>
         <p>
-          Unter {b("Wohin fährst du?")} wählst du die Anlagen, zu denen du fährst. Wählst du keine,
-          gilt jede.
+          Unter {b("Wohin fährst du?")} (am Handy auch unter {b("Mehr")} als {b("Deine Plätze")})
+          wählst du die Anlagen, zu denen du fährst. Wählst du keine, gilt jede.
         </p>
       </>
     ),
@@ -277,21 +277,21 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "feedback",
-    title: "Neu und Rückmeldungen",
-    lead: "Was sich ändert, steht unter Neu. Was dir fehlt oder stört, sagst du mit der Sprechblase.",
+    title: "Neuigkeiten und Feedback",
+    lead: "Was sich ändert, steht unter Neuigkeiten. Was dir fehlt oder stört, sagst du mit der Sprechblase.",
     body: (
       <>
         <p>
-          {b("Neu")} (am Handy unter {b("Mehr")}, sonst oben rechts) listet, was sich in der App
-          geändert hat. Gibt es etwas, das du noch nicht gesehen hast, steht auf Plätze und Spielen
-          eine kleine Karte unter dem Kopf, und am Handy trägt {b("Mehr")} einen Punkt.
+          {b("Neuigkeiten")} (am Handy unter {b("Mehr")}, sonst oben rechts) listet, was sich in der
+          App geändert hat. Gibt es etwas, das du noch nicht gesehen hast, steht auf Plätze und
+          Spielen eine kleine Karte unter dem Kopf, und am Handy trägt {b("Mehr")} einen Punkt.
         </p>
         <p>
           Die {b("Sprechblase")} oben rechts öffnet ein Feld für deine Rückmeldung an Seb, zu genau
           dem Bildschirm, auf dem du gerade bist. Du kannst darauf markieren, was du meinst. Deine
           bisherigen Rückmeldungen und die Antworten darauf findest du unter{" "}
           <Link to="/feedback" className={link}>
-            Deine Rückmeldungen
+            Dein Feedback
           </Link>
           .
         </p>

@@ -23,7 +23,7 @@ export function WhatsNew() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Neu</h1>
+      <h1 className="mt-2 mb-1 text-2xl font-semibold">Neuigkeiten</h1>
       <p className="mb-4 text-ink-muted">
         Was sich in Padel Kärnten geändert hat, das Neueste zuerst.
       </p>

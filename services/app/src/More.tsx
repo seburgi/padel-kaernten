@@ -1,7 +1,9 @@
 // Mehr: on a phone, what is not one of the two halves of the app sits
 // behind the tab bar's third tab, as on iOS (Seb, 2026-10-28). Each row
 // is a page of its own; wide screens reach the same pages from the head.
-// Under them, the line that Mitteilungen are on (Seb, 2026-10-29).
+// Dein Name comes first, then the pages; under them the venues one drives
+// to (Seb, 2026-10-30) and the line that Mitteilungen are on (Seb,
+// 2026-10-29).
 import { Icon } from "@burgstaller/web/icons";
 import type { IconName } from "@burgstaller/web/icons";
 import type { ReactNode } from "react";
@@ -15,23 +17,25 @@ export function More({
   unread,
   canInvite,
   name,
+  venues,
   push,
 }: {
   unread: number;
   canInvite: boolean;
   name?: string;
+  venues?: ReactNode;
   push?: ReactNode;
 }) {
   const rows: { to: string; label: string; icon: IconName; note?: string }[] = [
+    { to: "/profile", label: "Dein Name", icon: "pencil", note: name || undefined },
     {
       to: "/whats-new",
-      label: "Neu",
+      label: "Neuigkeiten",
       icon: "sparkle",
       note: unread > 0 ? `${unread} ungelesen` : undefined,
     },
     { to: "/help", label: "Hilfe", icon: "info" },
-    { to: "/feedback", label: "Deine Rückmeldungen", icon: "feedback" },
-    { to: "/profile", label: "Dein Name", icon: "pencil", note: name || undefined },
+    { to: "/feedback", label: "Dein Feedback", icon: "feedback" },
     { to: "/groups", label: "Gruppen finden", icon: "search" },
     ...(canInvite ? [{ to: "/invites", label: "Einladen", icon: "mail" as const }] : []),
   ];
@@ -56,6 +60,7 @@ export function More({
           </li>
         ))}
       </ul>
+      {venues}
       {push}
     </main>
   );

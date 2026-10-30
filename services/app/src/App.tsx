@@ -1,6 +1,6 @@
 // The app's frame: the head with What's new, Hilfe and the feedback button on every
 // screen, Plätze and Spielen, and the screens by path (react-router). On a
-// phone Spielen, Wann kann ich?, Plätze and Mehr (Neu, Hilfe, Einladen) sit
+// phone Spielen, Wann kann ich?, Plätze and Mehr (Neuigkeiten, Hilfe, Einladen) sit
 // in the kit's tab bar at the bottom instead (standards/frontend/navigation.md;
 // Wann kann ich? a tab of its own, Seb 2026-10-29; Spielen first and
 // Plätze before Mehr, Seb 2026-10-30). The
@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
-import { Availability } from "./availability/Availability";
+import { Availability, MyVenues } from "./availability/Availability";
 import { Courts } from "./courts/Courts";
 import { AskGroup } from "./games/AskGroup";
 import { BestFits } from "./games/BestFits";
@@ -92,7 +92,7 @@ export function App() {
             )}
             {path !== "/whats-new" && (
               <Link to="/whats-new" className={`${link} hidden px-1.5 text-sm md:inline`}>
-                Neu
+                Neuigkeiten
               </Link>
             )}
             {path !== "/help" && (
@@ -133,7 +133,7 @@ export function App() {
         </nav>
       </header>
       {/* The card stays on the two first screens only, so it never pushes
-          the others down (Seb, 2026-10-29); Mehr and Neu in the head say
+          the others down (Seb, 2026-10-29); Mehr and Neuigkeiten in the head say
           the rest. */}
       {["/", "/play"].includes(path) && !newHere && <WhatsNewCard />}
       {welcomeFirst ? (
@@ -200,6 +200,7 @@ export function App() {
                 unread={unread.length}
                 canInvite={canInvite}
                 name={me.data?.name}
+                venues={<MyVenues />}
                 push={<PushCard where="more" />}
               />
             }

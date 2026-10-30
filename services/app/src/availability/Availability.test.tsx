@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { Availability as Mine, Span } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
-import { Availability } from "./Availability";
+import { Availability, MyVenues } from "./Availability";
 
 // 2026-10-29 is a Thursday; Friday is weekday 5.
 const start = (): Mine => ({
@@ -252,6 +252,18 @@ describe("Availability", () => {
     renderWithQuery(<Availability />);
     await screen.findByRole("button", { name: "Do 29.10.: 18:30–22:00" });
     expect(screen.queryByText("Wohin fährst du?")).toBeNull();
+  });
+
+  it("chooses venues on Mehr too, as Deine Plätze", async () => {
+    const mine = start();
+    mine.venues = ["villach"];
+    api(mine, []);
+    renderWithQuery(<MyVenues />);
+    expect(await screen.findByRole("heading", { name: "Deine Plätze" })).toBeInTheDocument();
+    expect(screen.getByText("Nur zu diesen:")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Annenheim" }));
+    await waitFor(() => expect(mine.venues).toEqual(["annenheim", "villach"]));
+    expect(screen.queryByText("Wann kannst du?")).toBeNull();
   });
 
   it("says when a venue is gone, and when nothing loads", async () => {
