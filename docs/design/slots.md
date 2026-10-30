@@ -36,7 +36,7 @@
   It shows each fitting court with its price per hour and a link to the
   venue's booking page for that day. For someone in a group a start time
   opens "Gruppe fragen" instead (Seb, 2026-10-29; `games/AskGroup`, handed
-  to `Courts` by `App.tsx`): who of each group can then, from the group's
+  to `Courts` by `App.tsx`; the app's sheet, `platform.md`): who of each group can then, from the group's
   fits and near misses, "In … vorschlagen", and "Selbst buchen ↗".
 - Someone who chose the venues they drive to (Mehr › Deine Plätze, the
   availability slice's venues, handed to `Courts` by `App.tsx` as `only`)

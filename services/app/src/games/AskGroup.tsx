@@ -6,6 +6,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router";
 import { api, ApiError, call, useWriteKey, type Fit } from "../api/client";
+import { Sheet } from "../Sheet";
 import { link, primary, quiet } from "../ui";
 import { dayLabel, errorText, shown, span } from "./games";
 
@@ -77,12 +78,7 @@ export function AskGroup({ slot, onClose }: { slot: Asked; onClose: () => void }
   });
 
   return (
-    <div
-      role="dialog"
-      aria-label="Gruppe fragen"
-      className="fixed inset-x-0 bottom-[calc(var(--size-tabbar)+env(safe-area-inset-bottom))] z-30 mx-auto max-h-[70vh] max-w-3xl overflow-y-auto rounded-t-2xl border-t border-line bg-card px-4 pt-2 pb-4 md:bottom-4 md:rounded-2xl md:border"
-    >
-      <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line md:hidden" aria-hidden="true" />
+    <Sheet label="Gruppe fragen" wide="float" onClose={onClose}>
       <h2 className="font-semibold">
         {dayLabel(slot.day)}, {span(slot.start, slot.minutes)} · {slot.venueName}
       </h2>
@@ -135,6 +131,6 @@ export function AskGroup({ slot, onClose }: { slot: Asked; onClose: () => void }
           </button>
         </span>
       </div>
-    </div>
+    </Sheet>
   );
 }

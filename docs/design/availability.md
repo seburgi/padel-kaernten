@@ -32,10 +32,8 @@
 - **In the app** (`services/app/src/availability`, `/availability`, "Wann
   kannst du?"; on a phone a tab of its own, "Wann kann ich?", after Spielen,
   then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
-  spans filled in. A row opens an editor (on a phone a sheet as high as its content, at
-  most 85% of the screen, that slides up from the bottom over the tab bar, the page behind dimmed and
-  blurred; a tap there or Escape closes it without saving; Seb,
-  2026-10-29/30): quick choices (Früh 7–9, Mittag
+  spans filled in. A row opens an editor (on a phone the app's sheet, `platform.md`, wider in
+  its row; closing it saves nothing; Seb, 2026-10-29/30): quick choices (Früh 7–9, Mittag
   12–14, Abend ab 18, Ganzer Tag), from–to selects per span on the half
   hour, "+ Noch eine Zeit", "Passt nicht" to decline the day, "Wieder
   offen" to clear it, and "So ist es meistens am …" to keep the day as its
