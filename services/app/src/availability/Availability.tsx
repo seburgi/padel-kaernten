@@ -5,7 +5,7 @@
 // usually has on a weekday is kept, and fills open days on request. Below,
 // the venues they drive to.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   api,
   ApiError,
@@ -313,150 +313,167 @@ function DayEditor({
   const set = (i: number, s: Span) => setDraft(draft.map((d, j) => (j === i ? s : d)));
   const wdName = WEEKDAYS_LONG[weekday(day) - 1];
 
-  // On a phone the day opens as a sheet from the bottom, just above the
-  // tab bar, so the editor is where the thumb is, whatever row was tapped
-  // (Seb, 2026-10-29); wider, it opens in its row.
+  // On a phone the day slides up as a tall sheet from the bottom, over the
+  // tab bar, with the page behind it dimmed and blurred; a tap on it closes
+  // the day (Seb, 2026-10-29/30). Wider, it opens in its row.
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
   return (
-    <div
-      role="dialog"
-      aria-label={dayLabel(day)}
-      className="px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-[calc(var(--size-tabbar)+env(safe-area-inset-bottom))] max-md:z-30 max-md:max-h-[70vh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:border-t max-md:border-line max-md:bg-card max-md:pt-2"
-    >
-      <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line md:hidden" aria-hidden="true" />
-      <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {QUICK.map((q) => (
-          <button
-            key={q.label}
-            type="button"
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
-            onClick={() => setDraft(merge([...draft, q.span]))}
-          >
-            {q.label}
-          </button>
-        ))}
-        {usual.length > 0 && spansText(usual) !== spansText(merge(draft)) && (
-          <button
-            type="button"
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
-            onClick={() => setDraft(usual)}
-          >
-            Wie meistens: {spansText(usual)}
-          </button>
-        )}
-      </div>
-      {draft.length === 0 && (
-        <p className="mb-3 text-sm text-ink-muted">
-          {declined
-            ? "Passt nicht: an diesem Tag spielst du nicht."
-            : "Noch offen: zählt wie „kann nicht“, aber die anderen fragen dich vielleicht."}
-        </p>
-      )}
-      <ul className="mb-3 space-y-2">
-        {draft.map((s, i) => (
-          <li key={i} className="flex items-center gap-2">
-            <label className="sr-only" htmlFor={`from-${i}`}>
-              Von
-            </label>
-            <select
-              id={`from-${i}`}
-              className={field}
-              value={s.from}
-              onChange={(e) => {
-                const from = Number(e.target.value);
-                set(i, { from, to: Math.max(s.to, Math.min(from + 60, LAST)) });
-              }}
+    <>
+      <div
+        className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm motion-safe:animate-fade-in md:hidden"
+        aria-hidden="true"
+        data-backdrop
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-label={dayLabel(day)}
+        className="px-4 py-3 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:h-[85dvh] max-md:overflow-y-auto max-md:rounded-t-2xl max-md:border-t max-md:border-line max-md:bg-card max-md:pt-2 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))] max-md:shadow-2xl max-md:motion-safe:animate-sheet-up"
+      >
+        <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line md:hidden" aria-hidden="true" />
+        <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {QUICK.map((q) => (
+            <button
+              key={q.label}
+              type="button"
+              className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
+              onClick={() => setDraft(merge([...draft, q.span]))}
             >
-              {GRID.filter((m) => m < LAST).map((m) => (
-                <option key={m} value={m}>
-                  {clock(m)}
-                </option>
-              ))}
-            </select>
-            <span aria-hidden="true">bis</span>
-            <label className="sr-only" htmlFor={`to-${i}`}>
-              Bis
-            </label>
-            <select
-              id={`to-${i}`}
-              className={field}
-              value={s.to}
-              onChange={(e) => set(i, { from: s.from, to: Number(e.target.value) })}
-            >
-              {GRID.filter((m) => m > s.from).map((m) => (
-                <option key={m} value={m}>
-                  {clock(m)}
-                </option>
-              ))}
-            </select>
+              {q.label}
+            </button>
+          ))}
+          {usual.length > 0 && spansText(usual) !== spansText(merge(draft)) && (
             <button
               type="button"
-              className={`${link} px-2 text-sm`}
-              aria-label={`${clock(s.from)}–${clock(s.to)} weg`}
-              onClick={() => setDraft(draft.filter((_, j) => j !== i))}
+              className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
+              onClick={() => setDraft(usual)}
             >
-              Weg
+              Wie meistens: {spansText(usual)}
             </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className={`${link} mb-3 text-sm`}
-        onClick={() => {
-          const after = draft.length
-            ? Math.min(draft[draft.length - 1]!.to + 60, LAST - 60)
-            : 18 * 60;
-          setDraft([...draft, { from: after, to: after + 60 }]);
-        }}
-      >
-        + Noch eine Zeit
-      </button>
-      <label className="mb-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-        So ist es meistens am {wdName}
-      </label>
-      <div className="flex flex-wrap gap-2">
+          )}
+        </div>
+        {draft.length === 0 && (
+          <p className="mb-3 text-sm text-ink-muted">
+            {declined
+              ? "Passt nicht: an diesem Tag spielst du nicht."
+              : "Noch offen: zählt wie „kann nicht“, aber die anderen fragen dich vielleicht."}
+          </p>
+        )}
+        <ul className="mb-3 space-y-2">
+          {draft.map((s, i) => (
+            <li key={i} className="flex items-center gap-2">
+              <label className="sr-only" htmlFor={`from-${i}`}>
+                Von
+              </label>
+              <select
+                id={`from-${i}`}
+                className={field}
+                value={s.from}
+                onChange={(e) => {
+                  const from = Number(e.target.value);
+                  set(i, { from, to: Math.max(s.to, Math.min(from + 60, LAST)) });
+                }}
+              >
+                {GRID.filter((m) => m < LAST).map((m) => (
+                  <option key={m} value={m}>
+                    {clock(m)}
+                  </option>
+                ))}
+              </select>
+              <span aria-hidden="true">bis</span>
+              <label className="sr-only" htmlFor={`to-${i}`}>
+                Bis
+              </label>
+              <select
+                id={`to-${i}`}
+                className={field}
+                value={s.to}
+                onChange={(e) => set(i, { from: s.from, to: Number(e.target.value) })}
+              >
+                {GRID.filter((m) => m > s.from).map((m) => (
+                  <option key={m} value={m}>
+                    {clock(m)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={`${link} px-2 text-sm`}
+                aria-label={`${clock(s.from)}–${clock(s.to)} weg`}
+                onClick={() => setDraft(draft.filter((_, j) => j !== i))}
+              >
+                Weg
+              </button>
+            </li>
+          ))}
+        </ul>
         <button
           type="button"
-          className={primary}
-          disabled={save.isPending}
-          aria-busy={save.isPending}
-          // With no times, a day that did not suit still does not.
-          onClick={() => save.mutate({ next: merge(draft), no: declined && draft.length === 0 })}
+          className={`${link} mb-3 text-sm`}
+          onClick={() => {
+            const after = draft.length
+              ? Math.min(draft[draft.length - 1]!.to + 60, LAST - 60)
+              : 18 * 60;
+            setDraft([...draft, { from: after, to: after + 60 }]);
+          }}
         >
-          {save.isPending ? "Speichert …" : "Speichern"}
+          + Noch eine Zeit
         </button>
-        {!declined && (
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          So ist es meistens am {wdName}
+        </label>
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className={danger}
+            className={primary}
             disabled={save.isPending}
-            onClick={() => save.mutate({ next: [], no: true })}
+            aria-busy={save.isPending}
+            // With no times, a day that did not suit still does not.
+            onClick={() => save.mutate({ next: merge(draft), no: declined && draft.length === 0 })}
           >
-            Passt nicht
+            {save.isPending ? "Speichert …" : "Speichern"}
           </button>
-        )}
-        {(declined || spans.length > 0) && (
-          <button
-            type="button"
-            className={quiet}
-            disabled={save.isPending}
-            onClick={() => save.mutate({ next: [], no: false })}
-          >
-            Wieder offen
+          {!declined && (
+            <button
+              type="button"
+              className={danger}
+              disabled={save.isPending}
+              onClick={() => save.mutate({ next: [], no: true })}
+            >
+              Passt nicht
+            </button>
+          )}
+          {(declined || spans.length > 0) && (
+            <button
+              type="button"
+              className={quiet}
+              disabled={save.isPending}
+              onClick={() => save.mutate({ next: [], no: false })}
+            >
+              Wieder offen
+            </button>
+          )}
+          <button type="button" className={quiet} onClick={onClose}>
+            Abbrechen
           </button>
+        </div>
+        {save.isError && (
+          <p role="alert" className="mt-2 text-sm text-danger-text">
+            {errorText(save.error)}
+          </p>
         )}
-        <button type="button" className={quiet} onClick={onClose}>
-          Abbrechen
-        </button>
       </div>
-      {save.isError && (
-        <p role="alert" className="mt-2 text-sm text-danger-text">
-          {errorText(save.error)}
-        </p>
-      )}
-    </div>
+    </>
   );
 }
 

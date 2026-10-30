@@ -121,6 +121,13 @@ describe("Availability", () => {
     expect(screen.getByLabelText("Bis", { selector: "#to-0" })).toHaveValue("1440");
     await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
     expect(screen.getByRole("button", { name: "So 1.11.: noch offen" })).toBeInTheDocument();
+    // On a phone a tap on the dimmed page behind closes it too, as does Escape.
+    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
+    await userEvent.click(document.querySelector<HTMLElement>("[data-backdrop]")!);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("uses the usual times and remembers new ones", async () => {

@@ -94,12 +94,12 @@ describe("App", () => {
         "aria-current",
         "page",
       );
-    // On a phone Wann kann ich? is a tab of its own, after Plätze.
+    // On a phone Wann kann ich? is a tab of its own, first, and Plätze is last.
     expect(
       within(bar)
         .getAllByRole("link")
         .map((l) => l.textContent),
-    ).toEqual(["Plätze", "Wann kann ich?", "Spielen", "Mehr"]);
+    ).toEqual(["Wann kann ich?", "Spielen", "Mehr", "Plätze"]);
     await userEvent.click(within(bar).getByRole("link", { name: "Wann kann ich?" }));
     expect(await screen.findByRole("heading", { name: "Wann kannst du?" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/availability");
