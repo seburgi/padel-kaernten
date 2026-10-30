@@ -73,11 +73,7 @@ function dayText(d: AvailabilityDay | undefined): string {
 
 export function Availability() {
   const client = useQueryClient();
-  const mine = useQuery({
-    queryKey: KEY,
-    queryFn: () => call(api.GET("/api/v1/availability")),
-    retry: false,
-  });
+  const mine = useMine();
   const [open, setOpen] = useState<string | null>(null);
 
   const fillKey = useWriteKey();
@@ -477,13 +473,22 @@ function DayEditor({
   );
 }
 
-/** The venues they drive to on a page of its own, Mehr (Seb, 2026-10-30). */
-export function MyVenues() {
-  const mine = useQuery({
+function useMine() {
+  return useQuery({
     queryKey: KEY,
     queryFn: () => call(api.GET("/api/v1/availability")),
     retry: false,
   });
+}
+
+/** The venues they drive to, none for every venue; Plätze shows only these (Seb, 2026-10-30). */
+export function useMyVenues(): string[] {
+  return useMine().data?.venues ?? [];
+}
+
+/** The venues they drive to on a page of its own, Mehr (Seb, 2026-10-30). */
+export function MyVenues() {
+  const mine = useMine();
   if (!mine.data) return null;
   return <Venues chosen={mine.data.venues} title="Deine Plätze" />;
 }

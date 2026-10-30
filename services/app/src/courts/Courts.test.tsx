@@ -73,6 +73,21 @@ function snapshot(minutesOld: number, over: object = {}) {
 }
 
 describe("Courts", () => {
+  it("shows only the venues one chose, and every venue when none of them is left", async () => {
+    history.replaceState(null, "", "#ab=23:00&bis=24:00&dauer=60");
+    serve({ "GET /api/v1/slots": () => answer(200, snapshot(1)) });
+    const { unmount } = renderWithQuery(<Courts only={["b", "gone"]} />);
+    expect(await screen.findByText("Nichts frei")).toBeInTheDocument();
+    expect(screen.queryByText("Arena")).toBeNull();
+    expect(screen.getByText(/Ausgebucht:/).parentElement).toHaveTextContent("Base");
+    expect(screen.getByRole("link", { name: "Ändern" })).toHaveAttribute("href", "/more");
+    unmount();
+
+    renderWithQuery(<Courts only={["gone"]} />);
+    expect(await screen.findByText("1 von 2 Anlagen haben was frei")).toBeInTheDocument();
+    expect(screen.queryByText("Nur deine Plätze.")).toBeNull();
+  });
+
   it("shows a fresh snapshot without asking the sites", async () => {
     history.replaceState(null, "", "#ab=23:00&bis=24:00&dauer=60");
     const calls: Sent[] = [];

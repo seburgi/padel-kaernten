@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
-import { Availability, MyVenues } from "./availability/Availability";
+import { Availability, MyVenues, useMyVenues } from "./availability/Availability";
 import { Courts } from "./courts/Courts";
 import { AskGroup } from "./games/AskGroup";
 import { BestFits } from "./games/BestFits";
@@ -68,6 +68,8 @@ export function App() {
   });
   // Someone in a group can propose a free court to it from Plätze.
   const inGroup = groups.data?.some((g) => g.how === "member") ?? false;
+  // Plätze shows only the venues one chose, if any (Seb, 2026-10-30).
+  const only = useMyVenues();
   const toPlay = opening && inGroup;
   const deciding = opening && groups.isPending;
   useKeepPush();
@@ -148,6 +150,7 @@ export function App() {
             path="/"
             element={
               <Courts
+                only={only}
                 ask={
                   inGroup ? (slot, close) => <AskGroup slot={slot} onClose={close} /> : undefined
                 }
@@ -155,7 +158,7 @@ export function App() {
             }
           />
           {/* Seb sees the page; anyone else lands on the courts. */}
-          <Route path="/invites" element={canInvite ? <Invitations /> : <Courts />} />
+          <Route path="/invites" element={canInvite ? <Invitations /> : <Courts only={only} />} />
           {/* The page's address until 2026-10-28; links to it keep working. */}
           <Route path="/einladen" element={<Navigate to="/invites" replace />} />
           <Route

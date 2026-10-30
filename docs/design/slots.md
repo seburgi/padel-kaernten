@@ -38,6 +38,10 @@
   opens "Gruppe fragen" instead (Seb, 2026-10-29; `games/AskGroup`, handed
   to `Courts` by `App.tsx`): who of each group can then, from the group's
   fits and near misses, "In … vorschlagen", and "Selbst buchen ↗".
+- Someone who chose the venues they drive to (Mehr › Deine Plätze, the
+  availability slice's venues, handed to `Courts` by `App.tsx` as `only`)
+  sees only those, with "Nur deine Plätze. Ändern" (Seb, 2026-10-30).
+  None chosen, or none of them in the snapshot any more, shows every venue.
 
 ## Deliberately not
 

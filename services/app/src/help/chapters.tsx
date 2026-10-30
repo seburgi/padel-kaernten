@@ -52,7 +52,8 @@ export const CHAPTERS: Chapter[] = [
           Wähl oben den Tag, dann {b("Beginn ab")} und {b("Ende bis")}, wie lange ihr spielt (1 h,
           1,5 h oder 2 h) und ob Halle oder Freiluft. Die Liste zeigt jede Anlage, die in diesem
           Fenster einen Platz für die ganze Zeit frei hat, mit den möglichen Startzeiten und, wo die
-          Anlage ihn nennt, dem Preis.
+          Anlage ihn nennt, dem Preis. Hast du unter {b("Mehr")} › {b("Deine Plätze")} Anlagen
+          gewählt, siehst du nur diese.
         </p>
         <p>
           {b("Zur Buchung")} öffnet die Buchungsseite der Anlage, eine Startzeit auch, solange du in

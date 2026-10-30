@@ -2,7 +2,9 @@
 // which venues have a court free for the whole game (docs/design/slots.md).
 // For someone in a group, a start time opens ask (from the games slice; App
 // puts it in) to propose it to the group, instead of the venue's page.
+// Someone who chose their venues (Mehr › Deine Plätze) sees only those.
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import type { Venue } from "../api/client";
 import { card, field, link, pressed, quiet } from "../ui";
 import {
@@ -40,7 +42,14 @@ export type Slot = {
   href: string;
 };
 
-export function Courts({ ask }: { ask?: (slot: Slot, close: () => void) => ReactNode }) {
+export function Courts({
+  ask,
+  only = [],
+}: {
+  ask?: (slot: Slot, close: () => void) => ReactNode;
+  /** The venues one chose; none means every venue. */
+  only?: string[];
+}) {
   const { snapshot, loading, loadFailed, refreshing, refreshFailed, nextAt, refreshNow, retry } =
     useSnapshot();
   const [now, setNow] = useState(() => viennaNow());
@@ -68,10 +77,12 @@ export function Courts({ ask }: { ask?: (slot: Slot, close: () => void) => React
     );
   }
   if (!snapshot) return <Skeleton />;
+  const mine = snapshot.venues.filter((v) => only.includes(v.id));
   return (
     <Found
       ask={ask}
-      venues={snapshot.venues}
+      venues={mine.length > 0 ? mine : snapshot.venues}
+      chosen={mine.length > 0}
       days={upcoming(snapshot.days, now.date)}
       now={now}
       stand={
@@ -118,12 +129,14 @@ function clock(t: Date): string {
 function Found({
   ask,
   venues,
+  chosen,
   days,
   now,
   stand,
 }: {
   ask?: (slot: Slot, close: () => void) => ReactNode;
   venues: Venue[];
+  chosen: boolean;
   days: string[];
   now: { date: string; minute: number };
   stand: React.ReactNode;
@@ -230,6 +243,14 @@ function Found({
             · {hm(s.from)}–{hm(s.to)}, {s.duration} min
           </span>
         </p>
+        {chosen && (
+          <p className="mb-2 text-sm text-ink-muted">
+            Nur deine Plätze.{" "}
+            <Link to="/more" className={link}>
+              Ändern
+            </Link>
+          </p>
+        )}
 
         {result.hits.length === 0 && (
           <div className={`${card} mb-3 p-4`}>
