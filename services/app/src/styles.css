@@ -1,18 +1,2 @@
 @import "tailwindcss";
 @import "@burgstaller/web/styles.css";
-
-/* The day's sheet on a phone slides up over a dimmed page (availability). */
-@theme {
-  --animate-sheet-up: sheet-up 320ms cubic-bezier(0.32, 0.72, 0, 1);
-  --animate-fade-in: fade-in 200ms ease-out;
-  @keyframes sheet-up {
-    from {
-      transform: translateY(100%);
-    }
-  }
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-  }
-}

@@ -123,7 +123,7 @@ describe("Availability", () => {
     expect(screen.getByRole("button", { name: "So 1.11.: noch offen" })).toBeInTheDocument();
     // On a phone a tap on the dimmed page behind closes it too, as does Escape.
     await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
-    await userEvent.click(document.querySelector<HTMLElement>("[data-backdrop]")!);
+    await userEvent.click(document.querySelector<HTMLElement>("[data-sheet-shade]")!);
     expect(screen.queryByRole("dialog")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
     await userEvent.keyboard("{Escape}");
