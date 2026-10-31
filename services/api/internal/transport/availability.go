@@ -5,6 +5,7 @@ package transport
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
@@ -140,4 +141,47 @@ func date(day string) openapi_types.Date {
 	var d openapi_types.Date
 	_ = d.UnmarshalText([]byte(day))
 	return d
+}
+
+// GetGroupAvailability is when each member of a group can play, for "Wer
+// kann wann" on the group's page. Members only, like the fits.
+func (h *Handler) GetGroupAvailability(w http.ResponseWriter, r *http.Request, id gen.GroupId) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	g, ok := h.member(w, r, email, id)
+	if !ok {
+		return
+	}
+	emails := make([]string, len(g.List))
+	for i, m := range g.List {
+		emails[i] = m.Email
+	}
+	said, err := h.Availability.Of(r.Context(), emails)
+	if err != nil {
+		h.internal(w, r, "reading availability", err)
+		return
+	}
+	from, to := h.Availability.Window()
+	out := gen.GroupAvailability{From: date(from), To: date(to), Members: make([]gen.MemberAvailability, 0, len(g.List))}
+	for _, m := range g.List {
+		p := said[m.Email]
+		days := make([]string, 0, len(p.Days)+len(p.Declined))
+		for d := range p.Days {
+			days = append(days, d)
+		}
+		for d := range p.Declined {
+			if _, both := p.Days[d]; !both {
+				days = append(days, d)
+			}
+		}
+		slices.Sort(days)
+		ma := gen.MemberAvailability{Email: m.Email, Name: m.Name, Days: make([]gen.AvailabilityDay, len(days))}
+		for i, d := range days {
+			ma.Days[i] = dayOut(availability.Day{Day: d, Spans: p.Days[d], Declined: p.Declined[d] && len(p.Days[d]) == 0})
+		}
+		out.Members = append(out.Members, ma)
+	}
+	writeJSON(w, http.StatusOK, out)
 }

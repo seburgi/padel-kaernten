@@ -480,6 +480,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/groups/{groupId}/availability": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    /**
+     * When each member can play, for "Wer kann wann"
+     * @description Every member's spans and declined days in the window (today and the 13 days after it, in Vienna). Members only; 404 no-group otherwise, also for an open group someone can see but is not in.
+     */
+    get: operations["getGroupAvailability"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/groups/{groupId}/games": {
     parameters: {
       query?: never;
@@ -790,6 +812,20 @@ export interface components {
       spans: components["schemas"]["Span"][];
       /** @description Said not to suit; such a day has no spans. */
       declined: boolean;
+    };
+    GroupAvailability: {
+      /** Format: date */
+      from: string;
+      /** Format: date */
+      to: string;
+      members: components["schemas"]["MemberAvailability"][];
+    };
+    MemberAvailability: {
+      email: string;
+      /** @description "" until they gave one. */
+      name: string;
+      /** @description Only days with spans or declined, in order; a day left out is open. */
+      days: components["schemas"]["AvailabilityDay"][];
     };
     Template: {
       /** @description 1 Monday to 7 Sunday. */
@@ -1604,6 +1640,29 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["FitList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getGroupAvailability: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The window and each member's days. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GroupAvailability"];
         };
       };
       default: components["responses"]["Problem"];

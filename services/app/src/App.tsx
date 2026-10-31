@@ -24,6 +24,7 @@ import { Waiting } from "./games/Waiting";
 import { Group, GroupSettings } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play, Profile } from "./groups/Play";
+import { WhoCan } from "./groups/WhoCan";
 import { FirstSteps } from "./help/FirstSteps";
 import { Help } from "./help/Help";
 import { Welcome } from "./help/Welcome";
@@ -186,6 +187,7 @@ export function App() {
                 games={(id) => (
                   <>
                     <BestFits key={`fits-${id}`} group={id} />
+                    <WhoCan key={`who-${id}`} group={id} />
                     <Upcoming key={id} group={id} />
                   </>
                 )}

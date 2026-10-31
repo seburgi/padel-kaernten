@@ -556,6 +556,25 @@ paths:
                 $ref: "#/components/schemas/FitList"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/availability:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: getGroupAvailability
+      summary: When each member can play, for "Wer kann wann"
+      description: >-
+        Every member's spans and declined days in the window (today and the
+        13 days after it, in Vienna). Members only; 404 no-group otherwise,
+        also for an open group someone can see but is not in.
+      responses:
+        "200":
+          description: The window and each member's days.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupAvailability"
+        default:
+          $ref: "#/components/responses/Problem"
   /api/v1/groups/{groupId}/games:
     parameters:
       - $ref: "#/components/parameters/GroupId"
@@ -1113,6 +1132,34 @@ components:
         declined:
           type: boolean
           description: Said not to suit; such a day has no spans.
+    GroupAvailability:
+      type: object
+      required: [from, to, members]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberAvailability"
+    MemberAvailability:
+      type: object
+      required: [email, name, days]
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+          description: '"" until they gave one.'
+        days:
+          type: array
+          description: Only days with spans or declined, in order; a day left out is open.
+          items:
+            $ref: "#/components/schemas/AvailabilityDay"
     Template:
       type: object
       required: [weekday, spans]

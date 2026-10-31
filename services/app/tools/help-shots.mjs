@@ -242,6 +242,12 @@ const shots = ({ group, game }) => [
     top: 4,
   },
   {
+    name: "wer-kann",
+    path: `/groups/${group}`,
+    from: "main section:has(h2:text-is('Wer kann wann'))",
+    to: "main section:has(h2:text-is('Wer kann wann'))",
+  },
+  {
     name: "spiele-fast",
     path: `/groups/${group}/fits`,
     from: "main section:has(h2:text-is('Fast: eine Person fehlt'))",

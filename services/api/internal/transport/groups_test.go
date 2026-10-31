@@ -291,3 +291,60 @@ func TestGroups_listedAndKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestGroupAvailability(t *testing.T) {
+	a := setup(t)
+	const eva = "eva@example.at"
+	vienna, _ := time.LoadLocation("Europe/Vienna")
+	today := time.Now().In(vienna)
+	tomorrow, later := today.AddDate(0, 0, 1).Format(time.DateOnly), today.AddDate(0, 0, 3).Format(time.DateOnly)
+
+	w := a.send(seb, "POST", "/api/v1/groups", `{"name":"Offen","kind":"open"}`)
+	var g struct{ ID int64 }
+	_ = json.Unmarshal(w.Body.Bytes(), &g)
+	group := fmt.Sprintf("/api/v1/groups/%d", g.ID)
+	_ = a.send(seb, "POST", group+"/invitations", fmt.Sprintf(`{"email":%q}`, anna))
+	_ = a.send(anna, "POST", group+"/join", "")
+	_ = a.send(anna, "PUT", "/api/v1/me/name", `{"name":"Anna"}`)
+	_ = a.send(seb, "PUT", "/api/v1/availability/days/"+later, `{"spans":[{"from":1080,"to":1260}]}`)
+	_ = a.send(seb, "PUT", "/api/v1/availability/days/"+tomorrow, `{"spans":[],"declined":true}`)
+	_ = a.send(anna, "PUT", "/api/v1/availability/days/"+tomorrow, `{"spans":[{"from":600,"to":720},{"from":1140,"to":1200}]}`)
+
+	w = a.do(a.as(anna, "GET", group+"/availability", ""))
+	var got struct {
+		From, To string
+		Members  []struct {
+			Email, Name string
+			Days        []struct {
+				Day      string
+				Declined bool
+				Spans    []struct{ From, To int }
+			}
+		}
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &got); w.Code != 200 || err != nil || got.From != today.Format(time.DateOnly) || len(got.Members) != 2 {
+		t.Fatalf("availability: %d %s", w.Code, w.Body)
+	}
+	by := map[string]int{}
+	for i, m := range got.Members {
+		by[m.Email] = i
+	}
+	s, n := got.Members[by[seb]], got.Members[by[anna]]
+	if len(s.Days) != 2 || s.Days[0].Day != tomorrow || !s.Days[0].Declined || s.Days[1].Day != later || s.Days[1].Spans[0].From != 1080 {
+		t.Errorf("seb's days, in order: %+v", s.Days)
+	}
+	if n.Name != "Anna" || len(n.Days) != 1 || len(n.Days[0].Spans) != 2 || n.Days[0].Declined {
+		t.Errorf("anna's days: %+v", n)
+	}
+	// An open group shows its members to anyone in the app, but not their times.
+	_ = a.do(a.as(eva, "GET", "/api/v1/me", ""))
+	if w := a.do(a.as(eva, "GET", group, "")); w.Code != 200 {
+		t.Fatalf("eva sees the open group: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(eva, "GET", group+"/availability", "")); w.Code != 404 || problemType(w) != "no-group" {
+		t.Errorf("not a member: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(seb, "GET", "/api/v1/groups/999999/availability", "")); w.Code != 404 {
+		t.Errorf("no such group: %d %s", w.Code, w.Body)
+	}
+}

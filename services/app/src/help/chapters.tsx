@@ -187,6 +187,13 @@ export const CHAPTERS: Chapter[] = [
           bis jemand zusagt.
         </p>
         <p>
+          Darunter zeigt {b("Wer kann wann")} die nächsten 14 Tage der ganzen Gruppe, jede halbe
+          Stunde von 6 bis 24 Uhr. Je dunkler ein Feld, desto mehr von euch können; ab vier hat es
+          einen Punkt. Am Computer stehen die Namen da, wenn du mit der Maus darüberfährst. Ein Tipp
+          auf einen Tag zeigt seine Zeiten mit Namen, wer „Passt nicht“ gesagt hat und wer den Tag
+          noch offen hat. Ob ein Platz frei ist, steht dort nicht, das sagt {b("Passt für vier")}.
+        </p>
+        <p>
           Wo ihr spielt, wählt ihr unter {b("Verwalten")}: {b("Halle")}, {b("Freiluft")} oder{" "}
           {b("Beides")}. Das gilt für die ganze Gruppe, und jedes Mitglied kann es ändern.
           Überdachte Plätze zählen zur Halle. Steht nicht Beides, sieht man es auch auf der Seite
@@ -219,6 +226,10 @@ export const CHAPTERS: Chapter[] = [
       {
         name: "spiele-passt",
         alt: "Wann passt es für vier?: Dauer 60, 90 oder 120 Minuten, wo die Gruppe spielt, darunter passende Zeiten mit Anlage, Preis pro Kopf, wer kann, und Vorschlagen.",
+      },
+      {
+        name: "wer-kann",
+        alt: "Wer kann wann: die nächsten 14 Tage nebeneinander, die Uhrzeit nach unten, abends dunkle Felder mit Punkt, wo vier können.",
       },
       {
         name: "spiele-fast",

@@ -50,7 +50,8 @@
 
 ## Deliberately not
 
-- **No groups here.** Groups read the counts through transport; matching
+- **No groups here.** Groups read the counts, and for Wer kann wann every
+  member's days (`groups.md`), through transport; matching
   people against free courts is the games slice's (`games.md`), which
   gets everyone's spans through `Of`.
 - **No hourly slots.** Courts open at different times (some at 7:00), so

@@ -69,6 +69,18 @@
 - The member list carries `daysEntered`, on how many of the next 14 days
   each member said when they can (`availability.md`); transport joins the
   two slices.
+- **Wer kann wann** (Seb, 2026-10-31, feedback #68): on a group's page,
+  under Passt für vier, the next 14 days of the whole group, every half
+  hour from 6 to 24, the darker the more members can, with a dot from
+  four (`groups/WhoCan.tsx`). `GET /api/v1/groups/{id}/availability`
+  gives every member's spans and declined days, members only: an open
+  group shows its members to anyone, never their times (404 `no-group`).
+  Wide, the days are rows and a hover names who can in that half hour; a
+  click opens the day. On a phone the grid turns, days side by side and
+  the time running down, and a tap on a day opens it in the app's sheet:
+  blocks of time with their names, then who declined and who left it
+  open. Seb chose the overlay over a row per member because it scales
+  with the group.
 
 ## Deliberately not
 
@@ -82,6 +94,8 @@
   everyone sees the same fits. Someone who never plays outdoors says so
   in the group, or the group picks Halle.
 - **Groups are not paged**: a person sees a handful.
+- **Wer kann wann shows no courts**: whether a court is free is Passt für
+  vier's (`games.md`); the grid only says who can.
 
 ## Traps
 
