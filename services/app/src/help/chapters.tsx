@@ -188,7 +188,7 @@ export const CHAPTERS: Chapter[] = [
         </p>
         <p>
           Darunter zeigt {b("Wer kann wann")} die nächsten 14 Tage der ganzen Gruppe, jede halbe
-          Stunde von 6 bis 24 Uhr. Je dunkler ein Feld, desto mehr von euch können; ab vier hat es
+          Stunde von 7 bis 22 Uhr. Je dunkler ein Feld, desto mehr von euch können; ab vier hat es
           einen Punkt. Am Computer stehen die Namen da, wenn du mit der Maus darüberfährst. Ein Tipp
           auf einen Tag zeigt seine Zeiten mit Namen, wer „Passt nicht“ gesagt hat und wer den Tag
           noch offen hat. Ob ein Platz frei ist, steht dort nicht, das sagt {b("Passt für vier")}.

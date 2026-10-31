@@ -71,7 +71,8 @@
   two slices.
 - **Wer kann wann** (Seb, 2026-10-31, feedback #68): on a group's page,
   under Passt für vier, the next 14 days of the whole group, every half
-  hour from 6 to 24, the darker the more members can, with a dot from
+  hour from 7 to 22 (Seb, 2026-10-31; times entered outside are not
+  shown), the darker the more members can, with a dot from
   four (`groups/WhoCan.tsx`). `GET /api/v1/groups/{id}/availability`
   gives every member's spans and declined days, members only: an open
   group shows its members to anyone, never their times (404 `no-group`).

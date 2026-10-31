@@ -39,9 +39,12 @@ describe("overlay and blocks", () => {
     const days = overlay(win.from, win.to, members);
     expect(days).toHaveLength(14);
     const wed = days.find((d) => d.day === "2026-11-04")!;
-    expect(wed.can[(19 * 60 - 360) / 30]).toEqual(["Seb", "Anna", "markus", "Lisa"]);
+    expect(wed.can[(19 * 60 - 420) / 30]).toEqual(["Seb", "Anna", "markus", "Lisa"]);
     expect(wed.open).toEqual(["Eva"]);
     expect(days.find((d) => d.day === "2026-11-03")!.declined).toEqual(["Lisa"]);
+    // Shown from 7 to 22: Seb's last half hour, 21:30 to 22:00, is the last cell.
+    expect(wed.can).toHaveLength(30);
+    expect(wed.can[29]).toEqual(["Seb"]);
     expect(blocks(wed).map((b) => [b.from, b.to, b.who.length])).toEqual([
       [1080, 1140, 2],
       [1140, 1200, 4],
@@ -59,7 +62,7 @@ describe("WhoCan", () => {
     expect(days).toHaveLength(2); // wide and phone
 
     const cells = days[0]!.querySelectorAll("span.grid > span");
-    fireEvent.mouseEnter(cells[(19 * 60 - 360) / 30]!);
+    fireEvent.mouseEnter(cells[(19 * 60 - 420) / 30]!);
     expect(screen.getByRole("tooltip")).toHaveTextContent(
       "Mi 4.11. · 19:00–19:304 von 5: Seb, Anna, markus, Lisa",
     );

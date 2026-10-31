@@ -1,5 +1,6 @@
 // Wer kann wann on a group's page (Seb, 2026-10-31, feedback #68): the
-// next 14 days, every half hour from 6 to 24, the darker the more members
+// next 14 days, every half hour from 7 to 22 (Seb, 2026-10-31; times
+// entered outside are left out), the darker the more members
 // can; four or more get a dot. It scales with the group, where a row per
 // member would not. Wide, the days are rows and a hover names who can; on a
 // phone the grid turns, days side by side and the time running down, and a
@@ -12,9 +13,10 @@ import { api, call, type AvailabilityDay } from "../api/client";
 import { Sheet } from "@burgstaller/web/sheet";
 import { card, link, quiet } from "../ui";
 
-const FIRST = 6 * 60;
+const FIRST = 7 * 60;
 const STEP = 30;
-const SLOTS = (24 * 60 - FIRST) / STEP;
+const LAST = 22 * 60;
+const SLOTS = (LAST - FIRST) / STEP;
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 const FOUR = 4;
 
@@ -168,7 +170,7 @@ export function WhoCan({ group }: { group: number }) {
             <div className="mb-1 grid grid-cols-[4.5rem_1fr] gap-3 font-mono text-[10px] text-ink-faint">
               <span />
               <span className="flex justify-between">
-                {[6, 9, 12, 15, 18, 21, 24].map((h) => (
+                {[7, 10, 13, 16, 19, 22].map((h) => (
                   <span key={h}>{h}</span>
                 ))}
               </span>
@@ -187,7 +189,7 @@ export function WhoCan({ group }: { group: number }) {
                   >
                     {dayLabel(d.day)}
                   </span>
-                  <span className="grid h-[18px] grid-cols-[repeat(36,minmax(0,1fr))] gap-px">
+                  <span className="grid h-[18px] grid-cols-[repeat(30,minmax(0,1fr))] gap-px">
                     {d.can.map((w, i) => (
                       <Cell key={i} n={w.length} onEnter={enter(d, i)} />
                     ))}
@@ -228,11 +230,11 @@ export function WhoCan({ group }: { group: number }) {
             </div>
             <div className="grid grid-cols-[1.25rem_repeat(14,minmax(0,1fr))] gap-0.5">
               <span className="relative font-mono text-[9.5px] text-ink-faint">
-                {[6, 9, 12, 15, 18, 21].map((h) => (
+                {[7, 10, 13, 16, 19].map((h) => (
                   <span
                     key={h}
                     className="absolute right-0.5"
-                    style={{ top: `${((h - 6) / 18) * 100}%` }}
+                    style={{ top: `${((h * 60 - FIRST) / (LAST - FIRST)) * 100}%` }}
                   >
                     {h}
                   </span>
@@ -242,7 +244,7 @@ export function WhoCan({ group }: { group: number }) {
                 <button
                   key={d.day}
                   type="button"
-                  className="grid grid-rows-[repeat(36,9px)] gap-px rounded-sm"
+                  className="grid grid-rows-[repeat(30,10px)] gap-px rounded-sm"
                   aria-label={`${dayLabel(d.day)}: bis zu ${best(d)} von ${total}`}
                   onClick={() => setOpen(d)}
                 >
