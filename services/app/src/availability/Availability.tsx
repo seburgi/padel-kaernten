@@ -18,7 +18,7 @@ import {
   type Template,
 } from "../api/client";
 import { Link } from "react-router";
-import { Sheet } from "../Sheet";
+import { Sheet } from "@burgstaller/web/sheet";
 import { card, danger, field, link, pressed, primary, quiet } from "../ui";
 import {
   clock,

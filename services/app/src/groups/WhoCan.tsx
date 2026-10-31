@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, type MouseEvent } from "react";
 import { Link } from "react-router";
 import { api, call, type AvailabilityDay } from "../api/client";
-import { Sheet } from "../Sheet";
+import { Sheet } from "@burgstaller/web/sheet";
 import { card, link, quiet } from "../ui";
 
 const FIRST = 7 * 60;

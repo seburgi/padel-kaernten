@@ -11,7 +11,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, ApiError, call, useWriteKey, type Fit } from "../api/client";
-import { Sheet } from "../Sheet";
+import { Sheet } from "@burgstaller/web/sheet";
 import { card, link, quiet } from "../ui";
 import { clock, dayLabel, errorText, euros, shown, span, useGames } from "./games";
 
