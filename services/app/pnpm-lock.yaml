@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@burgstaller/web':
-        specifier: github:seburgi/burgstaller-platform#kit/web/v0.4.0&path:/kit/web
-        version: git+https://git@github.com:seburgi/burgstaller-platform.git#e7cd189665247b8adbe7cb95e628c86fed0db232&path:/kit/web(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vite@8.3.5(@types/node@22.20.5)(jiti@2.7.0))
+        specifier: github:seburgi/burgstaller-platform#kit/web/v0.2.0&path:/kit/web
+        version: git+https://git@github.com:seburgi/burgstaller-platform.git#da650c817e8b56ef9d90f31711e7be65d8c99893&path:/kit/web(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vite@8.3.5(@types/node@22.20.5)(jiti@2.7.0))
       '@tanstack/react-query':
         specifier: ^5.90.0
         version: 5.105.0(@types/react@19.3.0)(react@19.3.1)
@@ -205,9 +205,9 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@burgstaller/web@git+https://git@github.com:seburgi/burgstaller-platform.git#e7cd189665247b8adbe7cb95e628c86fed0db232&path:/kit/web':
-    resolution: {commit: e7cd189665247b8adbe7cb95e628c86fed0db232, path: /kit/web, repo: git@github.com:seburgi/burgstaller-platform.git, type: git}
-    version: 0.4.0
+  '@burgstaller/web@git+https://git@github.com:seburgi/burgstaller-platform.git#da650c817e8b56ef9d90f31711e7be65d8c99893&path:/kit/web':
+    resolution: {commit: da650c817e8b56ef9d90f31711e7be65d8c99893, path: /kit/web, repo: git@github.com:seburgi/burgstaller-platform.git, type: git}
+    version: 0.2.0
     peerDependencies:
       react: ^19.3.0
       react-dom: ^19.3.0
@@ -1875,7 +1875,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@burgstaller/web@git+https://git@github.com:seburgi/burgstaller-platform.git#e7cd189665247b8adbe7cb95e628c86fed0db232&path:/kit/web(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vite@8.3.5(@types/node@22.20.5)(jiti@2.7.0))':
+  '@burgstaller/web@git+https://git@github.com:seburgi/burgstaller-platform.git#da650c817e8b56ef9d90f31711e7be65d8c99893&path:/kit/web(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vite@8.3.5(@types/node@22.20.5)(jiti@2.7.0))':
     dependencies:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)

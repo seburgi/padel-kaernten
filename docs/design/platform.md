@@ -66,16 +66,14 @@
   migration, so Cloud Run keeps the revision before it.
 - Every request from the app says which build sent it (`X-Client:
   web/<commit>`), and the service logs it.
-- **Every sheet is the same** (Seb, 2026-10-30; the platform's since
-  2026-10-31, `standards/frontend/sheets.md`): the kit's `<Sheet>` from
-  `@burgstaller/web/sheet`. On a phone it slides up from the bottom over
-  the tab bar, as high as its content and at most 85% of the screen, over
-  the page dimmed and blurred; a pull down, a tap on that page, Escape or
-  its own Abbrechen/Schließen closes it. Wider it is either `inline` (a
-  day in its row) or `float` (a card at the bottom over the same dimmed
-  page). Today: a day under Wann kann ich?, Gruppe fragen on Plätze, a
-  day under Wer kann wann and Alle passenden Zeiten. A new sheet or dialog
-  uses it, never its own.
+- **Every sheet is the same** (Seb, 2026-10-30: a rule for the whole
+  app): `services/app/src/Sheet.tsx`. On a phone it slides up from the
+  bottom over the tab bar, as high as its content and at most 85% of the
+  screen, over the page dimmed and blurred; a tap on that page, Escape or
+  its own Abbrechen/Schließen closes it. Wider it is either "inline" (a
+  day in its row) or "float" (a card at the bottom over the same dimmed
+  page). Today: a day under Wann kann ich? and Gruppe fragen on Plätze.
+  A new sheet or dialog uses it, never its own.
 
 ## Deliberately not
 

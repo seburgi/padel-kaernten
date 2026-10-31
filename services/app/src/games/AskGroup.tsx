@@ -6,7 +6,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router";
 import { api, ApiError, call, useWriteKey, type Fit } from "../api/client";
-import { Sheet } from "@burgstaller/web/sheet";
+import { Sheet } from "../Sheet";
 import { link, primary, quiet } from "../ui";
 import { dayLabel, errorText, shown, span } from "./games";
 
