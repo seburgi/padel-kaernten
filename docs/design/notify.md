@@ -58,6 +58,13 @@
   from the home screen, and the card says so. `src/sw.ts` shows the push
   and opens the game on a tap (`push/notification.ts`, kept apart so the
   worker takes nothing of the app with it).
+- **Answering from the notification** (Seb, 2026-11-04): a proposed
+  game's message carries the game's id, and the worker shows "Bin dabei"
+  and "Kann nicht" on it where the browser has buttons (Android, desktop;
+  not iOS). A button sends `PUT /api/v1/games/{id}/players/me` from the
+  worker with the person's own cookies, as the app would, and swaps the
+  notification for "Du bist dabei" or "Du hast abgesagt". When that does
+  not take (signed out, the game closed, offline), the game opens instead.
 - **Kinds** (`notify.Kinds`, Seb 2026-11-04): `game` (proposed, full,
   moved up, booked, cancelled), `before`, `stale`, `fits`, `missing` and
   `remind`. Each person turns kinds off on the page Mitteilungen, for all

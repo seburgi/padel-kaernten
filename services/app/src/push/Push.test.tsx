@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
-import { notificationOf } from "./notification";
+import { answeredOf, answerOf, notificationOf, sendAnswer } from "./notification";
 import { bytes, canOf, idOf, useKeepPush } from "./push";
 import { PushCard } from "./PushCard";
 
@@ -271,5 +271,56 @@ describe("useKeepPush", () => {
     renderWithQuery(<Keeper />);
     await waitFor(() => expect(calls.some((c) => c.method === "GET")).toBe(true));
     expect(calls.some((c) => c.method === "PUT")).toBe(false);
+  });
+});
+
+describe("answering from the notification", () => {
+  it("offers Bin dabei and Kann nicht on a proposed game", () => {
+    const n = notificationOf({ title: "Neues Spiel", url: "/games/7", tag: "game-7", game: 7 });
+    expect(n.options.actions).toEqual([
+      { action: "in", title: "Bin dabei" },
+      { action: "out", title: "Kann nicht" },
+    ]);
+    expect(n.options.data).toEqual({ url: "/games/7", game: 7 });
+    expect(notificationOf({ title: "Gebucht", game: "7" }).options.actions).toBeUndefined();
+    expect(notificationOf({ title: "x", game: -1 }).options.actions).toBeUndefined();
+  });
+
+  it("knows a button from a tap", () => {
+    expect(answerOf("in", { url: "/games/7", game: 7 })).toEqual({ game: 7, answer: "in" });
+    expect(answerOf("out", { game: 7 })).toEqual({ game: 7, answer: "out" });
+    expect(answerOf("", { game: 7 })).toBeNull();
+    expect(answerOf("in", { url: "/games/7" })).toBeNull();
+    expect(answerOf("in", null)).toBeNull();
+  });
+
+  it("answers the game as the app does, and says when it did not take", async () => {
+    const fetcher = vi.fn(
+      async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }),
+    );
+    expect(await sendAnswer({ game: 7, answer: "out" }, fetcher as unknown as typeof fetch)).toBe(
+      true,
+    );
+    const [url, init] = fetcher.mock.calls[0] ?? [];
+    expect(url).toBe("/api/v1/games/7/players/me");
+    expect(init?.method).toBe("PUT");
+    expect(init?.redirect).toBe("manual");
+    expect(JSON.parse(String(init?.body))).toEqual({ answer: "out" });
+    expect((init?.headers as Record<string, string>)["Idempotency-Key"]).toMatch(/-/);
+
+    fetcher.mockResolvedValueOnce(new Response(null, { status: 409 }));
+    expect(await sendAnswer({ game: 7, answer: "in" }, fetcher as unknown as typeof fetch)).toBe(
+      false,
+    );
+    fetcher.mockRejectedValueOnce(new TypeError("offline"));
+    expect(await sendAnswer({ game: 7, answer: "in" }, fetcher as unknown as typeof fetch)).toBe(
+      false,
+    );
+
+    expect(answeredOf({ game: 7, answer: "in" })).toMatchObject({
+      title: "Du bist dabei",
+      options: { tag: "game-7", data: { url: "/games/7" } },
+    });
+    expect(answeredOf({ game: 7, answer: "out" }).title).toBe("Du hast abgesagt");
   });
 });

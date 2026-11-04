@@ -257,7 +257,9 @@ export const CHAPTERS: Chapter[] = [
         <p>
           Du hörst davon, wenn jemand in deiner Gruppe ein Spiel vorschlägt, wenn ihr vier seid,
           wenn du als Ersatz nachrückst, wenn gebucht ist und wenn ein Spiel abgesagt wird. Was du
-          selbst tust, meldet sie dir nicht. Ein Tipp auf die Mitteilung öffnet das Spiel.
+          selbst tust, meldet sie dir nicht. Ein Tipp auf die Mitteilung öffnet das Spiel; bei einem
+          neuen Vorschlag kannst du am Handy (außer am iPhone) und am Computer auch gleich{" "}
+          {b("Bin dabei")} oder {b("Kann nicht")} tippen.
         </p>
         <p>
           Einschalten kannst du sie unter Spielen mit {b("Mitteilungen einschalten")}; dein Browser
