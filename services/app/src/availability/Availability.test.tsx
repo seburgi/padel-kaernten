@@ -92,7 +92,7 @@ describe("Availability", () => {
     });
     expect(put.headers.get("Idempotency-Key")).toBeTruthy();
 
-    // Thursday: does not suit after all, and saving without times keeps it so.
+    // Thursday: does not suit after all, at a tap.
     await userEvent.click(thu);
     await userEvent.click(screen.getByRole("button", { name: "Passt nicht" }));
     const no = await screen.findByRole("button", { name: "Do 29.10.: passt nicht" });
@@ -101,11 +101,8 @@ describe("Availability", () => {
     await userEvent.click(no);
     expect(screen.getByText(/an diesem Tag spielst du nicht/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Passt nicht" })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
-    await screen.findByRole("button", { name: "Do 29.10.: passt nicht" });
-    expect(calls.at(-1)!.body).toEqual({ spans: [], declined: true });
-    // And open again.
-    await userEvent.click(screen.getByRole("button", { name: "Do 29.10.: passt nicht" }));
+    // Nothing to save without times; open again.
+    expect(screen.queryByRole("button", { name: "Speichern" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Wieder offen" }));
     expect(
       await screen.findByRole("button", { name: "Do 29.10.: noch offen" }),
@@ -145,34 +142,89 @@ describe("Availability", () => {
     expect(screen.getByRole("button", { name: "Fr 6.11.: 18:00–21:00" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /wie meistens füllen/ })).toBeNull();
 
-    // On a Friday the usual time is offered once it differs.
+    // A Friday that is as usual is not offered its usual time.
     await userEvent.click(screen.getByRole("button", { name: "Fr 30.10.: 18:00–21:00" }));
     expect(screen.queryByRole("button", { name: /Wie meistens/ })).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Ganzer Tag" }));
-    await userEvent.click(screen.getByRole("button", { name: "Wie meistens: 18:00–21:00" }));
     await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
 
     // A Monday becomes the usual for Mondays.
     await userEvent.click(screen.getByRole("button", { name: "Mo 2.11.: noch offen" }));
+    expect(screen.queryByLabelText(/Als übliche Zeit/)).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Abend ab 18" }));
-    await userEvent.click(screen.getByLabelText("So ist es meistens am Montag"));
+    await userEvent.click(screen.getByLabelText("Als übliche Zeit für Montag merken"));
     await userEvent.click(screen.getByRole("button", { name: "Speichern" }));
     await screen.findByRole("button", { name: "Mo 2.11.: 18:00–24:00" });
     expect(mine.templates).toEqual([
       { weekday: 5, spans: [{ from: 1080, to: 1260 }] },
       { weekday: 1, spans: [{ from: 1080, to: 1440 }] },
     ]);
-    // The other empty Monday can now be filled.
+    // The other empty Monday can now be filled, or takes its usual time at a tap.
     expect(
       screen.getByRole("button", { name: "1 leere Tag wie meistens füllen" }),
     ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Mo 9.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Wie meistens: 18:00–24:00" }));
+    expect(
+      await screen.findByRole("button", { name: "Mo 9.11.: 18:00–24:00" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
 
     // A Friday that does not suit, remembered, forgets Fridays.
     await userEvent.click(screen.getByRole("button", { name: "Fr 6.11.: 18:00–21:00" }));
-    await userEvent.click(screen.getByLabelText("So ist es meistens am Freitag"));
+    await userEvent.click(screen.getByLabelText("Als übliche Zeit für Freitag merken"));
     await userEvent.click(screen.getByRole("button", { name: "Passt nicht" }));
     await screen.findByRole("button", { name: "Fr 6.11.: passt nicht" });
     expect(mine.templates).toEqual([{ weekday: 1, spans: [{ from: 1080, to: 1440 }] }]);
+  });
+
+  it("answers several days at once", async () => {
+    const mine = start();
+    const calls: Sent[] = [];
+    api(mine, calls);
+    renderWithQuery(<Availability />);
+    await userEvent.click(await screen.findByRole("button", { name: "Mehrere Tage auf einmal" }));
+    expect(screen.getByRole("button", { name: "Tage antippen" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Mo 2.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Di 3.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mi 4.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mi 4.11.: noch offen" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "2 Tage eintragen" }));
+    expect(screen.getByRole("heading", { name: "2 Tage: Mo 2.11., Di 3.11." })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Passt nicht" }));
+    expect(
+      await screen.findByRole("button", { name: "Mo 2.11.: passt nicht" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Di 3.11.: passt nicht" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mi 4.11.: noch offen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mehrere Tage auf einmal" })).toBeInTheDocument();
+    const puts = calls.filter((c) => c.method === "PUT");
+    expect(puts.map((c) => c.url.pathname)).toEqual([
+      "/api/v1/availability/days/2026-11-02",
+      "/api/v1/availability/days/2026-11-03",
+    ]);
+    expect(new Set(puts.map((c) => c.headers.get("Idempotency-Key"))).size).toBe(2);
+
+    // Two Fridays, each its usual time.
+    await userEvent.click(screen.getByRole("button", { name: "Mehrere Tage auf einmal" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fr 30.10.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sa 31.10.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Fr 6.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "3 Tage eintragen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Jeder wie meistens" }));
+    expect(
+      await screen.findByRole("button", { name: "Fr 30.10.: 18:00–21:00" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fr 6.11.: 18:00–21:00" })).toBeInTheDocument();
+    // A day with no usual time stays as it was.
+    expect(screen.getByRole("button", { name: "Sa 31.10.: noch offen" })).toBeInTheDocument();
+
+    // Picking can stop without a word.
+    await userEvent.click(screen.getByRole("button", { name: "Mehrere Tage auf einmal" }));
+    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
+    await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    await userEvent.click(screen.getByRole("button", { name: "So 1.11.: noch offen" }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("leaves a day that does not suit as it is when filling", async () => {

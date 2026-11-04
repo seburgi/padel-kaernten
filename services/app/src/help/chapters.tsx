@@ -94,9 +94,13 @@ export const CHAPTERS: Chapter[] = [
           Zeiten an einem Tag ein.
         </p>
         <p>
-          Passt ein Tag gar nicht, tipp auf {b("Passt nicht")}. Die Zeile ist dann schraffiert, und
-          oben siehst du, wie viele Tage noch offen sind. So weißt du, welche Tage du schon bedacht
-          hast. {b("Wieder offen")} nimmt den Eintrag zurück.
+          Passt ein Tag gar nicht, tipp auf {b("Passt nicht")}: das ist gleich gespeichert. Die
+          Zeile ist dann schraffiert, und oben siehst du, wie viele Tage noch offen sind. So weißt
+          du, welche Tage du schon bedacht hast. {b("Wieder offen")} nimmt den Eintrag zurück.
+        </p>
+        <p>
+          Mit {b("Mehrere Tage auf einmal")} tippst du mehrere Tage an und trägst sie zusammen ein,
+          etwa „Passt nicht“ für eine ganze Urlaubswoche.
         </p>
         <p>
           Ein offener Tag zählt für Spiele wie „kann nicht“. Fehlt in einer Gruppe nur noch eine
@@ -104,9 +108,10 @@ export const CHAPTERS: Chapter[] = [
           nicht“ gesagt hat, wird für diesen Tag nicht gefragt.
         </p>
         <p>
-          Mit {b("So ist es meistens am …")} merkt sich die App einen Tag als üblich für seinen
-          Wochentag. Leere Tage füllt sie damit nur, wenn du {b("wie meistens füllen")} antippst,
-          nie von selbst.
+          Mit {b("Als übliche Zeit für … merken")} merkt sich die App die Zeiten eines Tages als
+          üblich für seinen Wochentag. An einem anderen solchen Tag reicht dann ein Tipp auf{" "}
+          {b("Wie meistens")}. Leere Tage füllt sie damit nur, wenn du {b("wie meistens füllen")}{" "}
+          antippst, nie von selbst.
         </p>
         <p>
           Unter {b("Mehr")} › {b("Deine Plätze")} wählst du die Anlagen, zu denen du fährst; unter
@@ -122,7 +127,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "zeiten-tag",
-        alt: "Ein Tag offen: Schnellwahl Früh, Mittag, Abend, Ganzer Tag, zwei Zeiten mit von und bis, „+ Noch eine Zeit“, „So ist es meistens am …“, Speichern, Passt nicht und Wieder offen.",
+        alt: "Ein Tag offen: oben „Passt nicht“, darunter Früh, Mittag, Abend, Ganzer Tag, zwei Zeiten mit von und bis, „+ Noch eine Zeit“, „Als übliche Zeit für … merken“, Speichern, Wieder offen und Abbrechen.",
       },
     ],
   },

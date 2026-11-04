@@ -34,15 +34,23 @@
   kannst du?"; on a phone a tab of its own, "Wann kann ich?", after Spielen,
   then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
   spans filled in. A row opens an editor (on a phone the app's sheet, `platform.md`, wider in
-  its row; closing it saves nothing; Seb, 2026-10-29/30): quick choices (Früh 7–9, Mittag
-  12–14, Abend ab 18, Ganzer Tag), from–to selects per span on the half
-  hour, "+ Noch eine Zeit", "Passt nicht" to decline the day, "Wieder
-  offen" to clear it, and "So ist es meistens am …" to keep the day as its
-  weekday's usual. A declined row is hatched and says "Passt nicht"; an
+  its row; closing it saves nothing; Seb, 2026-10-29/30). On top, two
+  chips that save at a tap and close (Seb, 2026-11-04): "Passt nicht"
+  declines the day, "Wie meistens: …" takes the weekday's usual (only
+  when the day is not that already). Below, quick choices (Früh 7–9,
+  Mittag 12–14, Abend ab 18, Ganzer Tag), from–to selects per span on the
+  half hour, "+ Noch eine Zeit", "Als übliche Zeit für <Wochentag>
+  merken" (once there are times) and Speichern; "Wieder offen" and
+  "Abbrechen" are quiet links at the end. "Mehrere Tage auf einmal" turns
+  the rows into a pick list; "n Tage eintragen" opens the same editor for
+  all of them, one PUT a day, where "Jeder wie meistens" gives each its
+  own weekday's usual and leaves days without one as they were. Several
+  days have no "merken". A declined row is hatched and says "Passt nicht"; an
   open one says "offen · antippen" in the warning colour (Seb,
   2026-10-29), and above the rows "Noch offen: n von 14 Tagen" says
-  what is left to think about. Speichern with no times keeps a declined
-  day declined. A button fills the open days that have a usual time, one
+  what is left to think about. A declined day without times has no
+  Speichern; Speichern after removing a day's times keeps a declined day
+  declined. A button fills the open days that have a usual time, one
   day after another, on request. Venues are chips from the latest
   snapshot.
 - The nightly `/reap` deletes spans and declined days two days gone

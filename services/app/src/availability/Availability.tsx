@@ -19,7 +19,7 @@ import {
 } from "../api/client";
 import { Link } from "react-router";
 import { Sheet } from "@burgstaller/web/sheet";
-import { card, danger, field, link, pressed, primary, quiet } from "../ui";
+import { card, field, link, pressed, primary, quiet } from "../ui";
 import {
   clock,
   dayLabel,
@@ -77,6 +77,11 @@ export function Availability() {
   const client = useQueryClient();
   const mine = useMine();
   const [open, setOpen] = useState<string | null>(null);
+  // Several days answered at once (Seb, 2026-11-04): null while one at a time.
+  const [picked, setPicked] = useState<string[] | null>(null);
+  const [many, setMany] = useState(false);
+  const toggle = (day: string) =>
+    setPicked((p) => (p?.includes(day) ? p.filter((d) => d !== day) : [...(p ?? []), day].sort()));
 
   const fillKey = useWriteKey();
   const fill = useMutation({
@@ -125,7 +130,59 @@ export function Availability() {
             failed={fill.isError}
             onFill={(todo) => fill.mutate(todo)}
           />
-          <Open mine={mine.data} />
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <Open mine={mine.data} />
+            {picked === null ? (
+              <button
+                type="button"
+                className={`${link} text-sm`}
+                onClick={() => {
+                  setOpen(null);
+                  setPicked([]);
+                }}
+              >
+                Mehrere Tage auf einmal
+              </button>
+            ) : (
+              <span className="flex items-center gap-3 text-sm">
+                <button
+                  type="button"
+                  className={quiet}
+                  disabled={picked.length === 0}
+                  onClick={() => setMany(true)}
+                >
+                  {picked.length === 0
+                    ? "Tage antippen"
+                    : `${picked.length} ${picked.length === 1 ? "Tag" : "Tage"} eintragen`}
+                </button>
+                <button
+                  type="button"
+                  className={link}
+                  onClick={() => {
+                    setPicked(null);
+                    setMany(false);
+                  }}
+                >
+                  Abbrechen
+                </button>
+              </span>
+            )}
+          </div>
+          {many && picked && picked.length > 0 && (
+            <div className={`${card} mb-3`}>
+              <DayEditor
+                days={picked}
+                spans={[]}
+                declined={false}
+                templates={mine.data.templates}
+                onClose={() => setMany(false)}
+                onSaved={() => {
+                  setMany(false);
+                  setPicked(null);
+                }}
+              />
+            </div>
+          )}
           <div className="mb-1 flex pl-24 text-xs text-ink-muted" aria-hidden="true">
             {[6, 12, 18].map((h) => (
               <span key={h} className="flex-1">
@@ -143,22 +200,31 @@ export function Availability() {
                 <li key={day}>
                   {open === day ? (
                     <DayEditor
-                      day={day}
+                      days={[day]}
                       spans={spans}
                       declined={declined}
-                      usual={
-                        mine.data.templates.find((t) => t.weekday === weekday(day))?.spans ?? []
-                      }
                       templates={mine.data.templates}
                       onClose={() => setOpen(null)}
+                      onSaved={() => setOpen(null)}
                     />
                   ) : (
                     <button
                       type="button"
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover"
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover ${picked?.includes(day) ? "bg-accent-subtle" : ""}`}
                       aria-label={`${dayLabel(day)}: ${dayText(said)}`}
-                      onClick={() => setOpen(day)}
+                      aria-pressed={picked ? picked.includes(day) : undefined}
+                      onClick={() => (picked ? toggle(day) : setOpen(day))}
                     >
+                      {picked && (
+                        <input
+                          type="checkbox"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          readOnly
+                          checked={picked.includes(day)}
+                          className="pointer-events-none"
+                        />
+                      )}
                       <span className="w-20 shrink-0 text-sm font-semibold">{dayLabel(day)}</span>
                       <span className="min-w-0 flex-1">
                         <Line spans={spans} declined={declined} />
@@ -186,7 +252,7 @@ function Open({ mine }: { mine: Mine }) {
   const all = daysBetween(mine.from, mine.to);
   const open = all.filter((day) => !mine.days.some((d) => d.day === day)).length;
   return (
-    <p className="mb-3 text-sm text-ink-muted">
+    <p className="text-sm text-ink-muted">
       {open === 0 ? "Alle Tage sind eingetragen." : `Noch offen: ${open} von ${all.length} Tagen`}
     </p>
   );
@@ -265,36 +331,51 @@ function Fill({
   );
 }
 
+/**
+ * One day, or several picked at once. "Passt nicht" and "Wie meistens"
+ * save at a tap and close (Seb, 2026-11-04); times are put together below
+ * and saved with Speichern. Several days get the same times, or each its
+ * usual one.
+ */
 function DayEditor({
-  day,
+  days,
   spans,
   declined,
-  usual,
   templates,
   onClose,
+  onSaved,
 }: {
-  day: string;
+  days: string[];
   spans: Span[];
   declined: boolean;
-  usual: Span[];
   templates: Template[];
   onClose: () => void;
+  onSaved: () => void;
 }) {
   const client = useQueryClient();
   const [draft, setDraft] = useState<Span[]>(spans);
   const [remember, setRemember] = useState(false);
   const dayKey = useWriteKey();
   const templateKey = useWriteKey();
+  const one = days.length === 1 ? days[0]! : null;
+  const usualOf = (day: string) => templates.find((t) => t.weekday === weekday(day))?.spans ?? [];
+  const usual = one ? usualOf(one) : [];
+  const anyUsual = days.some((d) => usualOf(d).length > 0);
   const save = useMutation({
-    mutationFn: async ({ next, no }: { next: Span[]; no: boolean }) => {
-      const saved = await put(day, next, no, dayKey({ day, next, no }));
-      client.setQueryData<Mine>(KEY, (m) => m && withDay(m, saved));
-      if (remember) {
-        const wd = weekday(day);
+    mutationFn: async ({ next, no }: { next: Span[] | "usual"; no: boolean }) => {
+      for (const day of days) {
+        const times = next === "usual" ? usualOf(day) : next;
+        // A day with no usual time stays as it was.
+        if (next === "usual" && times.length === 0) continue;
+        const saved = await put(day, times, no, dayKey({ day, times, no }));
+        client.setQueryData<Mine>(KEY, (m) => m && withDay(m, saved));
+      }
+      if (remember && one && next !== "usual") {
+        const wd = weekday(one);
         const body = {
           templates: [
             ...templates.filter((t) => t.weekday !== wd),
-            ...(saved.spans.length > 0 ? [{ weekday: wd, spans: saved.spans }] : []),
+            ...(next.length > 0 ? [{ weekday: wd, spans: next }] : []),
           ],
         };
         const out = await call(
@@ -306,44 +387,58 @@ function DayEditor({
         client.setQueryData<Mine>(KEY, (m) => m && { ...m, templates: out.templates });
       }
     },
-    onSuccess: onClose,
+    onSuccess: onSaved,
   });
   const set = (i: number, s: Span) => setDraft(draft.map((d, j) => (j === i ? s : d)));
-  const wdName = WEEKDAYS_LONG[weekday(day) - 1];
+  const title = one ? dayLabel(one) : `${days.length} Tage: ${days.map(dayLabel).join(", ")}`;
+  const chip = "rounded-full border px-3 py-1.5 text-sm";
 
   // On a phone the day is the app's sheet, wherever the row was tapped
   // (Seb, 2026-10-29/30); wider, it opens in its row.
   return (
-    <Sheet label={dayLabel(day)} wide="inline" onClose={onClose}>
-      <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
+    <Sheet label={title} wide="inline" onClose={onClose}>
+      <h2 className="mb-2 font-semibold">{title}</h2>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {!declined && (
+          <button
+            type="button"
+            className={`${chip} ${pressed(false)}`}
+            disabled={save.isPending}
+            onClick={() => save.mutate({ next: [], no: true })}
+          >
+            Passt nicht
+          </button>
+        )}
+        {(one ? usual.length > 0 && spansText(usual) !== spansText(spans) : anyUsual) && (
+          <button
+            type="button"
+            className={`${chip} ${pressed(false)}`}
+            disabled={save.isPending}
+            onClick={() => save.mutate({ next: "usual", no: false })}
+          >
+            {one ? `Wie meistens: ${spansText(usual)}` : "Jeder wie meistens"}
+          </button>
+        )}
+      </div>
+      {draft.length === 0 && (
+        <p className="mb-2 text-sm text-ink-muted">
+          {declined
+            ? "Passt nicht: an diesem Tag spielst du nicht. Oder sag, wann du doch kannst:"
+            : "Noch offen: zählt wie „kann nicht“, aber die anderen fragen dich vielleicht. Oder sag, wann du kannst:"}
+        </p>
+      )}
       <div className="mb-3 flex flex-wrap gap-2">
         {QUICK.map((q) => (
           <button
             key={q.label}
             type="button"
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
+            className={`${chip} ${pressed(false)}`}
             onClick={() => setDraft(merge([...draft, q.span]))}
           >
             {q.label}
           </button>
         ))}
-        {usual.length > 0 && spansText(usual) !== spansText(merge(draft)) && (
-          <button
-            type="button"
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(false)}`}
-            onClick={() => setDraft(usual)}
-          >
-            Wie meistens: {spansText(usual)}
-          </button>
-        )}
       </div>
-      {draft.length === 0 && (
-        <p className="mb-3 text-sm text-ink-muted">
-          {declined
-            ? "Passt nicht: an diesem Tag spielst du nicht."
-            : "Noch offen: zählt wie „kann nicht“, aber die anderen fragen dich vielleicht."}
-        </p>
-      )}
       <ul className="mb-3 space-y-2">
         {draft.map((s, i) => (
           <li key={i} className="flex items-center gap-2">
@@ -404,42 +499,40 @@ function DayEditor({
       >
         + Noch eine Zeit
       </button>
-      <label className="mb-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-        So ist es meistens am {wdName}
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className={primary}
-          disabled={save.isPending}
-          aria-busy={save.isPending}
-          // With no times, a day that did not suit still does not.
-          onClick={() => save.mutate({ next: merge(draft), no: declined && draft.length === 0 })}
-        >
-          {save.isPending ? "Speichert …" : "Speichern"}
-        </button>
-        {!declined && (
+      {one && draft.length > 0 && (
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          Als übliche Zeit für {WEEKDAYS_LONG[weekday(one) - 1]} merken
+        </label>
+      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {(draft.length > 0 || spans.length > 0) && (
           <button
             type="button"
-            className={danger}
+            className={primary}
             disabled={save.isPending}
-            onClick={() => save.mutate({ next: [], no: true })}
+            aria-busy={save.isPending}
+            // With no times, a day that did not suit still does not.
+            onClick={() => save.mutate({ next: merge(draft), no: declined && draft.length === 0 })}
           >
-            Passt nicht
+            {save.isPending ? "Speichert …" : "Speichern"}
           </button>
         )}
         {(declined || spans.length > 0) && (
           <button
             type="button"
-            className={quiet}
+            className={`${link} text-sm`}
             disabled={save.isPending}
             onClick={() => save.mutate({ next: [], no: false })}
           >
             Wieder offen
           </button>
         )}
-        <button type="button" className={quiet} onClick={onClose}>
+        <button type="button" className={`${link} text-sm`} onClick={onClose}>
           Abbrechen
         </button>
       </div>

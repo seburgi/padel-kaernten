@@ -222,18 +222,15 @@ const shots = ({ group, game }) => [
   {
     name: "zeiten-tag",
     path: "/availability",
-    // On a phone the day is a tall sheet fixed to the bottom over a blurred
-    // page; in its row, at its own height and without the blur, it
-    // photographs the same and stays where the clip measures it.
+    // On a phone the day is the app's sheet, fixed to the bottom of the
+    // screen once it has slid up; the clip takes the sheet alone.
     step: async (page) => {
       await page.locator("main ul li button").nth(2).click();
-      await page.addStyleTag({
-        content:
-          "[role=dialog] { position: static !important; height: auto !important } [data-backdrop] { display: none !important }",
-      });
+      await page.waitForTimeout(800); // its slide up
     },
-    from: "main ul li:has(h2)",
-    to: "main ul li:has(h2)",
+    fixed: true,
+    from: "[role=dialog]",
+    to: "[role=dialog]",
     top: 0,
   },
   { name: "gruppen-finden", path: "/groups", from: "h1", to: "main ul >> nth=0" },
@@ -278,12 +275,18 @@ const shots = ({ group, game }) => [
   },
 ];
 
-async function clip(page, { from, to, top: pad = 16 }) {
+/** The part of the page from `from` to `to`; with `fixed`, of the screen as
+ * it is, for something fixed to it such as a sheet. */
+async function clip(page, { from, to, top: pad = 16, fixed = false }) {
   const a = await page.locator(from).first().boundingBox();
   const b = await page.locator(to).last().boundingBox();
   if (!a || !b) throw new Error(`help-shots: ${from} or ${to} is not on ${page.url()}`);
-  const top = Math.max(0, a.y + (await page.evaluate(() => scrollY)) - pad);
-  const bottom = b.y + b.height + (await page.evaluate(() => scrollY)) + 16;
+  const scrolled = fixed ? 0 : await page.evaluate(() => scrollY);
+  const top = Math.max(0, a.y + scrolled - pad);
+  const bottom = Math.min(
+    b.y + b.height + scrolled + 16,
+    fixed ? page.viewportSize().height : Infinity,
+  );
   return { x: 0, y: top, width: page.viewportSize().width, height: bottom - top };
 }
 
@@ -341,7 +344,7 @@ for (const theme of ["light", "dark"]) {
     await page.mouse.move(0, 0);
     const png = await page.screenshot({
       clip: await clip(page, s),
-      fullPage: true,
+      fullPage: !s.fixed,
       animations: "disabled",
     });
     const file = `${s.name}${theme === "dark" ? "-dark" : ""}.webp`;
