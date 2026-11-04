@@ -52,11 +52,25 @@
 - **In the app** (`services/app/src/push`): the card "Mitteilungen" on
   Spielen, and "Erfahren, wer zusagt?" on a game for whoever is in. Once
   on, a line says so with "Ausschalten"; blocked in the browser, it says
-  where to allow them. On a phone that line sits on Mehr (Seb,
-  2026-10-29), on a wide screen, which has no Mehr, on Spielen. On an iPhone, push works only
+  where to allow them. That line sits on the page Mitteilungen
+  (`/notifications`, a row on Mehr; Seb, 2026-11-04) and, on a wide
+  screen, which has no Mehr, on Spielen with "Auswählen" to that page. On an iPhone, push works only
   from the home screen, and the card says so. `src/sw.ts` shows the push
   and opens the game on a tap (`push/notification.ts`, kept apart so the
   worker takes nothing of the app with it).
+- **Kinds** (`notify.Kinds`, Seb 2026-11-04): `game` (proposed, full,
+  moved up, booked, cancelled), `before`, `stale`, `fits`, `missing` and
+  `remind`. Each person turns kinds off on the page Mitteilungen, for all
+  their browsers (`push_off`, migration 0009; `GET /api/v1/push/kinds`,
+  `PUT /api/v1/push/kinds/{kind}`); no row means on. `Deliver` leaves out
+  whoever turned the message's kind off; a message without a kind (a task
+  queued before kinds) is `game`.
+- **One a day** (Seb, 2026-11-04): of `fits`, `missing` and `remind`,
+  which are not about a game of one's own, each person gets at most one a
+  day in Vienna (`push_daily`, reaped after two days). `Deliver` claims
+  the day for everyone it is about to send to, so the first such message
+  wins and later ones that day leave that person out, even when the push
+  service then fails.
 - **Off without a key**: no `VAPID_PRIVATE_KEY`, or one the API cannot
   read (logged as an error at start-up, "push off"), and `GET /api/v1/push`
   has no key, the card shows nothing, subscribing answers 409 `push-off`
@@ -64,8 +78,6 @@
 
 ## Deliberately not
 
-- **No settings per kind of message.** On or off per browser; the few
-  messages a game sends are the point of turning them on.
 - **No mail, no SMS.** Only the browsers people allowed.
 - **No reminders before a game** yet: that needs a schedule.
 - **No retries of a failed push**: a second try risks a second message,

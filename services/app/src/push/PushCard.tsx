@@ -1,13 +1,14 @@
-// The way to turn Mitteilungen on (docs/design/notify.md): on Spielen, and
-// on a game for whoever just proposed it. Quiet once they are on: a line
-// says so, with the way to turn them off, on Mehr on a phone and on
-// Spielen on a wide screen (Seb, 2026-10-29); a game says nothing.
+// The way to turn Mitteilungen on (docs/design/notify.md): on Spielen, on
+// a game for whoever just proposed it, and on top of the page Mitteilungen
+// (Seb, 2026-11-04). Quiet once they are on: a line says so, with the way
+// to turn them off, on that page and on Spielen on a wide screen (Seb,
+// 2026-10-29); a game says nothing.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { card, link, primary } from "../ui";
 import { turnOff, turnOn, usePush } from "./push";
 
-export function PushCard({ where }: { where: "play" | "game" | "more" }) {
+export function PushCard({ where }: { where: "play" | "game" | "page" }) {
   const push = usePush();
   const client = useQueryClient();
   const settled = () => void client.invalidateQueries({ queryKey: ["push"] });
@@ -18,11 +19,19 @@ export function PushCard({ where }: { where: "play" | "game" | "more" }) {
   if (!d?.publicKey) return null;
   // The line for Mitteilungen already on or blocked. Spielen keeps it only
   // on a wide screen, where there is no Mehr.
-  const quiet = where === "more" ? "mt-4" : where === "play" ? "mb-4 hidden md:block" : null;
+  const quiet = where === "page" ? "mb-4" : where === "play" ? "mb-4 hidden md:block" : null;
   if (d.can === "on")
     return quiet ? (
       <p className={`${quiet} text-sm text-ink-muted`}>
-        Mitteilungen sind an.{" "}
+        {where === "page" ? "Auf diesem Gerät sind Mitteilungen an." : "Mitteilungen sind an."}{" "}
+        {where === "play" && (
+          <>
+            <Link to="/notifications" className={link}>
+              Auswählen
+            </Link>
+            {" · "}
+          </>
+        )}
         <button
           type="button"
           className={link}
@@ -42,13 +51,15 @@ export function PushCard({ where }: { where: "play" | "game" | "more" }) {
       </p>
     ) : null;
 
-  // The way to turn them on stays on Spielen and the game.
-  if (where === "more") return null;
   const publicKey = d.publicKey;
   return (
     <section className={`${card} mb-6 p-4`}>
       <h2 className="mb-1 font-semibold">
-        {where === "game" ? "Erfahren, wer zusagt?" : "Mitteilungen"}
+        {where === "game"
+          ? "Erfahren, wer zusagt?"
+          : where === "page"
+            ? "Auf diesem Gerät aus"
+            : "Mitteilungen"}
       </h2>
       <p className="mb-3 text-sm text-ink-muted">
         {where === "game"

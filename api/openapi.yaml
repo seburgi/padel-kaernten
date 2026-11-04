@@ -712,6 +712,49 @@ paths:
                 $ref: "#/components/schemas/PushInfo"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/push/kinds:
+    get:
+      operationId: getPushKinds
+      summary: Which kinds of Mitteilungen the caller hears of
+      responses:
+        "200":
+          description: Every kind, in the order the app lists them.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushKinds"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/push/kinds/{kind}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      operationId: setPushKind
+      summary: Turn one kind of Mitteilungen on or off for the caller
+      description: >-
+        For every browser of the caller. The same answer twice is one, so
+        the key is not claimed.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushKindChange"
+      responses:
+        "200":
+          description: Every kind, as it is now.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushKinds"
+        default:
+          $ref: "#/components/responses/Problem"
   /api/v1/push/subscriptions/{subscriptionId}:
     parameters:
       - $ref: "#/components/parameters/SubscriptionId"
@@ -1436,6 +1479,32 @@ components:
         publicKey:
           type: string
           description: The VAPID public key, base64url; absent when push is off.
+    PushKinds:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PushKind"
+    PushKind:
+      type: object
+      required: [kind, "on", daily]
+      properties:
+        kind:
+          type: string
+          description: game, before, stale, fits, missing or remind.
+        "on":
+          type: boolean
+        daily:
+          type: boolean
+          description: One of the kinds of which each person hears at most one a day.
+    PushKindChange:
+      type: object
+      required: ["on"]
+      properties:
+        "on":
+          type: boolean
     PushSubscription:
       type: object
       required: [endpoint, keys]

@@ -2,8 +2,8 @@
 // behind the tab bar's third tab, as on iOS (Seb, 2026-10-28). Each row
 // is a page of its own; wide screens reach the same pages from the head.
 // Dein Name comes first, then the pages; under them the venues one drives
-// to (Seb, 2026-10-30) and the line that Mitteilungen are on (Seb,
-// 2026-10-29).
+// to (Seb, 2026-10-30). Mitteilungen is a page of its own (Seb,
+// 2026-11-04), with this browser's switch and the kinds of message.
 import { Icon } from "@burgstaller/web/icons";
 import type { IconName } from "@burgstaller/web/icons";
 import type { ReactNode } from "react";
@@ -11,23 +11,30 @@ import { Link } from "react-router";
 import { card } from "./ui";
 
 /** The pages the tab Mehr stands for, so it is marked on them too. */
-export const MORE = ["/more", "/whats-new", "/help", "/feedback", "/invites", "/profile"];
+export const MORE = [
+  "/more",
+  "/whats-new",
+  "/help",
+  "/feedback",
+  "/invites",
+  "/profile",
+  "/notifications",
+];
 
 export function More({
   unread,
   canInvite,
   name,
   venues,
-  push,
 }: {
   unread: number;
   canInvite: boolean;
   name?: string;
   venues?: ReactNode;
-  push?: ReactNode;
 }) {
   const rows: { to: string; label: string; icon: IconName; note?: string }[] = [
     { to: "/profile", label: "Dein Name", icon: "pencil", note: name || undefined },
+    { to: "/notifications", label: "Mitteilungen", icon: "chat" },
     {
       to: "/whats-new",
       label: "Neuigkeiten",
@@ -61,7 +68,6 @@ export function More({
         ))}
       </ul>
       {venues}
-      {push}
     </main>
   );
 }

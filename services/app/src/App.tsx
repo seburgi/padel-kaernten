@@ -29,6 +29,7 @@ import { FirstSteps } from "./help/FirstSteps";
 import { Help } from "./help/Help";
 import { Welcome } from "./help/Welcome";
 import { useKeepPush } from "./push/push";
+import { Notifications } from "./push/Notifications";
 import { PushCard } from "./push/PushCard";
 import { Invitations } from "./invitations/Invitations";
 import { MORE, More } from "./More";
@@ -207,11 +208,11 @@ export function App() {
                 canInvite={canInvite}
                 name={me.data?.name}
                 venues={<MyVenues />}
-                push={<PushCard where="more" />}
               />
             }
           />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/whats-new" element={<WhatsNew />} />
           <Route path="/help" element={<Help />} />
           <Route path="/welcome" element={<Welcome onWelcome={() => void markRead()} />} />

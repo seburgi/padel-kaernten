@@ -65,5 +65,6 @@ func remindMessage(email string, open int) notify.Message {
 		Body:  fmt.Sprintf("In den nächsten zwei Wochen sind noch %d Tage offen. Sag, wann du kannst, oder „Passt nicht“.", open),
 		URL:   "/availability",
 		Tag:   "remind",
+		Kind:  notify.KindRemind,
 	}
 }

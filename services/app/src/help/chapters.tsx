@@ -262,8 +262,10 @@ export const CHAPTERS: Chapter[] = [
         <p>
           Einschalten kannst du sie unter Spielen mit {b("Mitteilungen einschalten")}; dein Browser
           fragt dann um Erlaubnis. Das gilt für dieses Gerät, auf jedem weiteren schaltest du sie
-          eigens ein. Sind sie an, steht das am Handy unter {b("Mehr")}, auf einem größeren
-          Bildschirm unter Spielen; dort schaltest du sie auch wieder aus.
+          eigens ein. Unter {b("Mehr")} → {b("Mitteilungen")} (auf einem größeren Bildschirm über
+          Spielen) schaltest du sie wieder aus und wählst, welche Arten du hören willst: etwa „Wann
+          kannst du?“ am Sonntag, wenn viele deiner Tage noch offen sind. Von den Mitteilungen, die
+          nicht zu deinen eigenen Spielen gehören, kommt höchstens eine am Tag.
         </p>
         <p>
           Auf dem iPhone gehen Mitteilungen nur, wenn Padel Kärnten auf dem Home-Bildschirm liegt

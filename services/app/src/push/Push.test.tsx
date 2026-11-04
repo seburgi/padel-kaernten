@@ -206,14 +206,18 @@ describe("PushCard", () => {
     view.unmount();
   });
 
-  it("says on Mehr that they are on, and on Spielen only on a wide screen", async () => {
+  it("says on its page that they are on, and on Spielen only on a wide screen", async () => {
     browser({ permission: "granted", sub: subOf() });
     api();
-    let view = renderWithQuery(<PushCard where="more" />);
-    expect(await screen.findByText(/Mitteilungen sind an/)).toBeVisible();
+    let view = renderWithQuery(<PushCard where="page" />);
+    expect(await screen.findByText(/Auf diesem Gerät sind Mitteilungen an/)).toBeVisible();
     view.unmount();
     view = renderWithQuery(<PushCard where="play" />);
     expect(await screen.findByText(/Mitteilungen sind an/)).toHaveClass("hidden", "md:block");
+    expect(screen.getByRole("link", { name: "Auswählen" })).toHaveAttribute(
+      "href",
+      "/notifications",
+    );
     view.unmount();
 
     // Not on yet: the way to turn them on stays on Spielen.
@@ -222,8 +226,8 @@ describe("PushCard", () => {
     view = renderWithQuery(<PushCard where="play" />);
     expect(await screen.findByRole("button", { name: "Mitteilungen einschalten" })).toBeVisible();
     view.unmount();
-    view = renderWithQuery(<PushCard where="more" />);
-    await waitFor(() => expect(document.body.textContent).toBe(""));
+    view = renderWithQuery(<PushCard where="page" />);
+    expect(await screen.findByRole("heading", { name: "Auf diesem Gerät aus" })).toBeVisible();
     view.unmount();
   });
 

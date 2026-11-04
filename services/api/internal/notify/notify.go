@@ -17,9 +17,19 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	_ "time/tzdata" // the image has no zoneinfo
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var vienna = func() *time.Location {
+	loc, err := time.LoadLocation("Europe/Vienna")
+	if err != nil {
+		panic(err)
+	}
+	return loc
+}()
 
 // ErrInvalid means a subscription without an https endpoint or with keys
 // that are not a P-256 point and a 16-byte secret.
@@ -34,12 +44,90 @@ type Subscription struct {
 
 // Message is one notification for some people. URL is a path in the app;
 // Tag makes a later message about the same thing replace the earlier one.
+// Kind is what sort of message it is, which each person may turn off;
+// empty is KindGame.
 type Message struct {
 	To    []string `json:"to"`
 	Title string   `json:"title"`
 	Body  string   `json:"body"`
 	URL   string   `json:"url"`
 	Tag   string   `json:"tag,omitempty"`
+	Kind  string   `json:"kind,omitempty"`
+	// Game, when set, lets the notification answer the game itself
+	// (Bin dabei, Kann nicht).
+	Game int64 `json:"game,omitempty"`
+}
+
+// The kinds of message (docs/design/notify.md).
+const (
+	// KindGame is what happens to a game of one's groups: proposed, full,
+	// moved up, booked, cancelled.
+	KindGame = "game"
+	// KindBefore is the day before a booked game one plays in.
+	KindBefore = "before"
+	// KindStale tells whoever proposed a game that still lacks people a
+	// day before it.
+	KindStale = "stale"
+	// KindFits is a new time when four of a group can and a court is free.
+	KindFits = "fits"
+	// KindMissing asks someone who might have time when a game lacks one.
+	KindMissing = "missing"
+	// KindRemind is Sunday's "Wann kannst du?".
+	KindRemind = "remind"
+)
+
+// Kinds is every kind, in the order the app lists them.
+var Kinds = []string{KindGame, KindBefore, KindStale, KindFits, KindMissing, KindRemind}
+
+// Daily says whether a kind is one that is not about a game of one's own:
+// of those, each person gets at most one a day (Seb, 2026-11-04).
+func Daily(kind string) bool {
+	return kind == KindFits || kind == KindMissing || kind == KindRemind
+}
+
+// ErrUnknownKind is a kind not in Kinds.
+var ErrUnknownKind = errors.New("unknown kind")
+
+func known(kind string) bool {
+	for _, k := range Kinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// KindsOf is, per kind, whether email hears of it.
+func (s *Service) KindsOf(ctx context.Context, email string) (map[string]bool, error) {
+	out := make(map[string]bool, len(Kinds))
+	for _, k := range Kinds {
+		out[k] = true
+	}
+	rows, err := s.pool.Query(ctx, `SELECT kind FROM push_off WHERE email = $1`, email)
+	if err != nil {
+		return nil, err
+	}
+	off, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	for _, k := range off {
+		if _, ok := out[k]; ok {
+			out[k] = false
+		}
+	}
+	return out, err
+}
+
+// SetKind turns one kind on or off for email.
+func (s *Service) SetKind(ctx context.Context, email, kind string, on bool) error {
+	if !known(kind) {
+		return ErrUnknownKind
+	}
+	var err error
+	if on {
+		_, err = s.pool.Exec(ctx, `DELETE FROM push_off WHERE email = $1 AND kind = $2`, email, kind)
+	} else {
+		_, err = s.pool.Exec(ctx, `INSERT INTO push_off (email, kind) VALUES ($1, $2) ON CONFLICT DO NOTHING`, email, kind)
+	}
+	return err
 }
 
 // Service keeps the subscriptions and sends. Key nil means push is off:
@@ -109,22 +197,35 @@ func (s *Service) Deliver(ctx context.Context, m Message) (Report, error) {
 	if s.Key == nil || len(m.To) == 0 {
 		return rep, nil
 	}
-	payload, err := json.Marshal(map[string]string{"title": m.Title, "body": m.Body, "url": m.URL, "tag": m.Tag})
+	kind := m.Kind
+	if kind == "" {
+		kind = KindGame
+	}
+	body := map[string]any{"title": m.Title, "body": m.Body, "url": m.URL, "tag": m.Tag}
+	if m.Game != 0 {
+		body["game"] = m.Game
+	}
+	payload, err := json.Marshal(body)
 	if err != nil {
 		return rep, err
 	}
-	rows, err := s.pool.Query(ctx, `SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE email = ANY($1) ORDER BY id`, m.To)
+	// Only the browsers of those who did not turn this kind off.
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, email, endpoint, p256dh, auth FROM push_subscriptions s
+		 WHERE email = ANY($1)
+		   AND NOT EXISTS (SELECT 1 FROM push_off o WHERE o.email = s.email AND o.kind = $2)
+		 ORDER BY id`, m.To, kind)
 	if err != nil {
 		return rep, err
 	}
 	type target struct {
-		id string
+		id, email string
 		Subscription
 	}
 	var targets []target
 	for rows.Next() {
 		var t target
-		if err := rows.Scan(&t.id, &t.Endpoint, &t.P256dh, &t.Auth); err != nil {
+		if err := rows.Scan(&t.id, &t.email, &t.Endpoint, &t.P256dh, &t.Auth); err != nil {
 			rows.Close()
 			return rep, err
 		}
@@ -132,6 +233,35 @@ func (s *Service) Deliver(ctx context.Context, m Message) (Report, error) {
 	}
 	if err := rows.Err(); err != nil {
 		return rep, err
+	}
+	if Daily(kind) && len(targets) > 0 {
+		// One such message a person a day: whoever had theirs today is
+		// left out.
+		var emails []string
+		for _, t := range targets {
+			emails = append(emails, t.email)
+		}
+		rows, err := s.pool.Query(ctx, `
+			INSERT INTO push_daily (email, day) SELECT DISTINCT unnest($1::text[]), $2::date
+			ON CONFLICT DO NOTHING RETURNING email`, emails, s.Now().In(vienna).Format(time.DateOnly))
+		if err != nil {
+			return rep, err
+		}
+		claimed, err := pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			return rep, err
+		}
+		ok := map[string]bool{}
+		for _, e := range claimed {
+			ok[e] = true
+		}
+		kept := targets[:0]
+		for _, t := range targets {
+			if ok[t.email] {
+				kept = append(kept, t)
+			}
+		}
+		targets = kept
 	}
 	for _, t := range targets {
 		status, err := s.send(ctx, t.Subscription, payload)

@@ -619,6 +619,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/push/kinds": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Which kinds of Mitteilungen the caller hears of */
+    get: operations["getPushKinds"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/push/kinds/{kind}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        kind: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Turn one kind of Mitteilungen on or off for the caller
+     * @description For every browser of the caller. The same answer twice is one, so the key is not claimed.
+     */
+    put: operations["setPushKind"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/push/subscriptions/{subscriptionId}": {
     parameters: {
       query?: never;
@@ -984,6 +1023,19 @@ export interface components {
     PushInfo: {
       /** @description The VAPID public key, base64url; absent when push is off. */
       publicKey?: string;
+    };
+    PushKinds: {
+      items: components["schemas"]["PushKind"][];
+    };
+    PushKind: {
+      /** @description game, before, stale, fits, missing or remind. */
+      kind: string;
+      on: boolean;
+      /** @description One of the kinds of which each person hears at most one a day. */
+      daily: boolean;
+    };
+    PushKindChange: {
+      on: boolean;
     };
     PushSubscription: {
       endpoint: string;
@@ -1890,6 +1942,57 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PushInfo"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  getPushKinds: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Every kind, in the order the app lists them. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PushKinds"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  setPushKind: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description A UUID the client mints; a retry sends it again (standards/api/idempotency.md). */
+        "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+      };
+      path: {
+        kind: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PushKindChange"];
+      };
+    };
+    responses: {
+      /** @description Every kind, as it is now. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PushKinds"];
         };
       };
       default: components["responses"]["Problem"];

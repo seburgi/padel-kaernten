@@ -333,3 +333,70 @@ func TestInline(t *testing.T) {
 		t.Errorf("got %+v", m)
 	}
 }
+
+func TestKinds(t *testing.T) {
+	pool := testdb.Pool(t)
+	ctx := t.Context()
+	key := testKey(t)
+	push := newPushService(t, key)
+	s := NewService(pool, key, "mailto:seb@local.test")
+	s.HTTP = push.Client()
+	day := time.Date(2026, 11, 4, 22, 30, 0, 0, time.UTC) // 23:30 in Vienna
+	s.Now = func() time.Time { return day }
+	for who, path := range map[string]string{anna: "/ok/a", bert: "/ok/b"} {
+		if _, err := s.Subscribe(ctx, who, push.browser(t, path).sub); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	on, err := s.KindsOf(ctx, anna)
+	if err != nil || len(on) != len(Kinds) || !on[KindGame] || !on[KindRemind] {
+		t.Fatalf("all on at first: %v %v", on, err)
+	}
+	if err := s.SetKind(ctx, anna, "spam", false); !errors.Is(err, ErrUnknownKind) {
+		t.Errorf("unknown: %v", err)
+	}
+	for range 2 {
+		if err := s.SetKind(ctx, anna, KindFits, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if on, _ := s.KindsOf(ctx, anna); on[KindFits] || !on[KindGame] {
+		t.Errorf("fits off: %v", on)
+	}
+
+	deliver := func(m Message) Report {
+		t.Helper()
+		push.got = nil
+		rep, err := s.Deliver(ctx, m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rep
+	}
+	// Anna turned fits off: only Bert hears, and that was his one today.
+	if rep := deliver(Message{To: []string{anna, bert}, Title: "Es passt", Kind: KindFits}); rep.Sent != 1 || push.got[0][:6] != "/ok/b " {
+		t.Errorf("fits: %+v %q", rep, push.got)
+	}
+	// A second daily kind the same day: Anna's first, Bert's second.
+	if rep := deliver(Message{To: []string{anna, bert}, Title: "Wann", Kind: KindRemind}); rep.Sent != 1 || push.got[0][:6] != "/ok/a " {
+		t.Errorf("remind: %+v %q", rep, push.got)
+	}
+	// Games are not counted, and an old message without a kind is a game.
+	if rep := deliver(Message{To: []string{anna, bert}, Title: "Neues Spiel", Game: 7}); rep.Sent != 2 ||
+		!strings.Contains(push.got[0], `"game":7`) {
+		t.Errorf("game: %+v %q", rep, push.got)
+	}
+	// The next day in Vienna (an hour later) is a new day.
+	day = day.Add(time.Hour)
+	if rep := deliver(Message{To: []string{bert}, Title: "Fehlt", Kind: KindMissing}); rep.Sent != 1 {
+		t.Errorf("next day: %+v", rep)
+	}
+	// Turning a kind on again.
+	if err := s.SetKind(ctx, anna, KindFits, true); err != nil {
+		t.Fatal(err)
+	}
+	if on, _ := s.KindsOf(ctx, anna); !on[KindFits] {
+		t.Errorf("fits on again: %v", on)
+	}
+}

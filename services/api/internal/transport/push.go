@@ -136,7 +136,7 @@ func gameMessage(e games.Event, grp groups.Group) (notify.Message, bool) {
 		return local
 	}
 	when := whenText(g.Day, g.Start)
-	m := notify.Message{URL: fmt.Sprintf("/games/%d", g.ID), Tag: fmt.Sprintf("game-%d", g.ID)}
+	m := notify.Message{URL: fmt.Sprintf("/games/%d", g.ID), Tag: fmt.Sprintf("game-%d", g.ID), Kind: notify.KindGame}
 	var to []string
 	switch e.Kind {
 	case games.EventProposed:
@@ -144,6 +144,7 @@ func gameMessage(e games.Event, grp groups.Group) (notify.Message, bool) {
 			to = append(to, p.Email)
 		}
 		m.Title = "Neues Spiel: " + when
+		m.Game = g.ID
 		m.Body = fmt.Sprintf("%s schlägt %s vor, %s. Bist du dabei?", who(g.ProposedBy), g.VenueName, spanText(g.Start, g.Minutes))
 	case games.EventFull:
 		to = []string{g.ProposedBy}
@@ -199,4 +200,56 @@ func clockText(m int) string { return fmt.Sprintf("%d:%02d", m/60, m%60) }
 // spanText is "18:00–19:30".
 func spanText(start, minutes int) string {
 	return clockText(start) + "–" + clockText(start+minutes)
+}
+
+// GetPushKinds is which kinds of Mitteilungen the caller hears of.
+func (h *Handler) GetPushKinds(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	h.writeKinds(w, r, email)
+}
+
+// SetPushKind turns one kind on or off for the caller. The same answer
+// twice is one, so the key is not claimed.
+func (h *Handler) SetPushKind(w http.ResponseWriter, r *http.Request, kind string, _ gen.SetPushKindParams) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	var body gen.PushKindChange
+	if !decode(w, r, &body) {
+		return
+	}
+	if h.Push == nil {
+		problem.Write(w, problem.New(http.StatusConflict, "push-off", "Notifications are off", ""))
+		return
+	}
+	switch err := h.Push.SetKind(r.Context(), email, kind, body.On); {
+	case errors.Is(err, notify.ErrUnknownKind):
+		problem.Write(w, problem.New(http.StatusNotFound, "unknown-kind", "No such kind of notification", ""))
+		return
+	case err != nil:
+		h.internal(w, r, "setting a kind", err)
+		return
+	}
+	h.writeKinds(w, r, email)
+}
+
+func (h *Handler) writeKinds(w http.ResponseWriter, r *http.Request, email string) {
+	out := gen.PushKinds{Items: []gen.PushKind{}}
+	if h.Push == nil {
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	on, err := h.Push.KindsOf(r.Context(), email)
+	if err != nil {
+		h.internal(w, r, "reading kinds", err)
+		return
+	}
+	for _, k := range notify.Kinds {
+		out.Items = append(out.Items, gen.PushKind{Kind: k, On: on[k], Daily: notify.Daily(k)})
+	}
+	writeJSON(w, http.StatusOK, out)
 }

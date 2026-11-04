@@ -217,3 +217,23 @@ func sameSet(got []string, want ...string) bool {
 	slices.Sort(want)
 	return slices.Equal(g, want)
 }
+
+func TestPushKinds(t *testing.T) {
+	a := setup(t)
+	w := a.do(a.as(anna, "GET", "/api/v1/push/kinds", ""))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `{"daily":false,"kind":"game","on":true}`) ||
+		!strings.Contains(w.Body.String(), `{"daily":true,"kind":"remind","on":true}`) {
+		t.Fatalf("kinds: %d %s", w.Code, w.Body)
+	}
+	w = a.send(anna, "PUT", "/api/v1/push/kinds/remind", `{"on":false}`)
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `{"daily":true,"kind":"remind","on":false}`) {
+		t.Errorf("off: %d %s", w.Code, w.Body)
+	}
+	// Seb's are his own.
+	if w := a.do(a.as(seb, "GET", "/api/v1/push/kinds", "")); !strings.Contains(w.Body.String(), `"kind":"remind","on":true`) {
+		t.Errorf("seb: %s", w.Body)
+	}
+	if w := a.send(anna, "PUT", "/api/v1/push/kinds/spam", `{"on":false}`); w.Code != 404 || problemType(w) != "unknown-kind" {
+		t.Errorf("unknown: %d %s", w.Code, w.Body)
+	}
+}
