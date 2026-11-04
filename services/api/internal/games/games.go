@@ -210,6 +210,30 @@ func (s *Service) Upcoming(ctx context.Context, viewer string, group int64) ([]G
 	return out, err
 }
 
+// Ahead is every game of every group from today on that is not
+// cancelled, soonest first, for the hourly run (docs/design/notify.md).
+func (s *Service) Ahead(ctx context.Context) ([]Game, error) {
+	today := s.Window().Today
+	var out []Game
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `SELECT `+columns+` FROM games g
+			WHERE g.day >= $1::date AND g.state <> 'cancelled' ORDER BY g.day, g.start_min, g.id`, today)
+		if err != nil {
+			return err
+		}
+		if out, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (Game, error) { return scan(r) }); err != nil {
+			return err
+		}
+		for i := range out {
+			if err := lineup(ctx, tx, &out[i]); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return out, err
+}
+
 // Proposal is the fit someone proposes.
 type Proposal struct {
 	VenueID string

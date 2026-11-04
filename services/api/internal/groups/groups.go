@@ -159,6 +159,44 @@ type Person struct {
 	Welcomed bool   // has seen /welcome (docs/design/help.md)
 }
 
+// All is every group with its members, by id, for the hourly run that
+// looks for new fits (docs/design/notify.md). No invitations or requests.
+func (s *Service) All(ctx context.Context) ([]Group, error) {
+	var out []Group
+	err := pgx.BeginTxFunc(ctx, s.pool, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx, `SELECT id, name, kind, area FROM groups ORDER BY id`)
+		if err != nil {
+			return err
+		}
+		out, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (Group, error) {
+			var g Group
+			return g, r.Scan(&g.ID, &g.Name, &g.Kind, &g.Area)
+		})
+		if err != nil {
+			return err
+		}
+		for i := range out {
+			rows, err := tx.Query(ctx,
+				`SELECT m.email, COALESCE(p.name, ''), m.role, m.joined_at
+				   FROM memberships m LEFT JOIN people p ON p.email = m.email
+				  WHERE m.group_id = $1 ORDER BY m.joined_at, m.email`, out[i].ID)
+			if err != nil {
+				return err
+			}
+			if out[i].List, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (Member, error) {
+				var m Member
+				return m, r.Scan(&m.Email, &m.Name, &m.Role, &m.JoinedAt)
+			}); err != nil {
+				return err
+			}
+			out[i].Members = len(out[i].List)
+			out[i].Invitations, out[i].Requests = []Invitation{}, []Request{}
+		}
+		return nil
+	})
+	return out, err
+}
+
 // Members is everyone in at least one group, sorted: whom the weekly
 // reminder asks about their open days (docs/design/notify.md).
 func (s *Service) Members(ctx context.Context) ([]string, error) {

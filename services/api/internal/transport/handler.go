@@ -51,6 +51,9 @@ type Handler struct {
 	// RemindCaller is the one account POST /remind takes: the
 	// scheduler's, Sundays at 18:00 (docs/design/notify.md).
 	RemindCaller string
+	// NudgeCaller is the one account POST /nudge takes: the scheduler's,
+	// every hour (docs/design/notify.md).
+	NudgeCaller string
 	// Push keeps the browsers and sends; nil is no push at all. Queue takes
 	// the messages to send (Cloud Tasks, or at once on a laptop), and
 	// NotifyCaller is the one account POST /tasks/notify takes.

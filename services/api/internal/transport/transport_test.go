@@ -47,6 +47,7 @@ const (
 	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
 	refreshAccount = "padel-refresh@burgstaller-platform.iam.gserviceaccount.com"
 	remindAccount  = "padel-remind@burgstaller-platform.iam.gserviceaccount.com"
+	nudgeAccount   = "padel-nudge@burgstaller-platform.iam.gserviceaccount.com"
 	apiAccount     = "padel-api@burgstaller-platform.iam.gserviceaccount.com"
 )
 
@@ -131,6 +132,8 @@ type app struct {
 	news     *whatsnew.Service
 	queue    *fakeQueue
 	key      *notify.Key
+	// now, when set, is the games' and availability's clock.
+	now func() time.Time
 }
 
 func setup(t *testing.T) *app {
@@ -162,12 +165,16 @@ func setup(t *testing.T) *app {
 func (a *app) router(pool *pgxpool.Pool) http.Handler {
 	log, news := a.log, a.news
 	gamesSvc := games.NewService(pool)
+	avail := availability.NewService(pool, func(v string) bool { return v == "villach" })
+	if a.now != nil {
+		gamesSvc.Now, avail.Now = a.now, a.now
+	}
 	h := &transport.Handler{
 		Slots:        slots.NewService(pool, a.sites, nil, log),
 		Invitations:  invitations.NewService(pool, a.platform),
 		WhatsNew:     news,
 		Groups:       groups.NewService(pool, a.platform),
-		Availability: availability.NewService(pool, func(v string) bool { return v == "villach" }),
+		Availability: avail,
 		Games:        gamesSvc,
 		Gateway: &transport.Gateway{Caller: gatewayAccount, Address: address,
 			Keys: &gateway.Keys{Audience: address, Audiences: []string{"padel"}, JWKS: a.signer.URL}},
@@ -180,6 +187,7 @@ func (a *app) router(pool *pgxpool.Pool) http.Handler {
 		ReapCaller:    reapAccount,
 		RefreshCaller: refreshAccount,
 		RemindCaller:  remindAccount,
+		NudgeCaller:   nudgeAccount,
 		Push:          notify.NewService(pool, a.key, "mailto:seb@example.at"),
 		Queue:         a.queue,
 		NotifyCaller:  apiAccount,

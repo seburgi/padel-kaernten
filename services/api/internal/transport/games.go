@@ -5,6 +5,7 @@ package transport
 // slots, groups, availability and games meet.
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -22,8 +23,8 @@ import (
 
 // venues is the latest snapshot as the games slice reads it, with only the
 // courts of area (groups.Anywhere for all of them).
-func (h *Handler) venues(r *http.Request, area string) ([]games.Venue, time.Time, error) {
-	s, takenAt, err := h.snapshot(r)
+func (h *Handler) venues(ctx context.Context, area string) ([]games.Venue, time.Time, error) {
+	s, takenAt, err := h.snapshot(ctx)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
@@ -31,8 +32,8 @@ func (h *Handler) venues(r *http.Request, area string) ([]games.Venue, time.Time
 }
 
 // snapshot is the latest snapshot and when it was taken.
-func (h *Handler) snapshot(r *http.Request) (sites.Snapshot, time.Time, error) {
-	snap, err := h.Slots.Latest(r.Context())
+func (h *Handler) snapshot(ctx context.Context) (sites.Snapshot, time.Time, error) {
+	snap, err := h.Slots.Latest(ctx)
 	if err != nil {
 		return sites.Snapshot{}, time.Time{}, err
 	}
@@ -133,12 +134,12 @@ func link(links map[string]string, day string) *string {
 }
 
 // players are the group's members as the games slice sees them.
-func (h *Handler) players(r *http.Request, g groups.Group) ([]games.Person, error) {
+func (h *Handler) players(ctx context.Context, g groups.Group) ([]games.Person, error) {
 	emails := make([]string, len(g.List))
 	for i, m := range g.List {
 		emails[i] = m.Email
 	}
-	said, err := h.Availability.Of(r.Context(), emails)
+	said, err := h.Availability.Of(ctx, emails)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +167,7 @@ func (h *Handler) ListFours(w http.ResponseWriter, r *http.Request, id gen.Group
 	if !ok {
 		return
 	}
-	snap, takenAt, err := h.snapshot(r)
+	snap, takenAt, err := h.snapshot(r.Context())
 	if errors.Is(err, slots.ErrNone) {
 		noSnapshot(w)
 		return
@@ -177,7 +178,7 @@ func (h *Handler) ListFours(w http.ResponseWriter, r *http.Request, id gen.Group
 	}
 	in := gameVenues(snap, func(court string) bool { return inArea(court, g.Area) })
 	outside := gameVenues(snap, func(court string) bool { return !inArea(court, g.Area) })
-	ps, err := h.players(r, g)
+	ps, err := h.players(r.Context(), g)
 	if err != nil {
 		h.internal(w, r, "reading availability", err)
 		return
@@ -209,7 +210,7 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 	if !ok {
 		return
 	}
-	venues, takenAt, err := h.venues(r, g.Area)
+	venues, takenAt, err := h.venues(r.Context(), g.Area)
 	if errors.Is(err, slots.ErrNone) {
 		noSnapshot(w)
 		return
@@ -218,7 +219,7 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 		h.internal(w, r, "reading the snapshot", err)
 		return
 	}
-	ps, err := h.players(r, g)
+	ps, err := h.players(r.Context(), g)
 	if err != nil {
 		h.internal(w, r, "reading availability", err)
 		return
@@ -256,7 +257,7 @@ func (h *Handler) ProposeGame(w http.ResponseWriter, r *http.Request, id gen.Gro
 	if !decode(w, r, &body) {
 		return
 	}
-	venues, _, err := h.venues(r, groups.Anywhere)
+	venues, _, err := h.venues(r.Context(), groups.Anywhere)
 	if errors.Is(err, slots.ErrNone) {
 		noSnapshot(w)
 		return
@@ -288,7 +289,7 @@ func (h *Handler) ListGames(w http.ResponseWriter, r *http.Request, params gen.L
 	}
 	out := gen.GameList{Items: make([]gen.Game, 0, len(list))}
 	seen := map[int64]groups.Group{}
-	venues, _, _ := h.venues(r, groups.Anywhere) // links only; none without a snapshot
+	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links only; none without a snapshot
 	for _, g := range list {
 		grp, ok := seen[g.GroupID]
 		if !ok {
@@ -351,7 +352,7 @@ func (h *Handler) answerGame(w http.ResponseWriter, r *http.Request, status int,
 		h.internal(w, r, "reading a game's group", err)
 		return
 	}
-	venues, _, _ := h.venues(r, groups.Anywhere) // links only; none without a snapshot
+	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links only; none without a snapshot
 	writeJSON(w, status, gameOut(g, grp, venues))
 }
 

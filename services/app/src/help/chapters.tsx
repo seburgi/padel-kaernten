@@ -265,9 +265,11 @@ export const CHAPTERS: Chapter[] = [
           Einschalten kannst du sie unter Spielen mit {b("Mitteilungen einschalten")}; dein Browser
           fragt dann um Erlaubnis. Das gilt für dieses Gerät, auf jedem weiteren schaltest du sie
           eigens ein. Unter {b("Mehr")} → {b("Mitteilungen")} (auf einem größeren Bildschirm über
-          Spielen) schaltest du sie wieder aus und wählst, welche Arten du hören willst: etwa „Wann
-          kannst du?“ am Sonntag, wenn viele deiner Tage noch offen sind. Von den Mitteilungen, die
-          nicht zu deinen eigenen Spielen gehören, kommt höchstens eine am Tag.
+          Spielen) schaltest du sie wieder aus und wählst, welche Arten du hören willst: etwa „Es
+          passt für vier“, wenn in den nächsten Tagen vier können und ein Platz frei ist, „Du fehlst
+          noch“, eine Erinnerung am Abend vor deinem Spiel, oder „Wann kannst du?“ am Sonntag, wenn
+          viele deiner Tage noch offen sind. Von den Mitteilungen, die nicht zu deinen eigenen
+          Spielen gehören, kommt höchstens eine am Tag.
         </p>
         <p>
           Auf dem iPhone gehen Mitteilungen nur, wenn Padel Kärnten auf dem Home-Bildschirm liegt

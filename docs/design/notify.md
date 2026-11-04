@@ -65,6 +65,21 @@
   worker with the person's own cookies, as the app would, and swaps the
   notification for "Du bist dabei" or "Du hast abgesagt". When that does
   not take (signed out, the game closed, offline), the game opens instead.
+- **The hourly run** (`transport/nudge.go`; Seb, 2026-11-04, usability
+  plan 3, 4, 5, 11): Cloud Scheduler calls `POST /nudge` every hour,
+  signed as `padel-nudge` (`NUDGE_CALLER`). It tells of each thing once,
+  by a key in `push_sent` (migration 0010, reaped after 30 days):
+  `stale-<game>` to whoever proposed a game that still lacks people within
+  24 hours of its start; `missing-<game>` when a proposed game lacks one,
+  to the members who have not answered, drive to the venue and either have
+  spans covering the whole game or said nothing that day (with Bin dabei
+  and Kann nicht); `before-<game>` from 18:00 to whoever is in a booked
+  game tomorrow; and from 8:00 to 20:00 `fits-<group>-<day>`, the first
+  90-minute fit of a group in today and the next two days that overlaps
+  none of its games, to everyone who can. A fit needs a court free for all
+  90 minutes and four with time for all of it (`games.md`), so a half hour
+  here and there is never news (Seb, 2026-11-04). One fit a group a run;
+  the daily cap does the rest.
 - **Kinds** (`notify.Kinds`, Seb 2026-11-04): `game` (proposed, full,
   moved up, booked, cancelled), `before`, `stale`, `fits`, `missing` and
   `remind`. Each person turns kinds off on the page Mitteilungen, for all
@@ -86,7 +101,6 @@
 ## Deliberately not
 
 - **No mail, no SMS.** Only the browsers people allowed.
-- **No reminders before a game** yet: that needs a schedule.
 - **No retries of a failed push**: a second try risks a second message,
   and a game's news is short-lived anyway (TTL a day).
 

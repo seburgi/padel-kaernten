@@ -38,6 +38,9 @@ type Config struct {
 	// RemindCaller is the account the Cloud Scheduler job signs POST
 	// /remind with, Sundays at 18:00; empty means nobody can.
 	RemindCaller string
+	// NudgeCaller is the account the Cloud Scheduler job signs POST /nudge
+	// with, every hour; empty means nobody can.
+	NudgeCaller string
 	// Web Push (docs/design/notify.md), all optional: without the VAPID
 	// key push is off. VapidKey is a P-256 private key in PEM; NotifyQueue
 	// the Cloud Tasks queue, NotifyURL the service's own address the tasks
@@ -70,6 +73,7 @@ func Load() (Config, error) {
 		ReapCaller:      strings.ToLower(strings.TrimSpace(os.Getenv("REAP_CALLER"))),
 		RefreshCaller:   strings.ToLower(strings.TrimSpace(os.Getenv("REFRESH_CALLER"))),
 		RemindCaller:    strings.ToLower(strings.TrimSpace(os.Getenv("REMIND_CALLER"))),
+		NudgeCaller:     strings.ToLower(strings.TrimSpace(os.Getenv("NUDGE_CALLER"))),
 		ReleaseNotesDir: env("RELEASE_NOTES_DIR", "../../release_notes"),
 		VapidKey:        os.Getenv("VAPID_PRIVATE_KEY"),
 		PushContact:     env("PUSH_CONTACT", "mailto:sburgstaller@gmail.com"),

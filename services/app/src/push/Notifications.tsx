@@ -22,11 +22,11 @@ export const KIND_TEXT: Record<string, { label: string; note: string }> = {
   },
   fits: {
     label: "Es passt für vier",
-    note: "Wenn neu eine Zeit da ist, zu der vier können und ein Platz 90 Minuten frei ist.",
+    note: "Wenn in den nächsten drei Tagen vier können und ein Platz 90 Minuten frei ist.",
   },
   missing: {
     label: "Du fehlst noch",
-    note: "Wenn einem Spiel eine Person fehlt und du an dem Tag noch nichts eingetragen hast.",
+    note: "Wenn einem Spiel nur noch eine Person fehlt und du Zeit haben könntest.",
   },
   remind: {
     label: "Wann kannst du?",

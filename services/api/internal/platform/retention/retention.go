@@ -27,13 +27,15 @@ type Table struct {
 // Spans and declined days of days gone by are no use (docs/design/availability.md); two days
 // keeps yesterday in Vienna whatever the hour in UTC. A browser the app
 // has not opened in for 90 days is no longer in use (docs/design/notify.md);
-// who had their daily message counts only for the day itself.
+// who had their daily message counts only for the day itself, and what the
+// hourly run told of is past after a month.
 var Tables = []Table{
 	{Name: "idempotency_keys", Column: "created_at", Days: 7},
 	{Name: "availability_spans", Column: "day", Days: 2},
 	{Name: "availability_declined", Column: "day", Days: 2},
 	{Name: "push_subscriptions", Column: "seen_at", Days: 90},
 	{Name: "push_daily", Column: "day", Days: 2},
+	{Name: "push_sent", Column: "sent_at", Days: 30},
 }
 
 // Result is what a run did, or would do, to one table.

@@ -97,6 +97,14 @@ func known(kind string) bool {
 	return false
 }
 
+// Once claims key for a message about one thing (a game going stale, a
+// fit): true the first time, false ever after, so the hourly run tells of
+// each thing once.
+func (s *Service) Once(ctx context.Context, key string) (bool, error) {
+	tag, err := s.pool.Exec(ctx, `INSERT INTO push_sent (key) VALUES ($1) ON CONFLICT DO NOTHING`, key)
+	return tag.RowsAffected() == 1, err
+}
+
 // KindsOf is, per kind, whether email hears of it.
 func (s *Service) KindsOf(ctx context.Context, email string) (map[string]bool, error) {
 	out := make(map[string]bool, len(Kinds))

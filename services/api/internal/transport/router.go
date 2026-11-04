@@ -40,6 +40,8 @@ func Router(h *Handler, dist string) http.Handler {
 	r.Post("/refresh", h.refreshTask)
 	// The weekly reminder to enter one's days (docs/design/notify.md).
 	r.Post("/remind", h.remindTask)
+	// The hourly messages nobody asked for yet (docs/design/notify.md).
+	r.Post("/nudge", h.nudgeTask)
 	// Web Push: the queue's tasks come back here (notify.Path).
 	r.Post(notify.Path, h.notifyTask)
 	// The sign-in stand-in, on a laptop only (localgateway).
