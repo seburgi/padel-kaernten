@@ -48,6 +48,9 @@ type Handler struct {
 	// RefreshCaller is the one account POST /refresh takes: the
 	// scheduler's, every 30 minutes (docs/design/slots.md).
 	RefreshCaller string
+	// RemindCaller is the one account POST /remind takes: the
+	// scheduler's, Sundays at 18:00 (docs/design/notify.md).
+	RemindCaller string
 	// Push keeps the browsers and sends; nil is no push at all. Queue takes
 	// the messages to send (Cloud Tasks, or at once on a laptop), and
 	// NotifyCaller is the one account POST /tasks/notify takes.

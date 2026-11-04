@@ -159,6 +159,16 @@ type Person struct {
 	Welcomed bool   // has seen /welcome (docs/design/help.md)
 }
 
+// Members is everyone in at least one group, sorted: whom the weekly
+// reminder asks about their open days (docs/design/notify.md).
+func (s *Service) Members(ctx context.Context) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `SELECT DISTINCT email FROM memberships ORDER BY email`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
 // Seen records that email opened the app and returns them. It is what
 // makes the open groups visible to them.
 func (s *Service) Seen(ctx context.Context, email string) (Person, error) {

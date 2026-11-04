@@ -46,6 +46,7 @@ const (
 	anna           = "anna@example.at"
 	reapAccount    = "padel-reap@burgstaller-platform.iam.gserviceaccount.com"
 	refreshAccount = "padel-refresh@burgstaller-platform.iam.gserviceaccount.com"
+	remindAccount  = "padel-remind@burgstaller-platform.iam.gserviceaccount.com"
 	apiAccount     = "padel-api@burgstaller-platform.iam.gserviceaccount.com"
 )
 
@@ -178,6 +179,7 @@ func (a *app) router(pool *pgxpool.Pool) http.Handler {
 		},
 		ReapCaller:    reapAccount,
 		RefreshCaller: refreshAccount,
+		RemindCaller:  remindAccount,
 		Push:          notify.NewService(pool, a.key, "mailto:seb@example.at"),
 		Queue:         a.queue,
 		NotifyCaller:  apiAccount,

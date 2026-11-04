@@ -27,6 +27,9 @@
   subscriptions not seen for 90. Only `REAP_CALLER`, the scheduler's
   account `padel-reap`, may call it; the gateway's account is refused like
   anyone else's. `?dry_run=true` counts and deletes nothing.
+- **A weekly `POST /remind`** (Sundays 18:00 Vienna, Cloud Scheduler)
+  reminds whoever has 5 or more open days (`notify.md`). Only
+  `REMIND_CALLER`, the scheduler's account `padel-remind`, may call it.
 - **`POST /tasks/notify`** is the queue `padel-notify` coming back with a
   message to push (`notify.md`). Only `NOTIFY_CALLER`, the API's own
   account, may call it.

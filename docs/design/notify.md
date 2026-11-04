@@ -10,6 +10,16 @@
   themselves. Texts are German, with the day, the time and the venue;
   a tap opens the game. A later message about the same game replaces the
   earlier one on the phone (`tag`).
+- **The weekly reminder** (`transport/remind.go`; Seb, 2026-11-04): on
+  Sundays at 18:00 Vienna Cloud Scheduler calls `POST /remind` on the
+  service's own address, signed as `padel-remind`, the only caller it
+  takes (`REMIND_CALLER`). Everyone in a group with at least 5 of the 14
+  days of the window open (neither spans nor "Passt nicht") gets "Wann
+  kannst du?" with how many are open; a tap opens Wann kann ich?, where
+  "wie meistens füllen" does the rest. Each person's task is named by the
+  day, so a second run that day tells nobody twice; one with no push on
+  hears nothing. The app never fills days by itself instead (Seb,
+  2026-11-04).
 - **The games slice says what happened, transport says it to whom.**
   `games.Service.Changed` hears each event once the write is in; a
   retried request (same Idempotency-Key) changes nothing and tells

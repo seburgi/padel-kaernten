@@ -22,7 +22,7 @@
 - **"Wie meistens"**: spans per weekday (`PUT
   /api/v1/availability/templates`, 1 Monday to 7 Sunday), which the app
   offers for open days; it never fills days by itself, and never a
-  declined one.
+  declined one (Seb, 2026-11-04: rather a reminder on Sundays, `notify.md`).
 - **Where one drives to**: venue ids from `venues.json` (`PUT
   /api/v1/availability/venues`); none chosen means every venue. An id
   that is not a venue answers 400 `unknown-venue`. The app asks on Mehr,

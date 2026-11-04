@@ -128,6 +128,7 @@ func run() error {
 		},
 		ReapCaller:    cfg.ReapCaller,
 		RefreshCaller: cfg.RefreshCaller,
+		RemindCaller:  cfg.RemindCaller,
 		Push:          push,
 		Queue:         queue,
 		NotifyCaller:  cfg.NotifyCaller,

@@ -38,6 +38,8 @@ func Router(h *Handler, dist string) http.Handler {
 	r.Post("/reap", h.reap)
 	// The free courts every 30 minutes, the same way (docs/design/slots.md).
 	r.Post("/refresh", h.refreshTask)
+	// The weekly reminder to enter one's days (docs/design/notify.md).
+	r.Post("/remind", h.remindTask)
 	// Web Push: the queue's tasks come back here (notify.Path).
 	r.Post(notify.Path, h.notifyTask)
 	// The sign-in stand-in, on a laptop only (localgateway).
