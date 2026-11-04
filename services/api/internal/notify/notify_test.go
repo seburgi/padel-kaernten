@@ -392,6 +392,12 @@ func TestKinds(t *testing.T) {
 	if rep := deliver(Message{To: []string{bert}, Title: "Fehlt", Kind: KindMissing}); rep.Sent != 1 {
 		t.Errorf("next day: %+v", rep)
 	}
+	// Once is once.
+	for i, want := range []bool{true, false} {
+		if first, err := s.Once(ctx, "stale-1"); err != nil || first != want {
+			t.Errorf("once %d: %v %v", i, first, err)
+		}
+	}
 	// Turning a kind on again.
 	if err := s.SetKind(ctx, anna, KindFits, true); err != nil {
 		t.Fatal(err)

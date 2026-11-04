@@ -379,3 +379,44 @@ func TestNames(t *testing.T) {
 		t.Errorf("members carry names: %+v", got.List)
 	}
 }
+
+func TestAllAndMembers(t *testing.T) {
+	s, _, pool := setup(t)
+	ctx := t.Context()
+	seen(t, s, seb, anna, markus, lisa)
+	g, err := s.Create(ctx, seb, key(), "Runde", groups.Private)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Invite(ctx, seb, key(), g.ID, anna); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Join(ctx, anna, key(), g.ID); err != nil {
+		t.Fatal(err)
+	}
+	other, err := s.Create(ctx, markus, key(), "Andere", groups.Open)
+	if err != nil {
+		t.Fatal(err)
+	}
+	all, err := s.All(ctx)
+	if err != nil || len(all) != 2 || all[0].ID != g.ID || all[1].ID != other.ID ||
+		all[0].Members != 2 || all[0].List[0].Email != seb || all[0].List[1].Email != anna || all[0].Area == "" {
+		t.Fatalf("all: %+v %v", all, err)
+	}
+	members, err := s.Members(ctx)
+	if err != nil || strings.Join(members, ",") != strings.Join([]string{anna, markus, seb}, ",") {
+		t.Errorf("members: %v %v", members, err)
+	}
+	down, err := pgxpool.NewWithConfig(context.Background(), pool.Config())
+	if err != nil {
+		t.Fatal(err)
+	}
+	down.Close()
+	d := groups.NewService(down, nil)
+	if _, err := d.All(ctx); err == nil {
+		t.Error("all with the database down")
+	}
+	if _, err := d.Members(ctx); err == nil {
+		t.Error("members with the database down")
+	}
+}

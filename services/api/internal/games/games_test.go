@@ -452,3 +452,30 @@ func TestFours(t *testing.T) {
 		t.Errorf("declined: %+v", hs)
 	}
 }
+
+func TestAhead(t *testing.T) {
+	s, pool, group := setup(t)
+	ctx := t.Context()
+	g := propose(t, s, group)
+	if _, err := s.Answer(ctx, bert, key(), g.ID, games.In); err != nil {
+		t.Fatal(err)
+	}
+	// A game of days gone by and a cancelled one are not ahead.
+	if _, err := pool.Exec(ctx, `INSERT INTO games (group_id, venue_id, venue_name, court, day, start_min, minutes, proposed_by, state)
+		VALUES ($1, 'villach', 'Padel Villach', 'Court 2', '2026-10-28', 1080, 90, $2, 'proposed'),
+		       ($1, 'villach', 'Padel Villach', 'Court 2', '2026-10-30', 1080, 90, $2, 'cancelled')`, group, anna); err != nil {
+		t.Fatal(err)
+	}
+	ahead, err := s.Ahead(ctx)
+	if err != nil || len(ahead) != 1 || ahead[0].ID != g.ID || len(ahead[0].Lineup) != 2 {
+		t.Fatalf("ahead: %+v %v", ahead, err)
+	}
+	down, err := pgxpool.NewWithConfig(context.Background(), pool.Config())
+	if err != nil {
+		t.Fatal(err)
+	}
+	down.Close()
+	if _, err := games.NewService(down).Ahead(ctx); err == nil {
+		t.Error("a database that is down")
+	}
+}
