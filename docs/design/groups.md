@@ -69,19 +69,25 @@
 - The member list carries `daysEntered`, on how many of the next 14 days
   each member said when they can (`availability.md`); transport joins the
   two slices.
-- **Wer kann wann** (Seb, 2026-10-31, feedback #68): on a group's page,
-  under Passt für vier, the next 14 days of the whole group, every half
-  hour from 7 to 22 (Seb, 2026-10-31; times entered outside are not
-  shown), the darker the more members can, with a dot from
-  four (`groups/WhoCan.tsx`). `GET /api/v1/groups/{id}/availability`
-  gives every member's spans and declined days, members only: an open
-  group shows its members to anyone, never their times (404 `no-group`).
-  Wide, the days are rows and a hover names who can in that half hour; a
-  click opens the day. On a phone the grid turns, days side by side and
-  the time running down, and a tap on a day opens it in the app's sheet:
-  blocks of time with their names, then who declined and who left it
-  open. Seb chose the overlay over a row per member because it scales
-  with the group.
+- **Wer kann wann** (Seb, 2026-10-31, feedback #68; its own page since
+  2026-11-04, feedback #73): `/groups/{id}/who-can`, linked from a card on
+  the group's page under Passt für vier and from Passt für vier when
+  nothing fits. The next 14 days of the whole group, every half hour from
+  7 to 22 (Seb, 2026-10-31; times entered outside are not shown), the
+  darker the more members can (`groups/WhoCan.tsx`). `GET
+  /api/v1/groups/{id}/availability` gives every member's spans and
+  declined days, members only: an open group shows its members to anyone,
+  never their times (404 `no-group`). Where four or more can, `GET
+  /api/v1/groups/{id}/fours` (`games.md`) says whether a game fits: a dot
+  when it does, red when no court suits (Seb: "rot, und beim Draufklicken
+  soll klar sein, warum"). Without the fours (no snapshot, an error) the
+  grid still shows, with a dot from four as before. Wide, the days are
+  rows and a hover names who can in that half hour, and why not; a click
+  opens the day. On a phone the grid turns, days side by side and the
+  time running down, and a tap on a day opens it in the app's sheet:
+  blocks of time with their names, each block of four saying Platz frei
+  or why not, then who declined and who left it open. Seb chose the
+  overlay over a row per member because it scales with the group.
 
 ## Deliberately not
 
@@ -95,8 +101,9 @@
   everyone sees the same fits. Someone who never plays outdoors says so
   in the group, or the group picks Halle.
 - **Groups are not paged**: a person sees a handful.
-- **Wer kann wann shows no courts**: whether a court is free is Passt für
-  vier's (`games.md`); the grid only says who can.
+- **Wer kann wann names no courts where it fits**: it says that one is
+  free; which, and proposing it, is Wann passt es für vier?'s
+  (`games.md`). Below four it says nothing about courts.
 
 ## Traps
 

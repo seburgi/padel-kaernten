@@ -19,7 +19,7 @@ import {
 } from "./groups";
 
 /** Loads the group by the address and says when it cannot. */
-function GroupFrame({ children }: { children: (g: G, me: string) => ReactNode }) {
+export function GroupFrame({ children }: { children: (g: G, me: string) => ReactNode }) {
   const id = Number(useParams().id);
   const me = useMe();
   const group = useQuery({

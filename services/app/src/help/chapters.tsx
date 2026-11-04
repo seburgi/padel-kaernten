@@ -187,11 +187,14 @@ export const CHAPTERS: Chapter[] = [
           bis jemand zusagt.
         </p>
         <p>
-          Darunter zeigt {b("Wer kann wann")} die nächsten 14 Tage der ganzen Gruppe, jede halbe
-          Stunde von 7 bis 22 Uhr. Je dunkler ein Feld, desto mehr von euch können; ab vier hat es
-          einen Punkt. Am Computer stehen die Namen da, wenn du mit der Maus darüberfährst. Ein Tipp
-          auf einen Tag zeigt seine Zeiten mit Namen, wer „Passt nicht“ gesagt hat und wer den Tag
-          noch offen hat. Ob ein Platz frei ist, steht dort nicht, das sagt {b("Passt für vier")}.
+          Darunter führt {b("Wer kann wann")} auf eine eigene Seite: die nächsten 14 Tage der ganzen
+          Gruppe, jede halbe Stunde von 7 bis 22 Uhr. Je dunkler ein Feld, desto mehr von euch
+          können. Ein Punkt heißt: vier können, und ein Platz ist frei. Rot heißt: vier könnten,
+          aber es gibt keinen passenden Platz. Am Computer stehen die Namen da, wenn du mit der Maus
+          darüberfährst. Ein Tipp auf einen Tag zeigt seine Zeiten mit Namen und bei den roten,
+          warum es nicht passt: zu viert zu kurz, kein Platz frei, nur draußen oder nur in der Halle
+          frei, oder zu wenige fahren zu der Anlage, die frei wäre. Dazu, wer „Passt nicht“ gesagt
+          hat und wer den Tag noch offen hat.
         </p>
         <p>
           Wo ihr spielt, wählt ihr unter {b("Verwalten")}: {b("Halle")}, {b("Freiluft")} oder{" "}
@@ -229,7 +232,7 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "wer-kann",
-        alt: "Wer kann wann: die nächsten 14 Tage nebeneinander, die Uhrzeit nach unten, abends dunkle Felder mit Punkt, wo vier können.",
+        alt: "Wer kann wann: die nächsten 14 Tage nebeneinander, die Uhrzeit nach unten, abends dunkle Felder mit Punkt, wo vier können und ein Platz frei ist, und rote, wo keiner passt.",
       },
       {
         name: "spiele-fast",

@@ -132,6 +132,16 @@ export function BestFits({ group }: { group?: number }) {
           <Link to="/availability" className={link}>
             Wann kann ich?
           </Link>
+          {group !== undefined && (
+            <>
+              {" "}
+              Warum es wann nicht passt, steht unter{" "}
+              <Link to={`/groups/${group}/who-can`} className={link}>
+                Wer kann wann
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
       {picks.length > 0 && <ul className="space-y-2">{picks.map((p) => row(p, true, !one))}</ul>}

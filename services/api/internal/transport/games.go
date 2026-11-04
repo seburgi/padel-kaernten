@@ -23,19 +23,34 @@ import (
 // venues is the latest snapshot as the games slice reads it, with only the
 // courts of area (groups.Anywhere for all of them).
 func (h *Handler) venues(r *http.Request, area string) ([]games.Venue, time.Time, error) {
-	snap, err := h.Slots.Latest(r.Context())
+	s, takenAt, err := h.snapshot(r)
 	if err != nil {
 		return nil, time.Time{}, err
 	}
+	return gameVenues(s, func(court string) bool { return inArea(court, area) }), takenAt, nil
+}
+
+// snapshot is the latest snapshot and when it was taken.
+func (h *Handler) snapshot(r *http.Request) (sites.Snapshot, time.Time, error) {
+	snap, err := h.Slots.Latest(r.Context())
+	if err != nil {
+		return sites.Snapshot{}, time.Time{}, err
+	}
 	var s sites.Snapshot
 	if err := json.Unmarshal(snap.JSON, &s); err != nil {
-		return nil, time.Time{}, err
+		return sites.Snapshot{}, time.Time{}, err
 	}
+	return s, snap.TakenAt, nil
+}
+
+// gameVenues is the snapshot as the games slice reads it, with the courts
+// whose area keep says yes to.
+func gameVenues(s sites.Snapshot, keep func(area string) bool) []games.Venue {
 	out := make([]games.Venue, len(s.Venues))
 	for i, v := range s.Venues {
 		gv := games.Venue{ID: v.ID, Name: v.Name, Step: v.Step, Failed: v.Failed, NotBookable: v.NotBookable, Links: v.Links}
 		for _, c := range v.Courts {
-			if !inArea(c.Area, area) {
+			if !keep(c.Area) {
 				continue
 			}
 			gc := games.Court{Name: c.Name}
@@ -51,7 +66,7 @@ func (h *Handler) venues(r *http.Request, area string) ([]games.Venue, time.Time
 		}
 		out[i] = gv
 	}
-	return out, snap.TakenAt, nil
+	return out
 }
 
 // inArea says whether a court of the snapshot's area counts for a group
@@ -117,6 +132,69 @@ func link(links map[string]string, day string) *string {
 	return nil
 }
 
+// players are the group's members as the games slice sees them.
+func (h *Handler) players(r *http.Request, g groups.Group) ([]games.Person, error) {
+	emails := make([]string, len(g.List))
+	for i, m := range g.List {
+		emails[i] = m.Email
+	}
+	said, err := h.Availability.Of(r.Context(), emails)
+	if err != nil {
+		return nil, err
+	}
+	ps := make([]games.Person, len(emails))
+	for i, e := range emails {
+		days := map[string][]games.Span{}
+		for day, spans := range said[e].Days {
+			for _, s := range spans {
+				days[day] = append(days[day], games.Span{From: s.From, To: s.To})
+			}
+		}
+		ps[i] = games.Person{Email: e, Days: days, Declined: said[e].Declined, Venues: said[e].Venues}
+	}
+	return ps, nil
+}
+
+// ListFours is every half hour four members can, for "Wer kann wann", and
+// why no game fits where none does.
+func (h *Handler) ListFours(w http.ResponseWriter, r *http.Request, id gen.GroupId) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	g, ok := h.member(w, r, email, id)
+	if !ok {
+		return
+	}
+	snap, takenAt, err := h.snapshot(r)
+	if errors.Is(err, slots.ErrNone) {
+		noSnapshot(w)
+		return
+	}
+	if err != nil {
+		h.internal(w, r, "reading the snapshot", err)
+		return
+	}
+	in := gameVenues(snap, func(court string) bool { return inArea(court, g.Area) })
+	outside := gameVenues(snap, func(court string) bool { return !inArea(court, g.Area) })
+	ps, err := h.players(r, g)
+	if err != nil {
+		h.internal(w, r, "reading availability", err)
+		return
+	}
+	list := games.Fours(in, outside, ps, games.Players, h.Games.Window())
+	out := gen.FourList{TakenAt: utc(takenAt), Need: games.Players, HalfHours: make([]gen.FourHalfHour, len(list))}
+	for i, x := range list {
+		hh := gen.FourHalfHour{Day: date(x.Day), Start: x.Start, Fits: x.Fits, Venues: x.Venues}
+		if x.Why != "" {
+			why := gen.FourHalfHourWhy(x.Why)
+			hh.Why = &why
+		}
+		out.HalfHours[i] = hh
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 // ListFits is the games of four the group's times and the free courts allow.
 func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupId, params gen.ListFitsParams) {
 	email, ok := h.person(w, r)
@@ -140,24 +218,10 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 		h.internal(w, r, "reading the snapshot", err)
 		return
 	}
-	emails := make([]string, len(g.List))
-	for i, m := range g.List {
-		emails[i] = m.Email
-	}
-	said, err := h.Availability.Of(r.Context(), emails)
+	ps, err := h.players(r, g)
 	if err != nil {
 		h.internal(w, r, "reading availability", err)
 		return
-	}
-	ps := make([]games.Person, len(emails))
-	for i, e := range emails {
-		days := map[string][]games.Span{}
-		for day, spans := range said[e].Days {
-			for _, s := range spans {
-				days[day] = append(days[day], games.Span{From: s.From, To: s.To})
-			}
-		}
-		ps[i] = games.Person{Email: e, Days: days, Declined: said[e].Declined, Venues: said[e].Venues}
 	}
 	links := map[string]map[string]string{}
 	for _, v := range venues {

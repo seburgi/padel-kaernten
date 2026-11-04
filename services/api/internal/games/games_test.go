@@ -398,3 +398,57 @@ func TestEvents(t *testing.T) {
 		t.Errorf("events:\n got %q\nwant %q", got, want)
 	}
 }
+
+func TestFours(t *testing.T) {
+	const day = "2026-10-29"
+	at := func(from, to int) map[string][]games.Span {
+		return map[string][]games.Span{day: {{From: from, To: to}}}
+	}
+	people := []games.Person{
+		person(anna, nil, at(1020, 1260)),
+		person(bert, []string{"villach"}, at(1020, 1260)),
+		person(carla, nil, at(1020, 1260)),
+		person(dora, []string{"annenheim"}, at(1020, 1110)), // with the others only until 18:30
+		person(emil, nil, at(1080, 1110)),                   // only 18:00–18:30
+	}
+	hall := games.Venue{ID: "villach", Name: "Padel Villach", Step: 30, Courts: []games.Court{
+		{Name: "Court 1", Free: []games.Slot{{Day: day, From: 1020, To: 1110}}}}}
+	outdoors := games.Venue{ID: "wb", Name: "Wörthersee", Step: 30, Courts: []games.Court{
+		{Name: "Sand", Free: []games.Slot{{Day: day, From: 1050, To: 1200}}}}}
+	later := games.Venue{ID: "later", Name: "Später", NotBookable: []string{day}}
+	w := games.Window{Today: day, NotBefore: 1035}
+	check := func(name string, in, out []games.Venue, why string, venues []string) {
+		t.Helper()
+		hs := games.Fours(in, out, people, 4, w)
+		// 17:00 is past; from 18:30 only three can.
+		if len(hs) != 2 || hs[0].Start != 1050 || len(hs[0].Can) != 4 || hs[1].Start != 1080 || len(hs[1].Can) != 5 {
+			t.Fatalf("%s: %+v", name, hs)
+		}
+		for _, h := range hs {
+			if h.Fits != (why == "") || h.Why != why || !reflect.DeepEqual(h.Venues, venues) {
+				t.Errorf("%s: %+v", name, h)
+			}
+		}
+	}
+	// The hall is free, but Dora drives only to Annenheim and Emil can
+	// only half an hour: three of the four drive there.
+	check("venues", []games.Venue{hall, later}, []games.Venue{outdoors}, games.WhyVenues, []string{"Padel Villach"})
+	check("area", []games.Venue{later}, []games.Venue{outdoors}, games.WhyArea, []string{"Wörthersee"})
+	check("none", []games.Venue{later}, nil, games.WhyNone, []string{"Später"})
+	for i := range people {
+		people[i].Venues = nil
+	}
+	check("fits", []games.Venue{hall}, nil, "", []string{})
+
+	// Four only for half an hour: too short for a game.
+	short := []games.Person{person(anna, nil, at(1080, 1110)), person(bert, nil, at(1080, 1200)),
+		person(carla, nil, at(1080, 1200)), person(dora, nil, at(1050, 1110))}
+	if hs := games.Fours([]games.Venue{hall}, nil, short, 4, w); len(hs) != 1 || hs[0].Why != games.WhyShort {
+		t.Errorf("short: %+v", hs)
+	}
+	// Who said the day does not suit is not counted.
+	short[1].Declined = map[string]bool{day: true}
+	if hs := games.Fours([]games.Venue{hall}, nil, short, 4, w); len(hs) != 0 {
+		t.Errorf("declined: %+v", hs)
+	}
+}

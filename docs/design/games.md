@@ -21,6 +21,19 @@
   suit ("Passt nicht") is never asked for it (Seb, 2026-10-29). A near
   miss can be proposed like a fit (Seb, 2026-10-30): the same `POST`, and
   the game waits with one place open until someone says Bin dabei.
+- **Why it does not fit** (`Fours`, `GET
+  /api/v1/groups/{groupId}/fours`, for Wer kann wann in `groups.md`; Seb,
+  2026-11-04, feedback #73): every half hour of the window where four
+  members can, wherever they drive, with `fits` when a fit of 60, 90 or
+  120 minutes covers it. Otherwise `why`, checked over the games of every
+  length on the half hour that cover it and that four are free for:
+  `short` when there is none (never the same four for an hour), `venues`
+  when a court of the group's area is free for one but fewer than four of
+  them drive there, `area` when only courts outside the group's area are
+  free, `none` when nothing is; `venues` names those venues, or for
+  `none` the venues of the area that take no bookings for the day yet.
+  Past starts are left out, as in the fits. Computed on request, from the
+  same snapshot; 503 `no-snapshot` without one.
 - **Order**: most people first, then day, start and price. At most 40
   fits and 10 near misses; the price per head is the prorated court price
   over four, and none when any part of the game has no price.

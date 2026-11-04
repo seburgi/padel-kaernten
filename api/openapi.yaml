@@ -556,6 +556,28 @@ paths:
                 $ref: "#/components/schemas/FitList"
         default:
           $ref: "#/components/responses/Problem"
+  /api/v1/groups/{groupId}/fours:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      operationId: listFours
+      summary: Every half hour four members can, and whether a court fits
+      description: >-
+        For "Wer kann wann": each half hour of the window in which at least
+        four members can (wherever they drive to), and whether a game of 60,
+        90 or 120 minutes with a free court covers it, as in the fits; if
+        not, why. Starts already past in Vienna are left out. From the latest
+        snapshot, never stored. Members only; 404 no-group otherwise, 503
+        no-snapshot before the sites were ever asked.
+      responses:
+        "200":
+          description: The half hours.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FourList"
+        default:
+          $ref: "#/components/responses/Problem"
   /api/v1/groups/{groupId}/availability:
     parameters:
       - $ref: "#/components/parameters/GroupId"
@@ -1278,6 +1300,50 @@ components:
           description: One short; ask lists who could still make it.
           items:
             $ref: "#/components/schemas/Fit"
+    FourList:
+      type: object
+      required: [takenAt, need, halfHours]
+      properties:
+        takenAt:
+          type: string
+          format: date-time
+          description: When the snapshot the courts come from was taken.
+        need:
+          type: integer
+          description: How many play a game.
+        halfHours:
+          type: array
+          items:
+            $ref: "#/components/schemas/FourHalfHour"
+    FourHalfHour:
+      type: object
+      required: [day, start, fits, venues]
+      properties:
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+          description: Minutes after midnight in Vienna; the half hour runs 30 minutes from here.
+        fits:
+          type: boolean
+          description: A game with a free court of the group's area covers this half hour.
+        why:
+          type: string
+          enum: [short, venues, area, none]
+          description: >-
+            Only when it does not fit. short: never the same four for a whole
+            hour. venues: a court of the area is free, but fewer than four of
+            those who can drive there. area: only courts outside the group's
+            area are free. none: no court is free.
+        venues:
+          type: array
+          description: >-
+            venues: the venues of the area with a court free. area: those
+            outside it with a court free. none: the venues of the area that
+            take no bookings for the day yet. Empty otherwise.
+          items:
+            type: string
     NewGame:
       type: object
       required: [venueId, court, day, start, minutes]

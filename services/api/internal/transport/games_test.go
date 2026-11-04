@@ -28,6 +28,9 @@ func TestGames(t *testing.T) {
 	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); w.Code != 503 || problemType(w) != "no-snapshot" {
 		t.Errorf("fits without a snapshot: %d %s", w.Code, w.Body)
 	}
+	if w := a.do(a.as(seb, "GET", group+"/fours", "")); w.Code != 503 || problemType(w) != "no-snapshot" {
+		t.Errorf("fours without a snapshot: %d %s", w.Code, w.Body)
+	}
 	newGame := fmt.Sprintf(`{"venueId":"villach","court":"Court 1","day":%q,"start":1110,"minutes":90}`, tomorrow)
 	if w := a.send(seb, "POST", group+"/games", newGame); w.Code != 503 {
 		t.Errorf("propose without a snapshot: %d %s", w.Code, w.Body)
@@ -76,11 +79,23 @@ func TestGames(t *testing.T) {
 	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); !strings.Contains(w.Body.String(), `"fits":[]`) {
 		t.Errorf("fits outdoors only: %s", w.Body)
 	}
+	// Wer kann wann says why: four can, but only a hall is free.
+	w = a.do(a.as(seb, "GET", group+"/fours", ""))
+	if body := w.Body.String(); w.Code != 200 || !strings.Contains(body, `"start":1080,"venues":["Padel Villach"],"why":"area"`) ||
+		strings.Contains(body, `"fits":true`) {
+		t.Errorf("fours outdoors only: %d %s", w.Code, body)
+	}
+	if w := a.do(a.as(eva, "GET", group+"/fours", "")); w.Code != 404 {
+		t.Errorf("fours, not a member: %d %s", w.Code, w.Body)
+	}
 	if w := a.send(anna, "PATCH", group, `{"area":"halle"}`); w.Code != 200 {
 		t.Fatalf("anna sets halle: %d %s", w.Code, w.Body)
 	}
 	if w := a.do(a.as(seb, "GET", group+"/fits?minutes=90", "")); !strings.Contains(w.Body.String(), `"court":"Court 1"`) {
 		t.Errorf("fits in halls: %s", w.Body)
+	}
+	if w := a.do(a.as(seb, "GET", group+"/fours", "")); !strings.Contains(w.Body.String(), `"fits":true,"start":1080,"venues":[]`) {
+		t.Errorf("fours in halls: %s", w.Body)
 	}
 	if w := a.send(anna, "PATCH", group, `{"area":"dach"}`); w.Code != 400 {
 		t.Errorf("a bad area: %d %s", w.Code, w.Body)

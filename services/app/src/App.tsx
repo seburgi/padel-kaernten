@@ -24,7 +24,7 @@ import { Waiting } from "./games/Waiting";
 import { Group, GroupSettings } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
 import { Play, Profile } from "./groups/Play";
-import { WhoCan } from "./groups/WhoCan";
+import { WhoCanLink, WhoCanPage } from "./groups/WhoCan";
 import { FirstSteps } from "./help/FirstSteps";
 import { Help } from "./help/Help";
 import { Welcome } from "./help/Welcome";
@@ -187,7 +187,7 @@ export function App() {
                 games={(id) => (
                   <>
                     <BestFits key={`fits-${id}`} group={id} />
-                    <WhoCan key={`who-${id}`} group={id} />
+                    <WhoCanLink group={id} />
                     <Upcoming key={id} group={id} />
                   </>
                 )}
@@ -195,6 +195,7 @@ export function App() {
             }
           />
           <Route path="/groups/:id/fits" element={<Fits />} />
+          <Route path="/groups/:id/who-can" element={<WhoCanPage />} />
           <Route path="/groups/:id/settings" element={<GroupSettings />} />
           <Route path="/games/:id" element={<Game notify={<PushCard where="game" />} />} />
           <Route path="/availability" element={<Availability />} />

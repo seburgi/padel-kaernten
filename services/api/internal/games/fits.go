@@ -78,6 +78,14 @@ type Window struct {
 // free for the whole game (docs/design/games.md), and the near misses one
 // short of need with members to ask. Pure: everything comes in.
 func Fits(venues []Venue, people []Person, minutes, need int, w Window) (fits, nearly []Fit) {
+	fits, nearly = all(venues, people, minutes, need, w)
+	order(fits)
+	order(nearly)
+	return limit(fits, MaxFits), limit(nearly, MaxNearly)
+}
+
+// all is every fit and near miss, unordered and without a limit.
+func all(venues []Venue, people []Person, minutes, need int, w Window) (fits, nearly []Fit) {
 	seen := map[string]bool{}
 	for _, v := range venues {
 		if v.Failed {
@@ -116,9 +124,7 @@ func Fits(venues []Venue, people []Person, minutes, need int, w Window) (fits, n
 			}
 		}
 	}
-	order(fits)
-	order(nearly)
-	return limit(fits, MaxFits), limit(nearly, MaxNearly)
+	return fits, nearly
 }
 
 type block struct {

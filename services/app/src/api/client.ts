@@ -21,6 +21,7 @@ export type AvailabilityDay = components["schemas"]["AvailabilityDay"];
 export type Template = components["schemas"]["Template"];
 export type Fit = components["schemas"]["Fit"];
 export type FitList = components["schemas"]["FitList"];
+export type FourHalfHour = components["schemas"]["FourHalfHour"];
 export type Game = components["schemas"]["Game"];
 
 /** An answer that was not what the call wanted; kind is the end of the

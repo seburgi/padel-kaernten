@@ -480,6 +480,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/groups/{groupId}/fours": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    /**
+     * Every half hour four members can, and whether a court fits
+     * @description For "Wer kann wann": each half hour of the window in which at least four members can (wherever they drive to), and whether a game of 60, 90 or 120 minutes with a free court covers it, as in the fits; if not, why. Starts already past in Vienna are left out. From the latest snapshot, never stored. Members only; 404 no-group otherwise, 503 no-snapshot before the sites were ever asked.
+     */
+    get: operations["listFours"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/groups/{groupId}/availability": {
     parameters: {
       query?: never;
@@ -887,6 +909,31 @@ export interface components {
       fits: components["schemas"]["Fit"][];
       /** @description One short; ask lists who could still make it. */
       nearly: components["schemas"]["Fit"][];
+    };
+    FourList: {
+      /**
+       * Format: date-time
+       * @description When the snapshot the courts come from was taken.
+       */
+      takenAt: string;
+      /** @description How many play a game. */
+      need: number;
+      halfHours: components["schemas"]["FourHalfHour"][];
+    };
+    FourHalfHour: {
+      /** Format: date */
+      day: string;
+      /** @description Minutes after midnight in Vienna; the half hour runs 30 minutes from here. */
+      start: number;
+      /** @description A game with a free court of the group's area covers this half hour. */
+      fits: boolean;
+      /**
+       * @description Only when it does not fit. short: never the same four for a whole hour. venues: a court of the area is free, but fewer than four of those who can drive there. area: only courts outside the group's area are free. none: no court is free.
+       * @enum {string}
+       */
+      why?: "short" | "venues" | "area" | "none";
+      /** @description venues: the venues of the area with a court free. area: those outside it with a court free. none: the venues of the area that take no bookings for the day yet. Empty otherwise. */
+      venues: string[];
     };
     NewGame: {
       venueId: string;
@@ -1640,6 +1687,29 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["FitList"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listFours: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        groupId: components["parameters"]["GroupId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The half hours. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FourList"];
         };
       };
       default: components["responses"]["Problem"];

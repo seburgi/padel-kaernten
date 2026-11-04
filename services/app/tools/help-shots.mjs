@@ -9,6 +9,8 @@
 //   cd services/app && pnpm dev
 //   cd services/app && DATABASE_URL=postgres://… node tools/help-shots.mjs
 //
+// ONLY=wer-kann,spiel makes just those pictures and keeps the others.
+//
 // It writes public/help/<name>.webp and <name>-dark.webp, which the Hilfe
 // names in src/help/chapters.tsx, and their sizes to src/help/shots.json.
 import { execFileSync } from "node:child_process";
@@ -26,6 +28,7 @@ const DB = process.env.DATABASE_URL;
 // What the pictures are scaled to: twice a phone's width, sharp enough on
 // every screen and a fraction of the size of the phone's own three times.
 const WIDTH = 780;
+const ONLY = process.env.ONLY?.split(",");
 
 if (!DB) throw new Error("help-shots needs DATABASE_URL, the local API's database");
 const host = new URL(DB.replace(/^postgres(ql)?:/, "http:")).hostname;
@@ -148,6 +151,12 @@ async function seed() {
     for (const who of Object.keys(NAMES))
       if (!off[who].includes(i % (who === "lisa" ? 3 : 7)))
         await as(who, "PUT", `/api/v1/availability/days/${day}`, evening);
+  // A lunch all four could make, when no court is free: Wer kann wann
+  // shows it red.
+  for (const who of Object.keys(NAMES))
+    await as(who, "PUT", `/api/v1/availability/days/${DAYS[11]}`, {
+      spans: [{ from: 12 * 60, to: 13 * 60 + 30 }, evening.spans[0]],
+    });
   // Seb has thought about his day off; Lisa's stay open.
   await as("seb", "PUT", `/api/v1/availability/days/${DAYS[3]}`, { spans: [], declined: true });
   await as("seb", "PUT", `/api/v1/availability/days/${DAYS[2]}`, {
@@ -243,9 +252,10 @@ const shots = ({ group, game }) => [
   },
   {
     name: "wer-kann",
-    path: `/groups/${group}`,
-    from: "main section:has(h2:text-is('Wer kann wann'))",
-    to: "main section:has(h2:text-is('Wer kann wann'))",
+    path: `/groups/${group}/who-can`,
+    from: "main",
+    top: 4,
+    to: "main section[aria-label='Wer kann wann']",
   },
   {
     name: "spiele-fast",
@@ -305,7 +315,7 @@ const heights = {};
 for (const theme of ["light", "dark"]) {
   const phone = await app.signIn({ phone: true });
   await phone.page.emulateMedia({ colorScheme: theme });
-  for (const s of shots(ids)) {
+  for (const s of shots(ids).filter((s) => !ONLY || ONLY.includes(s.name))) {
     // The courts and the fits ask the sites by themselves once the
     // snapshot is an hour old; a fresh one keeps them on the starting point.
     writeSnapshot();
@@ -313,6 +323,11 @@ for (const theme of ["light", "dark"]) {
     await page
       .locator("[aria-busy=true]")
       .first()
+      .waitFor({ state: "detached" })
+      .catch(() => {});
+    // The boot screen lies over the first page until its data are there.
+    await page
+      .locator("#boot")
       .waitFor({ state: "detached" })
       .catch(() => {});
     if (s.step) {
@@ -339,7 +354,10 @@ for (const theme of ["light", "dark"]) {
   await phone.context.close();
 }
 await app.close();
-// What the Hilfe reserves for each picture before it loads.
+// What the Hilfe reserves for each picture before it loads; with ONLY, the
+// others keep theirs.
+const kept = ONLY ? JSON.parse(readFileSync(join(here, "../src/help/shots.json"), "utf8")) : {};
+for (const [n, size] of Object.entries(kept)) heights[n] ??= size.height;
 const names = Object.keys(heights).sort();
 writeFileSync(
   join(here, "../src/help/shots.json"),
