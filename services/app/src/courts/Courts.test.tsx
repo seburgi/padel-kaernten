@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
 import { Courts } from "./Courts";
-import { viennaNow } from "./search";
+import { viennaNow, winter } from "./search";
 
 const today = viennaNow().date;
 function snapshot(minutesOld: number, over: object = {}) {
@@ -73,6 +73,32 @@ function snapshot(minutesOld: number, over: object = {}) {
 }
 
 describe("Courts", () => {
+  it("puts the open-air venues under their own heading in winter", async () => {
+    history.replaceState(null, "", "#ab=23:00&bis=24:00&dauer=60");
+    const only = (id: string, area: string) => ({
+      ...snapshot(1).venues[0]!,
+      id,
+      name: id,
+      courts: [{ name: "C", area, free: [{ day: today, from: 1380, to: 1440 }] }],
+    });
+    serve({
+      "GET /api/v1/slots": () =>
+        answer(200, snapshot(1, { venues: [only("Luft", "freiluft"), only("Halle", "halle")] })),
+    });
+    renderWithQuery(<Courts />);
+    const names = (await screen.findAllByRole("article")).map(
+      (a) => a.querySelector("h3, h2")?.textContent ?? a.textContent,
+    );
+    const heading = screen.queryByRole("heading", { name: "Nur Freiluft" });
+    if (winter(today)) {
+      expect(names[0]).toContain("Halle");
+      expect(heading).toBeInTheDocument();
+    } else {
+      expect(names[0]).toContain("Luft");
+      expect(heading).toBeNull();
+    }
+  });
+
   it("shows only the venues one chose, and every venue when none of them is left", async () => {
     history.replaceState(null, "", "#ab=23:00&bis=24:00&dauer=60");
     serve({ "GET /api/v1/slots": () => answer(200, snapshot(1)) });

@@ -42,6 +42,10 @@
   availability slice's venues, handed to `Courts` by `App.tsx` as `only`)
   sees only those, with "Nur deine Plätze. Ändern" (Seb, 2026-10-30).
   None chosen, or none of them in the snapshot any more, shows every venue.
+- From November to March (the day searched), venues with only open-air
+  courts come after the others, under "Nur Freiluft" (Seb, 2026-11-04).
+  They are not hidden: the Halle/Freiluft chips still choose. The group's
+  own area is deliberately not used here; Plätze knows no groups.
 
 ## Deliberately not
 

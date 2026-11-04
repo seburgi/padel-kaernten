@@ -300,6 +300,8 @@ export function Game({ notify }: { notify?: ReactNode }) {
           <p className="mb-2 text-sm text-ink-muted">
             Gebucht wird auf der Seite der Anlage. Danach hier „Gebucht“ tippen, damit alle es
             wissen.
+            {!full &&
+              ` Noch ${g.players - ins.length === 1 ? "fehlt eine Person" : `fehlen ${g.players - ins.length}`}: bucht am besten erst, wenn ihr ${g.players === 4 ? "vier" : g.players} seid.`}
           </p>
           <div className="flex flex-wrap gap-2">
             {g.link && (
@@ -310,7 +312,9 @@ export function Game({ notify }: { notify?: ReactNode }) {
             {g.state === "proposed" && (
               <button
                 type="button"
-                className={primary}
+                // Not the obvious next step while people are missing (Seb,
+                // 2026-11-04).
+                className={full ? primary : quiet}
                 disabled={setState.isPending}
                 onClick={() => setState.mutate("booked")}
               >

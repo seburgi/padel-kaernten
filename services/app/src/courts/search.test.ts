@@ -12,6 +12,7 @@ import {
   options,
   parseHm,
   search,
+  winter,
   standLabel,
   toHash,
   upcoming,
@@ -95,6 +96,26 @@ describe("search", () => {
     expect(r.bookedOut.map((v) => v.id)).toEqual(["full"]);
     expect(r.notYet.map((v) => v.id)).toEqual(["early"]);
     expect(r.failed.map((v) => v.id)).toEqual(["down"]);
+  });
+
+  it("puts open-air venues last in winter", () => {
+    const air = (id: string, day: string) =>
+      venue({
+        id,
+        courts: [{ name: "C", area: "freiluft", free: [{ day, from: 1080, to: 1260 }] }],
+      });
+    const hall = (id: string, day: string) =>
+      venue({ id, courts: [{ name: "C", area: "halle", free: [{ day, from: 1080, to: 1260 }] }] });
+    const ids = (day: string) =>
+      search(
+        [air("air", day), hall("hall", day)],
+        { ...base, day },
+        { date: day, minute: 600 },
+      ).hits.map((h) => h.venue.id);
+    expect(ids("2026-11-04")).toEqual(["hall", "air"]);
+    expect(ids("2027-03-31")).toEqual(["hall", "air"]);
+    expect(ids("2027-04-01")).toEqual(["air", "hall"]);
+    expect(winter("2026-10-31")).toBe(false);
   });
 
   it("counts überdacht as a hall and tells mixed venues", () => {

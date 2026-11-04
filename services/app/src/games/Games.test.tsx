@@ -548,6 +548,18 @@ describe("Game", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not push booking while people are missing", async () => {
+    const two = game();
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...seb, canInvite: true }),
+      "GET /api/v1/games/7": () => answer(200, { ...two, lineup: two.lineup.slice(0, 2) }),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText(/bucht am besten erst, wenn ihr vier seid/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gebucht" })).not.toHaveClass("bg-accent");
+  });
+
   it("says when booking is refused", async () => {
     serve({
       "GET /api/v1/me": () => answer(200, { ...seb, canInvite: true }),

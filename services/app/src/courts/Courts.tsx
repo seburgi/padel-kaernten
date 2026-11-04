@@ -3,7 +3,7 @@
 // For someone in a group, a start time opens ask (from the games slice; App
 // puts it in) to propose it to the group, instead of the venue's page.
 // Someone who chose their venues (Mehr › Deine Plätze) sees only those.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { Venue } from "../api/client";
 import { card, field, link, pressed, quiet } from "../ui";
@@ -17,11 +17,13 @@ import {
   fromHash,
   hm,
   mapLink,
+  outdoor,
   search,
   standLabel,
   toHash,
   upcoming,
   viennaNow,
+  winter,
   type Area,
   type Hit,
   type Search,
@@ -281,8 +283,13 @@ function Found({
           </div>
         )}
 
-        {result.hits.map((hit) => (
-          <VenueCard key={hit.venue.id} hit={hit} search={s} onPick={ask ? setPicked : undefined} />
+        {result.hits.map((hit, i) => (
+          <Fragment key={hit.venue.id}>
+            {winter(s.day) && outdoor(hit) && i > 0 && !outdoor(result.hits[i - 1]!) && (
+              <h2 className="mt-5 mb-2 text-sm font-semibold text-ink-muted">Nur Freiluft</h2>
+            )}
+            <VenueCard hit={hit} search={s} onPick={ask ? setPicked : undefined} />
+          </Fragment>
         ))}
 
         {result.bookedOut.length > 0 && (

@@ -153,7 +153,21 @@ export function search(venues: Venue[], s: Search, now = viennaNow()): Result {
         area: areas.size === 1 ? ([...areas][0] ?? null) : null,
       });
   }
+  // In winter the venues with only open-air courts come last (Seb,
+  // 2026-11-04): free, but rarely what anyone wants in November.
+  if (winter(s.day)) result.hits.sort((a, b) => Number(outdoor(a)) - Number(outdoor(b)));
   return result;
+}
+
+/** November to March. */
+export function winter(day: string): boolean {
+  const month = Number(day.slice(5, 7));
+  return month >= 11 || month <= 3;
+}
+
+/** A hit whose venue has only open-air courts. */
+export function outdoor(hit: Hit): boolean {
+  return hit.area === "freiluft";
 }
 
 /** The search in the address, so a link opens the same search. */

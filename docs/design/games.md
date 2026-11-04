@@ -58,7 +58,9 @@
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
-  Buchung, Gebucht, Spiel absagen). Those without an answer are sorted by
+  Buchung, Gebucht, Spiel absagen; while people are missing, Gebucht is
+  not the primary button and a line says to book once they are four, Seb
+  2026-11-04). Those without an answer are sorted by
   what they entered in "Wann kann ich?" for the game's day (Seb,
   2026-10-31, feedback #69; `byTime`): Hätte Zeit (spans cover the whole
   game), Da nicht frei (declined, or part of the game left out) and
