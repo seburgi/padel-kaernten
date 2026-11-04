@@ -1,7 +1,7 @@
 // What the game screens share (docs/design/games.md): times, money, names,
 // and what each problem means in German.
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiError, call, type Game } from "../api/client";
+import { api, ApiError, call, type Game, type Span } from "../api/client";
 
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
@@ -75,4 +75,40 @@ export function errorText(e: unknown): string {
     }
   }
   return "Das hat nicht geklappt. Versuch es nochmal.";
+}
+
+type Days = { email: string; days: { day: string; spans: Span[]; declined: boolean }[] };
+type Person = { email: string; name: string };
+
+/** Whether the spans cover from start to end without a gap. */
+function covers(spans: Span[], start: number, end: number): boolean {
+  let at = start;
+  for (const s of [...spans].sort((a, b) => a.from - b.from))
+    if (s.from <= at && s.to > at) at = s.to;
+  return at >= end;
+}
+
+/** Those who have not answered a game, by what they entered in "Wann kann
+ * ich?" for its day (feedback #69): free for the whole game, not (a declined
+ * day or spans that leave part of it out), or nothing entered. Without the
+ * group's days everyone is unknown. */
+export function byTime(
+  g: Pick<Game, "day" | "start" | "minutes">,
+  people: Person[],
+  members: Days[] | undefined,
+): { free: Person[]; busy: Person[]; unknown: Person[] } {
+  const out = { free: [] as Person[], busy: [] as Person[], unknown: [] as Person[] };
+  for (const p of people) {
+    const d = members?.find((m) => m.email === p.email)?.days.find((x) => x.day === g.day);
+    if (!d) out.unknown.push(p);
+    else if (!d.declined && covers(d.spans, g.start, g.start + g.minutes)) out.free.push(p);
+    else out.busy.push(p);
+  }
+  return out;
+}
+
+/** "Anna", "Anna und Lisa", "Anna, Eva und Lisa". */
+export function names(people: Person[]): string {
+  const n = people.map(shown);
+  return n.length < 2 ? (n[0] ?? "") : `${n.slice(0, -1).join(", ")} und ${n[n.length - 1]}`;
 }

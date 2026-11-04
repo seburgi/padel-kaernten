@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Game as G } from "../api/client";
 import { card, danger, link, primary, quiet } from "../ui";
-import { dayLabel, errorText, euros, playing, reserves, shown, span } from "./games";
+import { byTime, dayLabel, errorText, euros, names, playing, reserves, shown, span } from "./games";
 import { Seats } from "./Seats";
 
 const STATE: Record<string, string> = {
@@ -36,6 +36,20 @@ export function Game({ notify }: { notify?: ReactNode }) {
     queryKey: ["group", groupId],
     queryFn: () =>
       call(api.GET("/api/v1/groups/{groupId}", { params: { path: { groupId: groupId! } } })),
+    retry: false,
+    enabled: groupId !== undefined,
+  });
+  // What the members entered in "Wann kann ich?", to say who of those
+  // without an answer would have time (feedback #69); the same query as Wer
+  // kann wann on the group's page.
+  const times = useQuery({
+    queryKey: ["group-availability", groupId],
+    queryFn: () =>
+      call(
+        api.GET("/api/v1/groups/{groupId}/availability", {
+          params: { path: { groupId: groupId! } },
+        }),
+      ),
     retry: false,
     enabled: groupId !== undefined,
   });
@@ -105,6 +119,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
   const answered = new Set(g.lineup.map((p) => p.email));
   const silent = (group.data?.memberList ?? []).filter((m) => !answered.has(m.email));
   const full = ins.length >= g.players;
+  const could = byTime(g, silent, times.data?.members);
   const booker = proposer ? "Du buchst" : `${shown(g.proposedBy)} bucht`;
   const headline =
     g.state === "booked"
@@ -146,6 +161,11 @@ export function Game({ notify }: { notify?: ReactNode }) {
             : `${STATE[g.state] ?? g.state} · vorgeschlagen von `}
           {proposer ? "dir" : shown(g.proposedBy)}
         </p>
+        {g.state === "proposed" && !full && could.free.length > 0 && (
+          <p className="text-sm font-semibold text-accent-text">
+            {names(could.free)} {could.free.length === 1 ? "hätte" : "hätten"} Zeit
+          </p>
+        )}
       </div>
 
       {open && (
@@ -171,7 +191,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
                 >
                   {step.done ? "✓" : i + 1}
                 </span>
-                <span>
+                <span className="min-w-0">
                   <span className="font-semibold">{step.label}</span>
                   {step.note && <span className="text-sm text-ink-muted"> {step.note}</span>}
                 </span>
@@ -244,9 +264,33 @@ export function Game({ notify }: { notify?: ReactNode }) {
           <p className="mt-1 text-sm text-ink-muted">Können nicht: {outs.map(shown).join(", ")}</p>
         )}
         {open && silent.length > 0 && (
-          <p className="mt-1 text-sm text-ink-muted">
-            Noch keine Antwort: {silent.map(shown).join(", ")}
-          </p>
+          <div className="mt-3">
+            <h3 className="text-sm font-semibold">
+              Noch keine Antwort
+              {times.data && (
+                <span className="font-normal text-ink-muted"> · laut „Wann kann ich?“</span>
+              )}
+            </h3>
+            {could.free.length > 0 && (
+              <p className="mt-1 text-sm">
+                <span className="font-semibold text-accent-text">
+                  {could.free.length === 1 ? "Hätte Zeit:" : "Hätten Zeit:"}
+                </span>{" "}
+                {could.free.map(shown).join(", ")}
+              </p>
+            )}
+            {could.busy.length > 0 && (
+              <p className="mt-1 text-sm text-ink-muted">
+                Da nicht frei: {could.busy.map(shown).join(", ")}
+              </p>
+            )}
+            {could.unknown.length > 0 && (
+              <p className="mt-1 text-sm text-ink-muted">
+                {times.data ? "Nichts eingetragen: " : ""}
+                {could.unknown.map(shown).join(", ")}
+              </p>
+            )}
+          </div>
         )}
       </section>
 

@@ -7,7 +7,7 @@ import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
 import { Fits } from "./Fits";
 import { Game } from "./Game";
-import { clock, dayLabel, errorText, euros, shown, span } from "./games";
+import { byTime, clock, dayLabel, errorText, euros, names, shown, span } from "./games";
 import { Upcoming } from "./Upcoming";
 import { ApiError } from "../api/client";
 
@@ -94,6 +94,56 @@ describe("games helpers", () => {
     expect(shown(anna)).toBe("Anna");
     expect(errorText(new ApiError(503, "no-snapshot"))).toMatch(/noch nicht abgefragt/);
     expect(errorText(new Error("x"))).toMatch(/nicht geklappt/);
+    expect(names([])).toBe("");
+    expect(names([anna, lisa])).toBe("Anna und Lisa");
+    expect(names([anna, eva, lisa])).toBe("Anna, Eva und Lisa");
+  });
+
+  it("sorts those without an answer by their times", () => {
+    const g = { day: "2026-10-29", start: 1110, minutes: 90 };
+    const on = (spans: { from: number; to: number }[], declined = false) => [
+      { day: "2026-10-29", spans, declined },
+    ];
+    expect(byTime(g, [anna, lisa], undefined)).toEqual({
+      free: [],
+      busy: [],
+      unknown: [anna, lisa],
+    });
+    const r = byTime(
+      g,
+      [anna, markus, lisa, eva],
+      [
+        { ...anna, days: on([{ from: 1110, to: 1200 }]) },
+        {
+          ...markus,
+          days: on([
+            { from: 1140, to: 1260 },
+            { from: 1080, to: 1140 },
+          ]),
+        },
+        { ...lisa, days: on([], true) },
+        {
+          ...eva,
+          days: [{ day: "2026-10-30", spans: [{ from: 360, to: 1440 }], declined: false }],
+        },
+      ],
+    );
+    expect(r).toEqual({ free: [anna, markus], busy: [lisa], unknown: [eva] });
+    expect(
+      byTime(
+        g,
+        [anna],
+        [
+          {
+            ...anna,
+            days: on([
+              { from: 1110, to: 1140 },
+              { from: 1170, to: 1200 },
+            ]),
+          },
+        ],
+      ),
+    ).toEqual({ free: [], busy: [anna], unknown: [] });
   });
 });
 
@@ -387,7 +437,8 @@ describe("Game", () => {
     );
     expect(screen.getByText("Seb bucht bei Padel Villach")).toBeInTheDocument();
     expect(screen.getByText(/Können nicht:/)).toHaveTextContent("Lisa");
-    expect(await screen.findByText(/Noch keine Antwort/)).toHaveTextContent("Anna, markus, Eva");
+    expect(await screen.findByText("Anna, markus, Eva")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Noch keine Antwort" })).toBeInTheDocument();
     expect(screen.queryByText("Buchen")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Bin dabei" }));
     expect(await screen.findByText(/abgesagt oder schon vorbei/)).toBeInTheDocument();
@@ -395,6 +446,53 @@ describe("Game", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Kann doch nicht" }));
     expect(await screen.findByRole("button", { name: "Bin dabei" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Kann nicht" })).toBeNull();
+  });
+
+  it("says who of those without an answer would have time", async () => {
+    const g = game({
+      lineup: [
+        { ...seb, state: "in" },
+        { ...lisa, state: "out" },
+      ],
+    });
+    const day = (spans: { from: number; to: number }[], declined = false) => ({
+      day: "2026-10-29",
+      spans,
+      declined,
+    });
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...seb, canInvite: true }),
+      "GET /api/v1/games/7": () => answer(200, g),
+      "GET /api/v1/groups/1": () => answer(200, group),
+      "GET /api/v1/groups/1/availability": () =>
+        answer(200, {
+          from: "2026-10-28",
+          to: "2026-11-10",
+          members: [
+            // Two touching spans cover 18:30 to 20:00.
+            {
+              ...anna,
+              days: [
+                day([
+                  { from: 1080, to: 1140 },
+                  { from: 1140, to: 1260 },
+                ]),
+              ],
+            },
+            // Free, but only until 19:30.
+            { ...markus, days: [day([{ from: 1080, to: 1170 }])] },
+            { ...eva, days: [] },
+          ],
+        }),
+    });
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText("Anna hätte Zeit")).toBeInTheDocument();
+    expect(screen.getByText("Hätte Zeit:").parentElement).toHaveTextContent("Hätte Zeit: Anna");
+    expect(screen.getByText(/Da nicht frei:/)).toHaveTextContent("markus");
+    expect(screen.getByText(/Nichts eingetragen:/)).toHaveTextContent("Eva");
+    expect(screen.getByRole("heading", { name: /Noch keine Antwort/ })).toHaveTextContent(
+      "laut „Wann kann ich?“",
+    );
   });
 
   it("offers a reserve place when full, and a plain no", async () => {

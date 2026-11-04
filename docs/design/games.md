@@ -43,7 +43,13 @@
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
-  Buchung, Gebucht, Spiel absagen); on the group's page "Passt für vier" (`BestFits` for that group alone,
+  Buchung, Gebucht, Spiel absagen). Those without an answer are sorted by
+  what they entered in "Wann kann ich?" for the game's day (Seb,
+  2026-10-31, feedback #69; `byTime`): Hätte Zeit (spans cover the whole
+  game), Da nicht frei (declined, or part of the game left out) and
+  Nichts eingetragen; while the game still wants people, the card on top
+  names who would have time. It reads `GET /groups/{id}/availability`, the
+  query Wer kann wann uses; without it the names stay one plain list; on the group's page "Passt für vier" (`BestFits` for that group alone,
   with Alle Zeiten to its fits) above its coming games. On Spielen (Seb,
   2026-10-29): "Wartet auf dich" (`Waiting`) holds every proposed game the
   person has not answered, with Bin dabei and Kann nicht on its card and

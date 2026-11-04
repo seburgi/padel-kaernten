@@ -13,7 +13,7 @@ export function Seats({ g, big = false }: { g: Game; big?: boolean }) {
         <span
           key={p.email}
           title={shown(p)}
-          className={`${size} inline-flex items-center justify-center rounded-full bg-accent font-semibold text-accent-ink`}
+          className={`${size} inline-flex shrink-0 items-center justify-center rounded-full bg-accent font-semibold text-accent-ink`}
         >
           {shown(p).slice(0, 2).toUpperCase()}
         </span>
@@ -21,7 +21,7 @@ export function Seats({ g, big = false }: { g: Game; big?: boolean }) {
       {Array.from({ length: free }, (_, i) => (
         <span
           key={`free-${i}`}
-          className={`${size} inline-flex items-center justify-center rounded-full border-[1.5px] border-dashed border-ink-faint text-ink-faint`}
+          className={`${size} inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-ink-faint text-ink-faint`}
         >
           ?
         </span>
