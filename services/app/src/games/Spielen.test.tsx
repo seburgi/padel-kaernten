@@ -175,7 +175,16 @@ describe("BestFits", () => {
         "GET /api/v1/groups": () =>
           answer(200, { items: [summary(1, "Dienstagsrunde"), summary(2, "Mittwochsliga")] }),
         "GET /api/v1/groups/1/fits": () =>
-          fits([fit({ day: "2026-11-05" }), fit({ day: "2026-10-29", start: 1110 })]),
+          fits([
+            fit({
+              day: "2026-11-05",
+              venueId: "spittal",
+              venueName: "Spittal",
+              perHead: { amount: 2000, currency: "EUR" },
+            }),
+            fit({ day: "2026-11-05" }),
+            fit({ day: "2026-10-29", start: 1110 }),
+          ]),
         "GET /api/v1/groups/2/fits": () =>
           fits([
             fit({
@@ -202,7 +211,10 @@ describe("BestFits", () => {
       "Fr 6.11., 19:00–20:30",
     ]);
     expect(items[0]).toHaveTextContent("Padelbase Annenheim · Mittwochsliga");
-    expect(items[1]).toHaveTextContent("Padel Villach · € 15 pro Kopf · Dienstagsrunde");
+    // Do 5.11. is free at two venues: one row, the cheaper, and how many more.
+    expect(items[1]).toHaveTextContent(
+      "Padel Villach · € 15 pro Kopf · Dienstagsrunde · noch 1 Anlage frei",
+    );
     expect(items[1]).toHaveTextContent("4 können: Seb, Anna, Markus, Lisa");
     expect(screen.queryByRole("link", { name: "Alle Zeiten" })).toBeNull();
 

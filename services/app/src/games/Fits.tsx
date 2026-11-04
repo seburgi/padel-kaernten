@@ -2,7 +2,8 @@
 // times and the free courts allow, one tap from proposing one. The fits come
 // from the latest snapshot, which a schedule refreshes every 30 minutes; one
 // an hour old (the schedule missed), or none, is refreshed once on opening,
-// as on the courts. Where the group plays (Halle, Freiluft or
+// as on the courts. A time free at several venues is one card with each
+// venue to propose. Where the group plays (Halle, Freiluft or
 // both) is the group's; any member changes it under Verwalten.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -186,33 +187,47 @@ export function Fits() {
         <section key={day} className="mb-4">
           <h2 className="mb-2 font-semibold">{dayLabel(day)}</h2>
           <ul className="space-y-2">
-            {list.map((f) => (
-              <li key={`${f.venueId}-${f.start}`} className={`${card} p-4`}>
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold">
-                      {span(f.start, f.minutes)} · {f.venueName}
-                    </div>
-                    <div className="text-sm text-ink-muted">
-                      {f.court}
-                      {f.perHead && ` · ${euros(f.perHead.amount)} pro Kopf`}
-                    </div>
-                    <div className="mt-1 text-sm">
-                      {f.can.length} können: {f.can.map(shown).join(", ")}
-                    </div>
+            {byTime(list).map((same) => {
+              const f = same[0]!;
+              return (
+                <li key={`${f.start}-${f.venueId}`} className={`${card} p-4`}>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                    <span className="font-semibold">{span(f.start, f.minutes)}</span>
+                    {same.length > 1 && (
+                      <span className="text-sm text-ink-muted">{same.length} Anlagen frei</span>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    className={primary}
-                    disabled={propose.isPending}
-                    aria-label={`${dayLabel(f.day)} ${clock(f.start)} in ${f.venueName} vorschlagen`}
-                    onClick={() => propose.mutate(f)}
-                  >
-                    Vorschlagen
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="mb-2 text-sm">
+                    {f.can.length} können: {f.can.map(shown).join(", ")}
+                  </div>
+                  <ul className="divide-y divide-line border-t border-line">
+                    {same.map((v) => (
+                      <li
+                        key={v.venueId}
+                        className="flex items-center justify-between gap-3 py-2 last:pb-0"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold">{v.venueName}</div>
+                          <div className="text-sm text-ink-muted">
+                            {v.court}
+                            {v.perHead && ` · ${euros(v.perHead.amount)} pro Kopf`}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={same.length > 1 ? quiet : primary}
+                          disabled={propose.isPending}
+                          aria-label={`${dayLabel(v.day)} ${clock(v.start)} in ${v.venueName} vorschlagen`}
+                          onClick={() => propose.mutate(v)}
+                        >
+                          Vorschlagen
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ))}
@@ -258,6 +273,22 @@ export function Fits() {
         </section>
       )}
     </main>
+  );
+}
+
+/**
+ * A day's fits by time and who can (Seb, 2026-11-04): one card for a time,
+ * with every venue free then, cheapest first, instead of the same time and
+ * people once per venue.
+ */
+function byTime(list: Fit[]): Fit[][] {
+  const by = new Map<string, Fit[]>();
+  for (const f of list) {
+    const k = `${f.start}-${f.minutes}-${f.can.map((p) => p.email).join(",")}`;
+    by.set(k, [...(by.get(k) ?? []), f]);
+  }
+  return [...by.values()].map((same) =>
+    same.sort((a, b) => (a.perHead?.amount ?? Infinity) - (b.perHead?.amount ?? Infinity)),
   );
 }
 

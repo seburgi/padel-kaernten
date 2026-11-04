@@ -51,8 +51,10 @@
 - **Who sees a game**: the members of its group, through the view
   `game_visibility`, like `group_visibility`; anyone else gets 404.
 - **In the app** (`services/app/src/games`): "Wann passt es für vier?" on
-  a group's page (`/groups/:id/fits`, duration chips, fits by day, one tap
-  to propose, near misses below with their own Vorschlagen); the game (`/games/:id`, its places as rounds with a line that says
+  a group's page (`/groups/:id/fits`, duration chips, fits by day, one card
+  per time and people with every venue free then, cheapest first, each
+  with its own Vorschlagen (Seb, 2026-11-04: the same time once per venue
+  was noise), near misses below with their own Vorschlagen); the game (`/games/:id`, its places as rounds with a line that says
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
   Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
@@ -68,7 +70,8 @@
   person has not answered, with Bin dabei and Kann nicht on its card and
   the places as rounds (`Seats`); "Deine nächsten Spiele" (`Upcoming`)
   only those they are in or a reserve for; "Passt für vier" (`BestFits`)
-  the three soonest 90-minute fits from all their groups, leaving out
+  the three soonest 90-minute times from all their groups (one row a
+  time, its cheapest venue and "noch n Anlagen frei"), leaving out
   times already a game, with Vorschlagen. Alle Zeiten (shown only when
   there are more than three) opens all of them, by day and from every
   group, in the app's sheet; never one group's page, which made no sense

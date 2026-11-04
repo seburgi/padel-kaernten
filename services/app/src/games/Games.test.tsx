@@ -191,7 +191,18 @@ describe("Fits", () => {
     expect(await screen.findByRole("link", { name: "← Padel Kärnten" })).toBeInTheDocument();
     const days = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
     expect(days.slice(0, 2)).toEqual(["Do 29.10.", "Fr 30.10."]);
-    expect(screen.getAllByText("4 können: Seb, Anna, markus, Lisa")).toHaveLength(3);
+    // The same time and people at two venues is one card, the cheaper first.
+    expect(screen.getAllByText("4 können: Seb, Anna, markus, Lisa")).toHaveLength(2);
+    const both = screen.getByText("2 Anlagen frei").closest("li")!;
+    expect(
+      within(both)
+        .getAllByRole("button")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual([
+      "Do 29.10. 18:30 in Padel Villach vorschlagen",
+      "Do 29.10. 18:30 in Annenheim vorschlagen",
+    ]);
+    expect(screen.getAllByText("2 Anlagen frei")).toHaveLength(1);
     expect(screen.getByText(/Frag Lisa oder Eva/)).toBeInTheDocument();
     // A fresh snapshot is not asked for again.
     expect(calls.some((c) => c.url.pathname === "/api/v1/slots/refresh")).toBe(false);

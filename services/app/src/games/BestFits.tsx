@@ -85,8 +85,19 @@ export function BestFits({ group }: { group?: number }) {
     .filter(
       (p) => !proposed.has(`${p.groupId}/${p.f.venueId}/${p.f.court}/${p.f.day}/${p.f.start}`),
     )
-    .sort((a, b) => a.f.day.localeCompare(b.f.day) || a.f.start - b.f.start);
-  const picks = every.slice(0, SHOWN);
+    .sort(
+      (a, b) =>
+        a.f.day.localeCompare(b.f.day) ||
+        a.f.start - b.f.start ||
+        (a.f.perHead?.amount ?? Infinity) - (b.f.perHead?.amount ?? Infinity),
+    );
+  // The three are three times (Seb, 2026-11-04): a time free at several
+  // venues shows its cheapest and how many more; Alle Zeiten has them all.
+  const others = new Map<string, number>();
+  for (const p of every) others.set(timeOf(p), (others.get(timeOf(p)) ?? -1) + 1);
+  const picks = every
+    .filter((p, i) => every.findIndex((q) => timeOf(q) === timeOf(p)) === i)
+    .slice(0, SHOWN);
   const loading = fits.some((q) => q.isPending);
   const failed = fits.length > 0 && fits.every((q) => q.isError);
   const one = mine.length === 1 ? mine[0]! : undefined;
@@ -144,7 +155,9 @@ export function BestFits({ group }: { group?: number }) {
           )}
         </p>
       )}
-      {picks.length > 0 && <ul className="space-y-2">{picks.map((p) => row(p, true, !one))}</ul>}
+      {picks.length > 0 && (
+        <ul className="space-y-2">{picks.map((p) => row(p, true, !one, others.get(timeOf(p))))}</ul>
+      )}
       {propose.isError && !all && (
         <p role="alert" className="mt-2 text-sm text-danger-text">
           {errorText(propose.error)}
@@ -186,7 +199,7 @@ export function BestFits({ group }: { group?: number }) {
     </section>
   );
 
-  function row(p: Pick, withDay: boolean, withGroup: boolean) {
+  function row(p: Pick, withDay: boolean, withGroup: boolean, more = 0) {
     return (
       <li
         key={keyOf(p)}
@@ -202,6 +215,7 @@ export function BestFits({ group }: { group?: number }) {
             {withDay ? p.f.venueName : p.f.court}
             {p.f.perHead && ` · ${euros(p.f.perHead.amount)} pro Kopf`}
             {withGroup && ` · ${p.groupName}`}
+            {more > 0 && ` · noch ${more} ${more === 1 ? "Anlage" : "Anlagen"} frei`}
           </div>
           <div className="text-sm">
             {p.f.can.length} können: {p.f.can.map(shown).join(", ")}
@@ -220,6 +234,10 @@ export function BestFits({ group }: { group?: number }) {
     );
   }
 }
+
+/** The same time for the same people in the same group, wherever. */
+const timeOf = (p: Pick) =>
+  `${p.groupId}-${p.f.day}-${p.f.start}-${p.f.minutes}-${p.f.can.map((c) => c.email).join(",")}`;
 
 const keyOf = (p: Pick) => `${p.groupId}-${p.f.venueId}-${p.f.court}-${p.f.day}-${p.f.start}`;
 
