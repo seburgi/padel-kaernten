@@ -15,8 +15,9 @@ const note = (slug: string) => ({
   read: false,
 });
 
-function api(me: { name: string; welcomed: boolean }, calls: Sent[] = []) {
+function api(me: { name: string; welcomed: boolean }, calls: Sent[] = [], groups: object[] = []) {
   let current = { ...anna, ...me };
+  let items = groups;
   serve(
     {
       "GET /api/v1/me": () => answer(200, current),
@@ -30,7 +31,11 @@ function api(me: { name: string; welcomed: boolean }, calls: Sent[] = []) {
       },
       "GET /api/v1/release-notes": () => answer(200, { items: [note("2026-10-28-hilfe")] }),
       "POST /api/v1/release-notes/read": () => answer(204),
-      "GET /api/v1/groups": () => answer(200, { items: [] }),
+      "GET /api/v1/groups": () => answer(200, { items }),
+      "POST /api/v1/groups/7/join": () => {
+        items = items.map((g) => ({ ...g, how: "member" }));
+        return answer(200, { state: "member" });
+      },
     },
     calls,
   );
@@ -61,6 +66,26 @@ describe("Welcome", () => {
       }),
     );
     expect(await screen.findByRole("heading", { name: "Gruppen finden" })).toBeInTheDocument();
+  });
+
+  it("lets someone new accept a group invitation right away", async () => {
+    const liga = {
+      id: 7,
+      name: "Mittwochsliga",
+      kind: "private",
+      area: "halle",
+      how: "invited",
+      members: 5,
+      requested: false,
+    };
+    const calls = api({ name: "Anna", welcomed: false }, [], [liga]);
+    renderWithQuery(<App />, { at: "/" });
+    expect(await screen.findByRole("heading", { name: "Du bist eingeladen" })).toBeInTheDocument();
+    expect(screen.getByText("Mittwochsliga")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Annehmen" }));
+    expect(await screen.findByText("Du bist drin.")).toBeInTheDocument();
+    expect(calls.some((c) => c.url.pathname === "/api/v1/groups/7/join")).toBe(true);
+    expect(screen.queryByRole("button", { name: "Annehmen" })).toBeNull();
   });
 
   it("lets someone new read the Hilfe, which counts as welcomed", async () => {

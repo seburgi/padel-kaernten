@@ -65,7 +65,10 @@
   its own page Verwalten (`/groups/{id}/settings`, members only; Seb,
   2026-10-29): where it plays, the members (removing them, admins),
   requests, inviting and the open invitations, the name and kind
-  (admins), and leaving.
+  (admins), and leaving. Each open invitation says the day it went out
+  and has "Link schicken": the phone's share sheet, or the clipboard
+  without one, with the address and the email to sign in with (Seb,
+  2026-11-04).
 - The member list carries `daysEntered`, on how many of the next 14 days
   each member said when they can (`availability.md`); transport joins the
   two slices.

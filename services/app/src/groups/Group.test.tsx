@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Group as G } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
@@ -129,9 +129,22 @@ describe("Group", () => {
     expect(await screen.findByText("neu@example.at", { selector: "div" })).toBeInTheDocument();
 
     // An admin takes back anyone's invitation.
-    expect(screen.getByText("lisa@example.at").closest("li")).toHaveTextContent(
-      "eingeladen von dir",
-    );
+    const lisa = screen.getByText("lisa@example.at").closest("li")!;
+    expect(lisa).toHaveTextContent("am 28.10. eingeladen von dir");
+    // The invitation to pass on: the share sheet, or the clipboard without one.
+    const share = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { share });
+    await userEvent.click(within(lisa).getByRole("button", { name: "Link schicken" }));
+    expect(share).toHaveBeenCalledWith({
+      text: "Du bist in die Padel-Gruppe „Padel Kärnten“ eingeladen. Melde dich mit lisa@example.at an:",
+      url: "https://padel.burgstaller.me",
+    });
+    Object.assign(navigator, { share: undefined });
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    await userEvent.click(within(lisa).getByRole("button", { name: "Link schicken" }));
+    expect(await within(lisa).findByRole("button", { name: "Kopiert" })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("https://padel.burgstaller.me"));
     const bert = screen.getByText("bert@example.at").closest("li")!;
     await userEvent.click(within(bert).getByRole("button", { name: "Zurücknehmen" }));
     await waitFor(() => expect(screen.queryByText("bert@example.at")).toBeNull());
@@ -175,7 +188,9 @@ describe("Group", () => {
     expect(screen.queryByRole("button", { name: "Entfernen …" })).toBeNull();
     // Only her own invitation can she take back.
     expect(
-      within(screen.getByText("lisa@example.at").closest("li")!).queryByRole("button"),
+      within(screen.getByText("lisa@example.at").closest("li")!).queryByRole("button", {
+        name: "Zurücknehmen",
+      }),
     ).toBeNull();
     const bert = screen.getByText("bert@example.at").closest("li")!;
     await userEvent.click(within(bert).getByRole("button", { name: "Zurücknehmen" }));

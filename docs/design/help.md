@@ -10,6 +10,9 @@
   is, asks for the name the others see when there is none, shows three
   steps to a first game with a glimpse of each screen, and has one
   primary button, "Los geht's". "Alles erklärt" opens the Hilfe instead.
+  A group invitation waits on top of it, "Du bist eingeladen", with
+  "Annehmen" (`POST …/join`) right there (Seb, 2026-11-04: Gernot stopped
+  at the welcome with his invitation open for a week).
 - **"Dein erstes Spiel"** (`FirstSteps`, Seb 2026-10-29): on Spielen, the
   welcome's three steps as a card (a name, some times, a group), with one
   button to the next step that leads elsewhere; none for a group while an

@@ -428,9 +428,11 @@ function Invite({ g, me }: { g: G; me: string }) {
               <div className="min-w-0">
                 <div className="truncate">{i.email}</div>
                 <div className="text-xs text-ink-muted">
-                  eingeladen{i.invitedBy === me ? " von dir" : ""}, noch nicht angenommen
+                  am {shortDate(i.invitedAt)} eingeladen{i.invitedBy === me ? " von dir" : ""}, noch
+                  nicht angenommen
                 </div>
               </div>
+              <ShareLink group={g.name} email={i.email} />
               {(i.invitedBy === me || g.role === "admin") && (
                 <button
                   type="button"
@@ -451,6 +453,43 @@ function Invite({ g, me }: { g: G; me: string }) {
         </p>
       )}
     </section>
+  );
+}
+
+/** 28.10., the day an invitation went out. */
+function shortDate(at: string): string {
+  return new Date(at).toLocaleDateString("de-AT", {
+    day: "numeric",
+    month: "numeric",
+    timeZone: "Europe/Vienna",
+  });
+}
+
+/**
+ * The invitation as a message to pass on (Seb, 2026-11-04): the address
+ * and the email to sign in with. The phone's own share sheet where there is
+ * one, the clipboard otherwise.
+ */
+function ShareLink({ group, email }: { group: string; email: string }) {
+  const [copied, setCopied] = useState(false);
+  const text = `Du bist in die Padel-Gruppe „${group}“ eingeladen. Melde dich mit ${email} an:`;
+  const url = "https://padel.burgstaller.me";
+  const share = async () => {
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setCopied(true);
+    } catch {
+      // Closed the share sheet, or no clipboard: nothing to say.
+    }
+  };
+  return (
+    <button type="button" className={`${link} shrink-0 text-sm`} onClick={() => void share()}>
+      {copied ? "Kopiert" : "Link schicken"}
+    </button>
   );
 }
 

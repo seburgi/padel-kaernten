@@ -3,11 +3,13 @@
 // first game, and the way to the Hilfe. "Los geht's" records it and goes
 // on to the address they came for (?next=), or to Spielen, where their
 // invitations wait, when they only opened the app's address; "Alles erklärt"
-// records it too and opens the Hilfe.
+// records it too and opens the Hilfe. A group invitation waits on top, to
+// accept right there (Seb, 2026-11-04): someone new who goes no further
+// than this page is in the group all the same.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { api, call, newKey, type Me } from "../api/client";
+import { api, call, newKey, useWriteKey, type Me } from "../api/client";
 import { card, field, link, primary } from "../ui";
 import { Picture } from "./Help";
 import type { Shot } from "./chapters";
@@ -63,6 +65,29 @@ export function Welcome({ onWelcome }: { onWelcome: () => void }) {
   const [name, setName] = useState("");
   const [keys] = useState(() => ({ name: newKey(), welcomed: newKey() }));
   const asked = me.data?.name === "";
+  const invited = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => (await call(api.GET("/api/v1/groups"))).items,
+    retry: false,
+  });
+  const joinKey = useWriteKey();
+  const [joined, setJoined] = useState<number[]>([]);
+  const join = useMutation({
+    mutationFn: (id: number) =>
+      call(
+        api.POST("/api/v1/groups/{groupId}/join", {
+          params: { path: { groupId: id }, header: { "Idempotency-Key": joinKey(id) } },
+        }),
+      ),
+    onSuccess: (_, id) => {
+      setJoined((j) => [...j, id]);
+      void client.invalidateQueries({ queryKey: ["groups"] });
+      void client.invalidateQueries({ queryKey: ["group", id] });
+    },
+  });
+  const invitations = (invited.data ?? []).filter(
+    (g) => g.how === "invited" || joined.includes(g.id),
+  );
 
   const go = useMutation({
     mutationFn: async (_to: string) => {
@@ -97,6 +122,49 @@ export function Welcome({ onWelcome }: { onWelcome: () => void }) {
         Zeit für ein Spiel zu viert. Die App ist privat und kostet nichts; gebucht wird bei der
         Anlage.
       </p>
+
+      {invitations.length > 0 && (
+        <section className={`${card} mb-5 p-4`} aria-labelledby="welcome-invited">
+          <h2 id="welcome-invited" className="mb-1 font-semibold">
+            Du bist eingeladen
+          </h2>
+          <p className="mb-3 text-sm text-ink-muted">
+            Nimm an, dann siehst du, wann die anderen können, und sie sehen dich.
+          </p>
+          <ul className="space-y-2">
+            {invitations.map((g) => (
+              <li key={g.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  <span className="font-semibold">{g.name}</span>
+                  <span className="text-sm text-ink-muted">
+                    {" "}
+                    · {g.members} {g.members === 1 ? "Person" : "Leute"}
+                  </span>
+                </span>
+                {joined.includes(g.id) ? (
+                  <span role="status" className="text-sm text-success-text">
+                    Du bist drin.
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={primary}
+                    disabled={join.isPending}
+                    onClick={() => join.mutate(g.id)}
+                  >
+                    Annehmen
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {join.isError && (
+            <p role="alert" className="mt-2 text-sm text-danger-text">
+              Das hat nicht geklappt. Versuch es bitte nochmal.
+            </p>
+          )}
+        </section>
+      )}
 
       <form
         onSubmit={(e) => {
