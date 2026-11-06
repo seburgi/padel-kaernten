@@ -67,6 +67,8 @@ describe("App", () => {
     const bar = (await screen.findAllByRole("navigation", { name: "Bereiche" }))[1]!;
     await userEvent.click(within(bar).getByRole("link", { name: "Plätze" }));
     expect(router.state.location.pathname).toBe("/");
+    // Plätze has its head like every page.
+    expect(await screen.findByRole("heading", { level: 1, name: "Plätze" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Spielen" })).toBeNull();
   });
 
@@ -101,13 +103,20 @@ describe("App", () => {
         .map((l) => l.textContent),
     ).toEqual(["Spielen", "Wann kann ich?", "Plätze", "Mehr"]);
     await userEvent.click(within(bar).getByRole("link", { name: "Wann kann ich?" }));
-    expect(await screen.findByRole("heading", { name: "Wann kannst du?" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Wann kann ich?", level: 1 }),
+    ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/availability");
     expect(within(bar).getByRole("link", { name: "Wann kann ich?" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    // The head shows the same sections, without Mehr.
+    // The head shows the same sections in the same order, without Mehr.
+    expect(
+      within(head)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["Spielen", "Wann kann ich?", "Plätze"]);
     for (const nav of [head, bar]) {
       expect(within(nav).getByRole("link", { name: "Spielen" })).not.toHaveAttribute(
         "aria-current",

@@ -79,6 +79,17 @@
   page). Today: a day under Wann kann ich?, Gruppe fragen on Plätze, a
   day under Wer kann wann and Alle passenden Zeiten. A new sheet or dialog
   uses it, never its own.
+- **Every page starts the same** (Seb, 2026-11-06): `src/PageHead.tsx`,
+  a way back where there is one ("← Gruppe"), the title with an action
+  beside it ("Verwalten"), and one grey line on what the page shows,
+  with the same spacing everywhere. Plätze has one too ("Plätze"); the
+  line that stood under "Padel Kärnten" on Plätze alone is now its. The
+  four sections' pages are named as their tabs (so "Wann kann ich?",
+  no longer "Wann kannst du?"; the reminder of that name keeps its
+  question). On a wide screen the switch under the head runs Spielen,
+  Wann kann ich?, Plätze, the order of the phone's tab bar; Mehr's
+  pages sit in the head there. A new page uses `PageHead`, never its
+  own `h1`.
 
 ## Deliberately not
 

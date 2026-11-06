@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { card, link, quiet } from "../ui";
 import { dayLabel, releaseDays } from "./notes";
 import { useReleaseNoteList, useReleaseNotes } from "./useReleaseNotes";
+import { PageHead } from "../PageHead";
 
 const AREAS: Record<string, string> = {
   courts: "Plätze",
@@ -23,10 +24,9 @@ export function WhatsNew() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Neuigkeiten</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Neuigkeiten">
         Was sich in Padel Kärnten geändert hat, das Neueste zuerst.
-      </p>
+      </PageHead>
       {isPending && (
         <div
           aria-hidden="true"

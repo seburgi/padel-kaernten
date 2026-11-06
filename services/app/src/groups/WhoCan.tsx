@@ -16,6 +16,7 @@ import { api, call, type AvailabilityDay, type FourHalfHour } from "../api/clien
 import { Sheet } from "@burgstaller/web/sheet";
 import { card, link, quiet } from "../ui";
 import { GroupFrame } from "./Group";
+import { PageHead } from "../PageHead";
 
 const FIRST = 7 * 60;
 const STEP = 30;
@@ -205,24 +206,21 @@ export function WhoCanPage() {
       {(g) =>
         g.how !== "member" ? (
           <main>
-            <h1 className="mt-2 mb-2 text-2xl font-semibold">Wer kann wann</h1>
-            <p className="mb-4 text-ink-muted">Wer wann kann, sieht nur, wer in der Gruppe ist.</p>
+            <PageHead title="Wer kann wann">
+              Wer wann kann, sieht nur, wer in der Gruppe ist.
+            </PageHead>
             <Link to={`/groups/${g.id}`} className={quiet}>
               Zur Gruppe
             </Link>
           </main>
         ) : (
           <main>
-            <Link to={`/groups/${g.id}`} className={`${link} text-sm`}>
-              ← {g.name}
-            </Link>
-            <h1 className="mt-1 mb-1 text-2xl font-semibold">Wer kann wann</h1>
-            <p className="mb-4 text-ink-muted">
+            <PageHead title="Wer kann wann" back={{ to: `/groups/${g.id}`, label: g.name }}>
               Die nächsten 14 Tage der ganzen Gruppe. Ein Punkt heißt: vier können, und ein Platz
               ist frei. Rot heißt: vier können, aber kein passender Platz.{" "}
               <span className="md:hidden">Tipp einen Tag an, dann steht da, warum.</span>
               <span className="max-md:hidden">Klick einen Tag an, dann steht da, warum.</span>
-            </p>
+            </PageHead>
             <WhoCan group={g.id} area={g.area} />
           </main>
         )

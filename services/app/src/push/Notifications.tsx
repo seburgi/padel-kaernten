@@ -6,6 +6,7 @@ import { api, call, newKey } from "../api/client";
 import type { components } from "../api/schema";
 import { card } from "../ui";
 import { PushCard } from "./PushCard";
+import { PageHead } from "../PageHead";
 
 type Kinds = components["schemas"]["PushKinds"];
 
@@ -61,11 +62,10 @@ export function Notifications() {
   const items = kinds.data?.items ?? [];
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Mitteilungen</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Mitteilungen">
         Was dir die App schickt. Der Schalter oben gilt für dieses Gerät, die Auswahl darunter für
         alle deine Geräte.
-      </p>
+      </PageHead>
       <PushCard where="page" />
       {items.length > 0 && (
         <ul className={`${card} m-0 list-none divide-y divide-line p-0`} aria-label="Arten">

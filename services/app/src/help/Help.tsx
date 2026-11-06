@@ -7,6 +7,7 @@ import { Link, useLocation } from "react-router";
 import { card, link } from "../ui";
 import { CHAPTERS, type Shot } from "./chapters";
 import SHOTS from "./shots.json";
+import { PageHead } from "../PageHead";
 
 export function Help() {
   const { hash } = useLocation();
@@ -23,13 +24,12 @@ export function Help() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Hilfe</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Hilfe">
         Alles, was Padel Kärnten kann, und wie es geht. Neu hier?{" "}
         <Link to="/welcome" className={link}>
           Kurzer Rundgang
         </Link>
-      </p>
+      </PageHead>
       <nav aria-label="Inhalt" className={`${card} mb-6 p-4`}>
         <h2 className="mb-2 text-sm font-semibold text-ink-muted">Inhalt</h2>
         <ol className="grid grid-cols-2 gap-x-4 text-[15px]">

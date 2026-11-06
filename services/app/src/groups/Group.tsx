@@ -17,6 +17,7 @@ import {
   useJoin,
   useMe,
 } from "./groups";
+import { PageHead } from "../PageHead";
 
 /** Loads the group by the address and says when it cannot. */
 export function GroupFrame({ children }: { children: (g: G, me: string) => ReactNode }) {
@@ -32,8 +33,9 @@ export function GroupFrame({ children }: { children: (g: G, me: string) => React
   if (!Number.isSafeInteger(id) || (group.error instanceof ApiError && group.error.status === 404))
     return (
       <main>
-        <h1 className="mt-2 mb-2 text-2xl font-semibold">Keine Gruppe</h1>
-        <p className="mb-4 text-ink-muted">Diese Gruppe gibt es nicht, oder du siehst sie nicht.</p>
+        <PageHead title="Keine Gruppe">
+          Diese Gruppe gibt es nicht, oder du siehst sie nicht.
+        </PageHead>
         <Link to="/play" className={quiet}>
           Zu deinen Gruppen
         </Link>
@@ -68,21 +70,20 @@ export function Group({ games }: { games?: (id: number) => ReactNode }) {
         const member = g.how === "member";
         return (
           <main>
-            <Link to="/play" className={`${link} text-sm`}>
-              ← Spielen
-            </Link>
-            <div className="mt-1 mb-1 flex items-baseline justify-between gap-3">
-              <h1 className="text-2xl font-semibold">{g.name}</h1>
-              {member && (
-                <Link to={`/groups/${g.id}/settings`} className={`${link} shrink-0 text-sm`}>
-                  Verwalten
-                </Link>
-              )}
-            </div>
-            <p className="mb-4 text-ink-muted">
+            <PageHead
+              title={g.name}
+              back={{ to: "/play", label: "Spielen" }}
+              action={
+                member && (
+                  <Link to={`/groups/${g.id}/settings`} className={link}>
+                    Verwalten
+                  </Link>
+                )
+              }
+            >
               {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
               {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
-            </p>
+            </PageHead>
 
             {member && g.requests.length > 0 && (
               <Link
@@ -138,18 +139,18 @@ export function GroupSettings() {
       {(g, myEmail) =>
         g.how !== "member" ? (
           <main>
-            <h1 className="mt-2 mb-2 text-2xl font-semibold">Nur für Mitglieder</h1>
-            <p className="mb-4 text-ink-muted">Verwalten kann eine Gruppe nur, wer drin ist.</p>
+            <PageHead title="Nur für Mitglieder">
+              Verwalten kann eine Gruppe nur, wer drin ist.
+            </PageHead>
             <Link to={`/groups/${g.id}`} className={quiet}>
               Zur Gruppe
             </Link>
           </main>
         ) : (
           <main>
-            <Link to={`/groups/${g.id}`} className={`${link} text-sm`}>
-              ← {g.name}
-            </Link>
-            <h1 className="mt-1 mb-4 text-2xl font-semibold">Gruppe verwalten</h1>
+            <PageHead title="Gruppe verwalten" back={{ to: `/groups/${g.id}`, label: g.name }}>
+              Wo ihr spielt, wer drin ist, wer hinein möchte, und wie die Gruppe heißt.
+            </PageHead>
             <Area g={g} />
             <Members g={g} me={myEmail} manage />
             <Requests g={g} />

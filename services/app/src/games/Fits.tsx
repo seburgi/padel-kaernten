@@ -11,6 +11,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { api, ApiError, call, newKey, useWriteKey, type Fit } from "../api/client";
 import { card, link, pressed, primary, quiet } from "../ui";
 import { clock, dayLabel, errorText, euros, shown, span } from "./games";
+import { PageHead } from "../PageHead";
 
 const DURATIONS = [60, 90, 120] as const;
 const AREA: Record<string, string> = {
@@ -94,8 +95,7 @@ export function Fits() {
   if (notMember)
     return (
       <main>
-        <h1 className="mt-2 mb-2 text-2xl font-semibold">Keine Gruppe</h1>
-        <p className="mb-4 text-ink-muted">Passende Zeiten sieht nur, wer in der Gruppe ist.</p>
+        <PageHead title="Keine Gruppe">Passende Zeiten sieht nur, wer in der Gruppe ist.</PageHead>
         <Link to="/play" className={quiet}>
           Zu deinen Gruppen
         </Link>
@@ -107,18 +107,17 @@ export function Fits() {
   const shortOne = (propose.variables?.can.length ?? 4) < (fits.data?.need ?? 4);
   return (
     <main>
-      <Link to={`/groups/${id}`} className={`${link} text-sm`}>
-        ← {group.data?.name ?? "Gruppe"}
-      </Link>
-      <h1 className="mt-1 mb-1 text-2xl font-semibold">Wann passt es für vier?</h1>
-      <p className="mb-3 text-ink-muted">
+      <PageHead
+        title="Wann passt es für vier?"
+        back={{ to: `/groups/${id}`, label: group.data?.name ?? "Gruppe" }}
+      >
         Zeiten, zu denen vier von euch können und ein Platz frei ist.
         {fits.data &&
           ` Plätze laut Stand ${new Date(fits.data.takenAt).toLocaleTimeString("de-AT", { timeZone: "Europe/Vienna", hour: "2-digit", minute: "2-digit" })}.`}{" "}
         <Link to="/help#spiele" className={link}>
           So geht’s
         </Link>
-      </p>
+      </PageHead>
       <div className="mb-2 flex gap-2" role="group" aria-label="Wie lange?">
         {DURATIONS.map((d) => (
           <button

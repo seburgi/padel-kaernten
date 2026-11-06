@@ -9,6 +9,7 @@ import type { IconName } from "@burgstaller/web/icons";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { card } from "./ui";
+import { PageHead } from "./PageHead";
 
 /** The pages the tab Mehr stands for, so it is marked on them too. */
 export const MORE = [
@@ -48,7 +49,7 @@ export function More({
   ];
   return (
     <main>
-      <h1 className="mt-2 mb-4 text-2xl font-semibold">Mehr</h1>
+      <PageHead title="Mehr">Dein Name, deine Plätze, Mitteilungen und alles Weitere.</PageHead>
       <ul className={`${card} m-0 list-none divide-y divide-line p-0`}>
         {rows.map((row) => (
           <li key={row.to}>

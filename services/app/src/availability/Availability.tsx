@@ -33,6 +33,7 @@ import {
   weekday,
   WEEKDAYS_LONG,
 } from "./time";
+import { PageHead } from "../PageHead";
 
 const KEY = ["availability"];
 
@@ -95,15 +96,14 @@ export function Availability() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Wann kannst du?</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Wann kann ich?">
         Für die nächsten zwei Wochen. Tipp auf einen Tag und sag, von wann bis wann, oder dass er
         nicht passt. Ein offener Tag zählt wie „kann nicht“, aber die anderen fragen dich vielleicht
         noch.{" "}
         <Link to="/help#zeiten" className={link}>
           So geht’s
         </Link>
-      </p>
+      </PageHead>
       {mine.isPending && (
         <div aria-busy="true" aria-label="Lädt">
           {[0, 1, 2, 3].map((i) => (

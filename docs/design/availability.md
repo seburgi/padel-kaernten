@@ -31,8 +31,8 @@
   there (Seb, 2026-10-30: "Vielleicht reicht ein Link"). Plätze shows
   only the chosen venues too (`slots.md`).
 - **In the app** (`services/app/src/availability`, `/availability`, "Wann
-  kannst du?"; on a phone a tab of its own, "Wann kann ich?", after Spielen,
-  then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen under Spielen): the 14 days as rows, each a line from 6 to 24 with its
+  kann ich?", named as its tab since 2026-11-06; on a phone a tab of its own after Spielen,
+  then Plätze and Mehr, Seb 2026-10-29/30; on a wide screen the same order): the 14 days as rows, each a line from 6 to 24 with its
   spans filled in. A row opens an editor (on a phone the app's sheet, `platform.md`, wider in
   its row; closing it saves nothing; Seb, 2026-10-29/30). On top, two
   chips that save at a tap and close (Seb, 2026-11-04): "Passt nicht"

@@ -54,7 +54,7 @@
 - **Reached from** the round "Hilfe" button in the head (kit/web's `info`
   icon, beside Neuigkeiten and the feedback button) on a wide screen, Mehr in
   the tab bar at the bottom of a phone (`/more`), and from a "So geht's" link
-  where people get stuck: "Wann kannst du?" (`#zeiten`), Gruppen finden
+  where people get stuck: "Wann kann ich?" (`#zeiten`), Gruppen finden
   and the empty "Deine Gruppen" (`#gruppen`), "Wann passt es für vier?"
   (`#spiele`) and the Mitteilungen card (`#mitteilungen`). The slices
   link by path only; none imports `help` (ESLint).

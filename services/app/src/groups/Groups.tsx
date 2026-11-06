@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router";
 import { api, call, useWriteKey } from "../api/client";
 import { card, field, link, pressed, primary, quiet } from "../ui";
 import { errorText, KINDS, kindLabel, useGroups, useJoin } from "./groups";
+import { PageHead } from "../PageHead";
 
 export function Groups() {
   const groups = useGroups();
@@ -17,14 +18,13 @@ export function Groups() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Gruppen finden</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Gruppen finden">
         Gruppen, die offen sind oder Leute auf Anfrage hereinlassen. Private Gruppen siehst du nur
         mit Einladung.{" "}
         <Link to="/help#gruppen" className={link}>
           So geht’s
         </Link>
-      </p>
+      </PageHead>
       <Link to="/groups/new" className={`${primary} mb-6`}>
         Neue Gruppe gründen
       </Link>
@@ -106,7 +106,7 @@ export function NewGroup() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-4 text-2xl font-semibold">Neue Gruppe</h1>
+      <PageHead title="Neue Gruppe">Für die Leute, mit denen du spielen willst.</PageHead>
       <form
         onSubmit={(e) => {
           e.preventDefault();

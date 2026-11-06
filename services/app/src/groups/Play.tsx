@@ -9,6 +9,7 @@ import { Link } from "react-router";
 import { api, call, useWriteKey, type GroupSummary } from "../api/client";
 import { card, field, link, primary, quiet, waits } from "../ui";
 import { errorText, kindLabel, useDropInvitation, useGroups, useJoin, useMe } from "./groups";
+import { PageHead } from "../PageHead";
 
 /** waiting is Wartet auf dich, given the invitations and how many there
  * are; games is the coming games and the fits. Both are the games
@@ -75,10 +76,9 @@ export function Play({
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Spielen</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Spielen">
         Was auf dich wartet, deine Spiele und wann es für vier passt.
-      </p>
+      </PageHead>
       {start}
       {me.data && me.data.name === "" && <NamePrompt />}
 
@@ -166,10 +166,9 @@ export function Profile() {
   const me = useMe();
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Dein Name</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Dein Name">
         So sehen dich die anderen in deinen Gruppen und Spielen.
-      </p>
+      </PageHead>
       {me.data && <NamePrompt initial={me.data.name} />}
     </main>
   );

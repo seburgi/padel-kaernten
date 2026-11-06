@@ -1,5 +1,6 @@
 // The app's frame: the head with What's new, Hilfe and the feedback button on every
-// screen, Plätze and Spielen, and the screens by path (react-router). On a
+// screen, Spielen, Wann kann ich? and Plätze, and the screens by path
+// (react-router); each screen starts with its PageHead. On a
 // phone Spielen, Wann kann ich?, Plätze and Mehr (Neuigkeiten, Hilfe, Einladen) sit
 // in the kit's tab bar at the bottom instead (standards/frontend/navigation.md;
 // Wann kann ich? a tab of its own, Seb 2026-10-29; Spielen first and
@@ -112,18 +113,13 @@ export function App() {
             <FeedbackButton />
           </div>
         </div>
-        {path === "/" && (
-          <p className="mt-1 text-ink-muted">
-            Wo ist noch ein Platz frei? Alle Anlagen auf einen Blick.
-          </p>
-        )}
-        {/* The sections, as in the tab bar on a phone (without Mehr, whose
-            pages sit in the head here). */}
+        {/* The sections, in the order of the tab bar on a phone (Seb,
+            2026-11-06), without Mehr, whose pages sit in the head here. */}
         <nav className="mt-3 hidden gap-1 rounded-xl bg-sunken p-1 md:flex" aria-label="Bereiche">
           {[
-            { to: "/", label: "Plätze", on: path === "/" },
-            { to: "/availability", label: "Wann kann ich?", on: when },
             { to: "/play", label: "Spielen", on: playing && !when },
+            { to: "/availability", label: "Wann kann ich?", on: when },
+            { to: "/", label: "Plätze", on: path === "/" },
           ].map((tab) => (
             <Link
               key={tab.to}

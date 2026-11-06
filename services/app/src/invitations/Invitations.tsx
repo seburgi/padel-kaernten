@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { api, ApiError, call, newKey, type Invitation, type InvitationPage } from "../api/client";
 import { card, danger, field, link, primary, quiet } from "../ui";
+import { PageHead } from "../PageHead";
 
 const ADDRESS = "padel.burgstaller.me";
 
@@ -71,11 +72,10 @@ export function Invitations() {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Einladen</h1>
-      <p className="mb-4 text-ink-muted">
+      <PageHead title="Einladen">
         Nur wer eingeladen ist, kommt auf {ADDRESS}. Die Person meldet sich dort mit Google an, oder
         setzt mit der E-Mail der Anmeldung ein Passwort.
-      </p>
+      </PageHead>
 
       <form
         className="mb-2 flex flex-wrap gap-2"

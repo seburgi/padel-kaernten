@@ -82,7 +82,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: "zeiten",
-    title: "Wann kannst du?",
+    title: "Wann kann ich?",
     lead: "Du sagst einmal, wann du in den nächsten zwei Wochen spielen kannst. Alle deine Gruppen sehen es.",
     body: (
       <>
@@ -123,7 +123,7 @@ export const CHAPTERS: Chapter[] = [
     shots: [
       {
         name: "zeiten",
-        alt: "Wann kannst du?: oben, wie viele Tage noch offen sind, darunter die nächsten Tage als Zeilen von 6 bis 24 Uhr, die eingetragenen Zeiten grün, ein Tag schraffiert mit „Passt nicht“.",
+        alt: "Wann kann ich?: oben, wie viele Tage noch offen sind, darunter die nächsten Tage als Zeilen von 6 bis 24 Uhr, die eingetragenen Zeiten grün, ein Tag schraffiert mit „Passt nicht“.",
       },
       {
         name: "zeiten-tag",

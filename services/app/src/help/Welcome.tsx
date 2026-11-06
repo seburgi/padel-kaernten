@@ -13,12 +13,13 @@ import { api, call, newKey, useWriteKey, type Me } from "../api/client";
 import { card, field, link, primary } from "../ui";
 import { Picture } from "./Help";
 import type { Shot } from "./chapters";
+import { PageHead } from "../PageHead";
 
 const STEPS: { title: string; text: string; shot: Shot }[] = [
   {
     title: "Sag, wann du kannst",
     text: "Unter „Wann kann ich?“: für die nächsten zwei Wochen, in halben Stunden. Deine Gruppen sehen es.",
-    shot: { name: "zeiten", alt: "Wann kannst du?: die nächsten Tage mit eingetragenen Zeiten." },
+    shot: { name: "zeiten", alt: "Wann kann ich?: die nächsten Tage mit eingetragenen Zeiten." },
   },
   {
     title: "Spiel in einer Gruppe",
@@ -116,12 +117,11 @@ export function Welcome({ onWelcome }: { onWelcome: () => void }) {
 
   return (
     <main>
-      <h1 className="mt-2 mb-1 text-2xl font-semibold">Willkommen bei Padel Kärnten</h1>
-      <p className="mb-5 text-ink-muted">
+      <PageHead title="Willkommen bei Padel Kärnten">
         Hier siehst du, wo in Kärnten ein Padelplatz frei ist, und findest mit deinen Leuten eine
         Zeit für ein Spiel zu viert. Die App ist privat und kostet nichts; gebucht wird bei der
         Anlage.
-      </p>
+      </PageHead>
 
       {invitations.length > 0 && (
         <section className={`${card} mb-5 p-4`} aria-labelledby="welcome-invited">

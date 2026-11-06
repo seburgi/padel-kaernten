@@ -29,6 +29,7 @@ import {
   type Search,
 } from "./search";
 import { useSnapshot } from "./useSnapshot";
+import { PageHead } from "../PageHead";
 
 const FROM_TIMES = Array.from({ length: 35 }, (_, i) => 360 + i * 30); // 06:00 to 23:00
 const TO_TIMES = Array.from({ length: 35 }, (_, i) => 420 + i * 30); // 07:00 to 24:00
@@ -65,58 +66,67 @@ export function Courts({
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
-  if (loading) return <Skeleton />;
-  if (loadFailed || (!snapshot && refreshFailed)) {
+  return (
+    <main>
+      <PageHead title="Plätze">Wo ist noch ein Platz frei? Alle Anlagen auf einen Blick.</PageHead>
+      {body()}
+    </main>
+  );
+
+  function body() {
+    if (loading) return <Skeleton />;
+    if (loadFailed || (!snapshot && refreshFailed)) {
+      return (
+        <Failed
+          text={
+            loadFailed
+              ? "Die freien Plätze konnten nicht geladen werden."
+              : "Die Buchungsseiten antworten gerade nicht."
+          }
+          retry={retry}
+        />
+      );
+    }
+    if (!snapshot) return <Skeleton />;
+    const mine = snapshot.venues.filter((v) => only.includes(v.id));
     return (
-      <Failed
-        text={
-          loadFailed
-            ? "Die freien Plätze konnten nicht geladen werden."
-            : "Die Buchungsseiten antworten gerade nicht."
+      <Found
+        ask={ask}
+        venues={mine.length > 0 ? mine : snapshot.venues}
+        chosen={mine.length > 0}
+        days={upcoming(snapshot.days, now.date)}
+        now={now}
+        stand={
+          <p
+            aria-live="polite"
+            className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted"
+          >
+            <span>{standLabel(snapshot.takenAt)}</span>
+            {refreshing ? (
+              <span>· wird aktualisiert …</span>
+            ) : refreshFailed ? (
+              <span>
+                · Aktualisieren hat nicht geklappt.{" "}
+                <button type="button" className={link} onClick={retry}>
+                  Nochmal versuchen
+                </button>
+              </span>
+            ) : nextAt ? (
+              <span>· aktuell, wieder abfragen ab {clock(nextAt)}</span>
+            ) : (
+              <button
+                type="button"
+                className={`${link} pointer-coarse:min-h-(--size-control-touch)`}
+                onClick={refreshNow}
+              >
+                Aktualisieren
+              </button>
+            )}
+          </p>
         }
-        retry={retry}
       />
     );
   }
-  if (!snapshot) return <Skeleton />;
-  const mine = snapshot.venues.filter((v) => only.includes(v.id));
-  return (
-    <Found
-      ask={ask}
-      venues={mine.length > 0 ? mine : snapshot.venues}
-      chosen={mine.length > 0}
-      days={upcoming(snapshot.days, now.date)}
-      now={now}
-      stand={
-        <p
-          aria-live="polite"
-          className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted"
-        >
-          <span>{standLabel(snapshot.takenAt)}</span>
-          {refreshing ? (
-            <span>· wird aktualisiert …</span>
-          ) : refreshFailed ? (
-            <span>
-              · Aktualisieren hat nicht geklappt.{" "}
-              <button type="button" className={link} onClick={retry}>
-                Nochmal versuchen
-              </button>
-            </span>
-          ) : nextAt ? (
-            <span>· aktuell, wieder abfragen ab {clock(nextAt)}</span>
-          ) : (
-            <button
-              type="button"
-              className={`${link} pointer-coarse:min-h-(--size-control-touch)`}
-              onClick={refreshNow}
-            >
-              Aktualisieren
-            </button>
-          )}
-        </p>
-      }
-    />
-  );
 }
 
 /** "18:10" in Vienna. */
@@ -235,7 +245,7 @@ function Found({
         {stand}
       </section>
 
-      <main aria-live="polite">
+      <div aria-live="polite">
         <p className="mt-4 mb-2 font-semibold">
           {result.hits.length
             ? `${result.hits.length} von ${total} Anlagen haben was frei`
@@ -316,7 +326,7 @@ function Found({
             </a>
           </p>
         ))}
-      </main>
+      </div>
       {picked && ask?.(picked, () => setPicked(null))}
 
       <footer className="mt-6 border-t border-line pt-4 pb-10 text-xs text-ink-muted [&>p]:mb-1.5">

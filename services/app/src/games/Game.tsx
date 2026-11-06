@@ -8,6 +8,7 @@ import { api, ApiError, call, useWriteKey, type Game as G } from "../api/client"
 import { card, danger, link, primary, quiet } from "../ui";
 import { byTime, dayLabel, errorText, euros, names, playing, reserves, shown, span } from "./games";
 import { Seats } from "./Seats";
+import { PageHead } from "../PageHead";
 
 const STATE: Record<string, string> = {
   proposed: "Vorgeschlagen",
@@ -84,8 +85,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
   if (!Number.isSafeInteger(id) || (game.error instanceof ApiError && game.error.status === 404))
     return (
       <main>
-        <h1 className="mt-2 mb-2 text-2xl font-semibold">Kein Spiel</h1>
-        <p className="mb-4 text-ink-muted">Dieses Spiel gibt es nicht, oder du siehst es nicht.</p>
+        <PageHead title="Kein Spiel">Dieses Spiel gibt es nicht, oder du siehst es nicht.</PageHead>
         <Link to="/play" className={quiet}>
           Zu deinen Spielen
         </Link>
@@ -142,16 +142,17 @@ export function Game({ notify }: { notify?: ReactNode }) {
 
   return (
     <main>
-      <Link to={`/groups/${g.groupId}`} className={`${link} text-sm`}>
-        ← {g.groupName}
-      </Link>
-      <h1 className="mt-1 mb-1 text-2xl font-semibold">
-        {dayLabel(g.day)}, {span(g.start, g.minutes)}
-      </h1>
-      <p className="mb-1 text-ink-muted">
+      <PageHead
+        back={{ to: `/groups/${g.groupId}`, label: g.groupName }}
+        title={
+          <>
+            {dayLabel(g.day)}, {span(g.start, g.minutes)}
+          </>
+        }
+      >
         {g.venueName} · {g.court}
         {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
-      </p>
+      </PageHead>
       <div className={`${card} mt-3 mb-4 flex flex-col items-center gap-2 p-4 text-center`}>
         <Seats g={g} big />
         <p className="font-semibold">{headline}</p>
