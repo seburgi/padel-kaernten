@@ -229,6 +229,14 @@ func (h *Handler) ListFits(w http.ResponseWriter, r *http.Request, id gen.GroupI
 		links[v.ID] = v.Links
 	}
 	fits, nearly := games.Fits(venues, ps, int(params.Minutes), games.Players, h.Games.Window())
+	// As the hourly run (notify.md): a day with a game of the group shows no
+	// more times, and whoever plays that day elsewhere does not count.
+	ahead, err := h.Games.Ahead(r.Context())
+	if err != nil {
+		h.internal(w, r, "reading the games", err)
+		return
+	}
+	fits, nearly = played(ahead, g.ID, fits, games.Players), played(ahead, g.ID, nearly, 0)
 	name := names(g)
 	out := gen.FitList{TakenAt: utc(takenAt), Need: games.Players, Fits: make([]gen.Fit, 0, len(fits)),
 		Nearly: make([]gen.Fit, 0, len(nearly))}

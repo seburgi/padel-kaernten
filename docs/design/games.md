@@ -14,6 +14,13 @@
   group's area count (`groups.md`): transport drops the others before
   `Fits` sees them. Überdacht counts as Halle, as on the courts page; a
   court whose area nobody knows counts only for a group playing anywhere.
+- **One game a day** (Seb, 2026-11-10; transport `played`): a day the
+  group has a game already, proposed or booked, at any time, shows no
+  fits and no near misses, and whoever is in a game that day in any group
+  counts neither as can nor as someone to ask; a fit left with fewer than
+  four is none. The hourly run's push does the same (`notify.md`), so
+  Spielen, Alle Zeiten and the push agree. Wer kann wann (`Fours`) still
+  shows the whole day.
 - **Near misses** ("Fast: eine Person fehlt"): three can, and someone who
   drives there entered nothing for that day, so they might be the fourth.
   A day with no entry still means "can't" for fits (`availability.md`);

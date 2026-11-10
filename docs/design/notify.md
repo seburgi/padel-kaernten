@@ -79,7 +79,7 @@
   can. A day the group has a game already (proposed or booked, at any
   time) is skipped, and so is anyone who is in a game that day in any
   group; without four left the fit is no news (Seb, 2026-11-10: one game
-  a day is enough). A fit needs a court free for all
+  a day is enough; the app's fits leave out the same, `games.md`). A fit needs a court free for all
   90 minutes and four with time for all of it (`games.md`), so a half hour
   here and there is never news (Seb, 2026-11-04). One fit a group a run;
   the daily cap does the rest.

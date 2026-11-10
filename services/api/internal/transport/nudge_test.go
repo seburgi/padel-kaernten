@@ -129,6 +129,13 @@ func TestNudge(t *testing.T) {
 	if sent := a.queue.take(); len(sent) != 0 {
 		t.Errorf("a day with a game sent %v", sent)
 	}
+	// The app shows no times that day either, in that group; in the first,
+	// Seb plays in the second group's game on d2, so three are left: none.
+	for _, grp := range []string{second, group} {
+		if w := a.do(a.as(seb, "GET", grp+"/fits?minutes=90", "")); w.Code != 200 || strings.Contains(w.Body.String(), d2) {
+			t.Errorf("fits on a day with a game in %s: %d %s", grp, w.Code, w.Body)
+		}
+	}
 
 	// The next morning before 8: no new fits, and before 18 no reminders.
 	now = time.Date(2026, 11, 11, 7, 0, 0, 0, vienna)

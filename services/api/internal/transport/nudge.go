@@ -243,12 +243,8 @@ func (n *nudger) fits(ahead []games.Game) error {
 		}
 		fits, _ := games.Fits(venues, ps, 90, games.Players, n.w)
 		name := names(grp)
-		for _, f := range fits {
-			if f.Day > last || planned(ahead, id, f.Day) {
-				continue
-			}
-			to := free(ahead, f.Day, f.Can)
-			if len(to) < games.Players {
+		for _, f := range played(ahead, id, fits, games.Players) {
+			if f.Day > last {
 				continue
 			}
 			// One a group and day of play: later starts that day are the
@@ -261,12 +257,12 @@ func (n *nudger) fits(ahead []games.Game) error {
 			if !first {
 				continue
 			}
-			who := make([]string, 0, len(to))
-			for _, e := range to {
+			who := make([]string, 0, len(f.Can))
+			for _, e := range f.Can {
 				who = append(who, displayName(name, e))
 			}
 			m := notify.Message{
-				To: to, Kind: notify.KindFits, Title: "Es passt für vier: " + whenText(f.Day, f.Start),
+				To: f.Can, Kind: notify.KindFits, Title: "Es passt für vier: " + whenText(f.Day, f.Start),
 				Body: fmt.Sprintf("%s können, %s hat 90 Minuten frei. Vorschlagen?", strings.Join(who, ", "), f.VenueName),
 				URL:  fmt.Sprintf("/groups/%d/fits", id), Tag: fmt.Sprintf("fits-%d", id),
 			}
@@ -280,23 +276,35 @@ func (n *nudger) fits(ahead []games.Game) error {
 	return nil
 }
 
-// planned says whether group already has a game on day, proposed or
-// booked, at any time.
-func planned(ahead []games.Game, group int64, day string) bool {
-	return slices.ContainsFunc(ahead, func(g games.Game) bool { return g.GroupID == group && g.Day == day })
-}
-
-// free is who of can is in no game on day, in any group.
-func free(ahead []games.Game, day string, can []string) []string {
+// played leaves out what a day's game settled already (Seb, 2026-11-10):
+// a day the group has a game, proposed or booked, at any time, and whoever
+// is in a game that day in any group. A fit with fewer than need left who
+// can is none; fits keeps its order and is not changed.
+func played(ahead []games.Game, group int64, fits []games.Fit, need int) []games.Fit {
+	planned := map[string]bool{}
 	busy := map[string]bool{}
 	for _, g := range ahead {
-		if g.Day == day {
-			for _, e := range lineup(g, games.In) {
-				busy[e] = true
-			}
+		if g.GroupID == group {
+			planned[g.Day] = true
+		}
+		for _, e := range lineup(g, games.In) {
+			busy[g.Day+"/"+e] = true
 		}
 	}
-	return slices.DeleteFunc(slices.Clone(can), func(e string) bool { return busy[e] })
+	out := make([]games.Fit, 0, len(fits))
+	for _, f := range fits {
+		if planned[f.Day] {
+			continue
+		}
+		gone := func(e string) bool { return busy[f.Day+"/"+e] }
+		f.Can = slices.DeleteFunc(slices.Clone(f.Can), gone)
+		f.Ask = slices.DeleteFunc(slices.Clone(f.Ask), gone)
+		if len(f.Can) < need {
+			continue
+		}
+		out = append(out, f)
+	}
+	return out
 }
 
 func displayName(name map[string]string, email string) string {
