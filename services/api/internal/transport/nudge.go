@@ -200,8 +200,9 @@ func (n *nudger) missing(g games.Game, when, url string) error {
 
 // fits tells of the first new 90-minute fit of each group in the next
 // FitsDays days, from FitsFrom to FitsUntil, to those who can: once a
-// group and day of play. A time that overlaps a game of the group already
-// is no news.
+// group and day of play. A day the group has a game already is no news,
+// nor is anyone who plays that day in any group; without four left, the
+// fit is none (Seb, 2026-11-10).
 func (n *nudger) fits(ahead []games.Game) error {
 	hour := n.w.NotBefore / 60
 	if hour < FitsFrom || hour >= FitsUntil {
@@ -243,7 +244,11 @@ func (n *nudger) fits(ahead []games.Game) error {
 		fits, _ := games.Fits(venues, ps, 90, games.Players, n.w)
 		name := names(grp)
 		for _, f := range fits {
-			if f.Day > last || taken(ahead, id, f) {
+			if f.Day > last || planned(ahead, id, f.Day) {
+				continue
+			}
+			to := free(ahead, f.Day, f.Can)
+			if len(to) < games.Players {
 				continue
 			}
 			// One a group and day of play: later starts that day are the
@@ -256,12 +261,12 @@ func (n *nudger) fits(ahead []games.Game) error {
 			if !first {
 				continue
 			}
-			who := make([]string, 0, len(f.Can))
-			for _, e := range f.Can {
+			who := make([]string, 0, len(to))
+			for _, e := range to {
 				who = append(who, displayName(name, e))
 			}
 			m := notify.Message{
-				To: f.Can, Kind: notify.KindFits, Title: "Es passt für vier: " + whenText(f.Day, f.Start),
+				To: to, Kind: notify.KindFits, Title: "Es passt für vier: " + whenText(f.Day, f.Start),
 				Body: fmt.Sprintf("%s können, %s hat 90 Minuten frei. Vorschlagen?", strings.Join(who, ", "), f.VenueName),
 				URL:  fmt.Sprintf("/groups/%d/fits", id), Tag: fmt.Sprintf("fits-%d", id),
 			}
@@ -275,11 +280,23 @@ func (n *nudger) fits(ahead []games.Game) error {
 	return nil
 }
 
-// taken says whether group already has a game that overlaps fit.
-func taken(ahead []games.Game, group int64, f games.Fit) bool {
-	return slices.ContainsFunc(ahead, func(g games.Game) bool {
-		return g.GroupID == group && g.Day == f.Day && g.Start < f.Start+f.Minutes && f.Start < g.Start+g.Minutes
-	})
+// planned says whether group already has a game on day, proposed or
+// booked, at any time.
+func planned(ahead []games.Game, group int64, day string) bool {
+	return slices.ContainsFunc(ahead, func(g games.Game) bool { return g.GroupID == group && g.Day == day })
+}
+
+// free is who of can is in no game on day, in any group.
+func free(ahead []games.Game, day string, can []string) []string {
+	busy := map[string]bool{}
+	for _, g := range ahead {
+		if g.Day == day {
+			for _, e := range lineup(g, games.In) {
+				busy[e] = true
+			}
+		}
+	}
+	return slices.DeleteFunc(slices.Clone(can), func(e string) bool { return busy[e] })
 }
 
 func displayName(name map[string]string, email string) string {

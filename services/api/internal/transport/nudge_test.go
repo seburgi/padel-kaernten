@@ -109,6 +109,27 @@ func TestNudge(t *testing.T) {
 		t.Errorf("again sent %v", sent)
 	}
 
+	// A second group of the same four with a game on d2 at 19:30: 18:00 on
+	// d2 still fits on Court 1, but a day with a game is no news.
+	w = a.send(seb, "POST", "/api/v1/groups", `{"name":"Zweite","kind":"private"}`)
+	var g2 struct{ ID int64 }
+	_ = json.Unmarshal(w.Body.Bytes(), &g2)
+	second := fmt.Sprintf("/api/v1/groups/%d", g2.ID)
+	for _, who := range []string{anna, markus, lisa} {
+		_ = a.send(seb, "POST", second+"/invitations", fmt.Sprintf(`{"email":%q}`, who))
+		_ = a.send(who, "POST", second+"/join", "")
+	}
+	if w := a.send(seb, "POST", second+"/games", fmt.Sprintf(`{"venueId":"villach","court":"Court 1","day":%q,"start":1170,"minutes":90}`, d2)); w.Code != 201 {
+		t.Fatalf("propose in the second group: %d %s", w.Code, w.Body)
+	}
+	a.queue.take()
+	if w := a.do(gatewaytest.From(nudgeAccount, "POST", "/nudge", "")); w.Body.String() != "{}\n" {
+		t.Errorf("a day with a game: %s", w.Body)
+	}
+	if sent := a.queue.take(); len(sent) != 0 {
+		t.Errorf("a day with a game sent %v", sent)
+	}
+
 	// The next morning before 8: no new fits, and before 18 no reminders.
 	now = time.Date(2026, 11, 11, 7, 0, 0, 0, vienna)
 	_ = a.send(lisa, "PUT", "/api/v1/availability/days/"+d2, `{"spans":[{"from":1080,"to":1200}]}`)

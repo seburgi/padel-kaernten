@@ -75,8 +75,11 @@
   spans covering the whole game or said nothing that day (with Bin dabei
   and Kann nicht); `before-<game>` from 18:00 to whoever is in a booked
   game tomorrow; and from 8:00 to 20:00 `fits-<group>-<day>`, the first
-  90-minute fit of a group in today and the next two days that overlaps
-  none of its games, to everyone who can. A fit needs a court free for all
+  90-minute fit of a group in today and the next two days, to everyone who
+  can. A day the group has a game already (proposed or booked, at any
+  time) is skipped, and so is anyone who is in a game that day in any
+  group; without four left the fit is no news (Seb, 2026-11-10: one game
+  a day is enough). A fit needs a court free for all
   90 minutes and four with time for all of it (`games.md`), so a half hour
   here and there is never news (Seb, 2026-11-04). One fit a group a run;
   the daily cap does the rest.
