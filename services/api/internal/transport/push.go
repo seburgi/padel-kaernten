@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -148,7 +149,7 @@ func gameMessage(e games.Event, grp groups.Group) (notify.Message, bool) {
 		m.Body = fmt.Sprintf("%s schlägt %s vor, %s. Bist du dabei?", who(g.ProposedBy), g.VenueName, spanText(g.Start, g.Minutes))
 	case games.EventFull:
 		to = []string{g.ProposedBy}
-		m.Title = "Ihr seid vier"
+		m.Title = "Ihr seid " + countWord(g.Players)
 		m.Body = fmt.Sprintf("%s in %s: %s hat zugesagt. Jetzt buchen.", when, g.VenueName, who(e.Who))
 	case games.EventMovedUp:
 		to = []string{e.Who}
@@ -182,6 +183,15 @@ func lineup(g games.Game, states ...string) []string {
 		}
 	}
 	return out
+}
+
+// countWord is "vier" for 4; past twelve, the digits.
+func countWord(n int) string {
+	words := [...]string{"null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf"}
+	if n >= 0 && n < len(words) {
+		return words[n]
+	}
+	return strconv.Itoa(n)
 }
 
 var weekdays = [...]string{"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"}

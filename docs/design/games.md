@@ -52,6 +52,17 @@
   four are in; an `in` once it is full becomes a reserve, and when someone
   who was in says `out`, the earliest reserve moves up. A cancelled game or
   one whose day has passed answers 409 `game-closed`.
+- **Places** (Seb, 2026-11-11): a game starts with four places, and
+  whoever proposed it may give it 2 to 8 (`PATCH /api/v1/games/{gameId}`
+  with `players`): two or three when fewer want to play, more to share
+  the court. Never fewer than are in (409 `places`); more places let the
+  reserves move up in order (`moved-up`), and as many places as are in
+  make it full (`full`). `accept` with a reserve's address takes that one
+  in, with a place more when the game is full (409 `places` past 8, 409
+  `not-reserve` for anyone not waiting). One change per request: `state`,
+  `players` or `accept`. The price per head is over the places, so it
+  falls as places are added. Answers, Seats, the push and the hourly
+  run all read `players`, never a fixed four.
 - **Only the proposer books and cancels** (`PATCH
   /api/v1/games/{gameId}`): booking happens on the venue's own page (the
   app links to it), and "Gebucht" tells the others. Anyone else gets 403.
@@ -64,8 +75,8 @@
   was noise), near misses below with their own Vorschlagen); the game (`/games/:id`, its places as rounds with a line that says
   what is next, "So geht es weiter" with Vorgeschlagen, Vier sagen zu and
   who books where, Dabei n von 4,
-  Ersatz, Können nicht, Noch keine Antwort, and for the proposer Zur
-  Buchung, Gebucht, Spiel absagen; while people are missing, Gebucht is
+  Ersatz, Können nicht, Noch keine Antwort, and for the proposer Plätze
+  (− n +), Aufnehmen beside each reserve, Zur Buchung, Gebucht, Spiel absagen; while people are missing, Gebucht is
   not the primary button and a line says to book once they are four, Seb
   2026-11-04). Those without an answer are sorted by
   what they entered in "Wann kann ich?" for the game's day (Seb,
@@ -103,8 +114,12 @@
 - **Leaving a group does not take back one's answers** to its games yet.
 - **Old games are not reaped yet**; past days simply drop out of the
   lists.
-- **No fits for more or fewer than four.** `players` is stored so it can
-  change later, but everything assumes four.
+- **No fits for more or fewer than four.** Fits, near misses, Wer kann
+  wann and "Es passt für vier" still look for four; a game of two or three
+  is a game of four with places taken away, and more places come from
+  the reserves.
+- **Fewer places never push anyone out.** Someone must say Kann doch
+  nicht first.
 
 ## Traps
 

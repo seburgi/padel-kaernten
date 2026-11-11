@@ -329,6 +329,84 @@ func TestAnswer(t *testing.T) {
 	}
 }
 
+func TestPlaces(t *testing.T) {
+	s, _, group := setup(t)
+	ctx := t.Context()
+	var got []string
+	s.Changed = func(_ context.Context, e games.Event) { got = append(got, e.Kind+" "+e.Who) }
+	g := propose(t, s, group)
+	for _, who := range []string{bert, carla, dora, emil} {
+		if _, err := s.Answer(ctx, who, key(), g.ID, games.In); err != nil {
+			t.Fatal(err)
+		}
+	}
+	places := func(who string, n int) (games.Game, error) { return s.SetPlayers(ctx, who, key(), g.ID, n) }
+	if _, err := places(bert, 5); !errors.Is(err, games.ErrForbidden) {
+		t.Errorf("bert adds a place: %v", err)
+	}
+	for _, n := range []int{1, 9} {
+		if _, err := places(anna, n); !errors.Is(err, games.ErrInvalid) {
+			t.Errorf("%d places: %v", n, err)
+		}
+	}
+	if _, err := places(anna, 3); !errors.Is(err, games.ErrPlaces) {
+		t.Errorf("fewer places than are in: %v", err)
+	}
+	// Emil waits; a fifth place lets him in, a sixth stays open.
+	if g, err := places(anna, 6); err != nil || g.Players != 6 || states(g)[emil] != games.In {
+		t.Fatalf("six places: %+v %v", g, err)
+	}
+	if g, err := places(anna, 6); err != nil || g.Players != 6 {
+		t.Errorf("six again: %+v %v", g, err)
+	}
+	// Five are in: five places make it full again.
+	if g, err := places(anna, 5); err != nil || g.Players != 5 {
+		t.Errorf("five places: %+v %v", g, err)
+	}
+	// Bert leaves: down to three, a game of four is not needed.
+	if _, err := s.Answer(ctx, bert, key(), g.ID, games.Out); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Answer(ctx, carla, key(), g.ID, games.Out); err != nil {
+		t.Fatal(err)
+	}
+	if g, err := places(anna, 3); err != nil || g.Players != 3 {
+		t.Errorf("three places: %+v %v", g, err)
+	}
+	// Carla wants back in: a reserve; Anna takes her in with a fourth place.
+	if g, err := s.Answer(ctx, carla, key(), g.ID, games.In); err != nil || states(g)[carla] != games.Reserve {
+		t.Fatalf("carla waits: %+v %v", g, err)
+	}
+	accept := func(who, email string) (games.Game, error) { return s.Accept(ctx, who, key(), g.ID, email) }
+	if _, err := accept(bert, carla); !errors.Is(err, games.ErrForbidden) {
+		t.Errorf("bert takes carla in: %v", err)
+	}
+	for _, email := range []string{bert, stranger} {
+		if _, err := accept(anna, email); !errors.Is(err, games.ErrNotReserve) {
+			t.Errorf("take %s in: %v", email, err)
+		}
+	}
+	if g, err := accept(anna, carla); err != nil || g.Players != 4 || states(g)[carla] != games.In {
+		t.Fatalf("carla in: %+v %v", g, err)
+	}
+	if g, err := accept(anna, carla); err != nil || g.Players != 4 {
+		t.Errorf("carla in again: %+v %v", g, err)
+	}
+	want := []string{"proposed " + anna, "full " + dora, "moved-up " + emil, "full " + anna, "full " + anna, "moved-up " + carla}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("events:\n got %q\nwant %q", got, want)
+	}
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := places(anna, 4); !errors.Is(err, games.ErrClosed) {
+		t.Errorf("places of a cancelled game: %v", err)
+	}
+	if _, err := accept(anna, carla); !errors.Is(err, games.ErrClosed) {
+		t.Errorf("accept in a cancelled game: %v", err)
+	}
+}
+
 func TestDatabaseDown(t *testing.T) {
 	s, pool, group := setup(t)
 	g := propose(t, s, group)

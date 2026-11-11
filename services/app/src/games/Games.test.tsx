@@ -391,7 +391,9 @@ describe("Game", () => {
       "Du buchst bei Padel Villach",
     );
     expect(screen.getByText("Seb (du)")).toBeInTheDocument();
-    expect(screen.getByText(/Ersatz:/).parentElement).toHaveTextContent("Ersatz: Eva");
+    expect(screen.getByRole("heading", { name: "Ersatz" }).parentElement).toHaveTextContent(
+      "EvaAufnehmen",
+    );
     expect(screen.getByRole("link", { name: "Zur Buchung" })).toHaveAttribute(
       "href",
       "https://book.example/29",
@@ -411,6 +413,93 @@ describe("Game", () => {
       { state: "booked" },
       { state: "cancelled" },
     ]);
+  });
+
+  it("lets the proposer change the places and take a reserve in", async () => {
+    let g = game({
+      lineup: [
+        { ...seb, state: "in" },
+        { ...anna, state: "in" },
+        { ...markus, state: "in" },
+        { ...lisa, state: "in" },
+        { ...eva, state: "reserve" },
+      ],
+    });
+    let fail = true;
+    const calls: Sent[] = [];
+    serve(
+      {
+        "GET /api/v1/me": () => answer(200, { ...seb, canInvite: true }),
+        "GET /api/v1/games/7": () => answer(200, g),
+        "GET /api/v1/groups/1": () => answer(200, group),
+        "PATCH /api/v1/games/7": (sent) => {
+          const body = sent.body as { players?: number; accept?: string };
+          if (body.players === 6 && fail) {
+            fail = false;
+            return problem(409, "places");
+          }
+          if (body.accept)
+            g = {
+              ...g,
+              players: 5,
+              perHead: { amount: 1200, currency: "EUR" },
+              lineup: g.lineup.map((x) => (x.email === body.accept ? { ...x, state: "in" } : x)),
+            };
+          else g = { ...g, players: body.players! };
+          return answer(200, g);
+        },
+      },
+      calls,
+    );
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText("Ihr seid vier. Du buchst jetzt.")).toBeInTheDocument();
+    // Four are in: no fewer places than that.
+    expect(screen.getByRole("button", { name: "Ein Platz weniger" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Aufnehmen" }));
+    expect(await screen.findByText("Ihr seid fünf. Du buchst jetzt.")).toBeInTheDocument();
+    expect(screen.getByText(/Padel Villach · Court 1/)).toHaveTextContent(/12 pro Kopf/);
+    expect(screen.getByRole("img", { name: "5 von 5 dabei" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Aufnehmen" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Ein Platz mehr" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("höchstens acht");
+    await userEvent.click(screen.getByRole("button", { name: "Ein Platz mehr" }));
+    expect(await screen.findByText("Noch 1 gesucht")).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent(
+      "Sechs sagen zu 5 von 6",
+    );
+    expect(screen.getByText(/bucht am besten erst/)).toHaveTextContent("wenn ihr sechs seid");
+    await userEvent.click(screen.getByRole("button", { name: "Ein Platz weniger" }));
+    expect(await screen.findByText("Ihr seid fünf. Du buchst jetzt.")).toBeInTheDocument();
+    expect(calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([
+      { accept: eva.email },
+      { players: 6 },
+      { players: 6 },
+      { players: 5 },
+    ]);
+  });
+
+  it("shows nobody else the places", async () => {
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...anna, canInvite: false }),
+      "GET /api/v1/games/7": () =>
+        answer(
+          200,
+          game({
+            players: 2,
+            lineup: [
+              { ...seb, state: "in" },
+              { ...anna, state: "in" },
+              { ...lisa, state: "reserve" },
+            ],
+          }),
+        ),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText("Ihr seid zwei. Seb bucht jetzt.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Platz/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Aufnehmen" })).toBeNull();
+    expect(screen.getByText(/Ersatz:/).parentElement).toHaveTextContent("Ersatz: Lisa");
   });
 
   it("lets a member say yes and no", async () => {

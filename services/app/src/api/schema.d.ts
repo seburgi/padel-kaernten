@@ -579,7 +579,10 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Mark the game booked, or cancel it; whoever proposed it */
+    /**
+     * Mark the game booked, cancel it, change its places or take in a reserve; whoever proposed it
+     * @description Exactly one of state, players and accept. 409 with type places when more are in than the places asked for, or a reserve would make more than 8; 409 with type not-reserve when accept names nobody waiting.
+     */
     patch: operations["updateGame"];
     trace?: never;
   };
@@ -1001,7 +1004,7 @@ export interface components {
       day: string;
       start: number;
       minutes: number;
-      /** @description How many play; 4 today. */
+      /** @description How many places the game has, 2 to 8; 4 unless whoever proposed it changed it. */
       players: number;
       price?: components["schemas"]["Money"];
       perHead?: components["schemas"]["Money"];
@@ -1016,9 +1019,14 @@ export interface components {
     GameList: {
       items: components["schemas"]["Game"][];
     };
+    /** @description Exactly one of the three. */
     GameChange: {
       /** @description booked or cancelled. */
-      state: string;
+      state?: string;
+      /** @description The places, 2 to 8, never fewer than are in; more let the reserves move up in order. */
+      players?: number;
+      /** @description A reserve's address; it is in, with one place more when the game is full. */
+      accept?: string;
     };
     PushInfo: {
       /** @description The VAPID public key, base64url; absent when push is off. */

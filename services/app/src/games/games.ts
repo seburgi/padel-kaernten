@@ -30,6 +30,18 @@ export function euros(cents: number): string {
   }).format(cents / 100);
 }
 
+/** The places whoever proposed a game may give it (Seb, 2026-11-11), as
+ * the API takes them (games.MinPlayers, games.MaxPlayers). */
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 8;
+
+const WORDS = ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht"];
+
+/** "vier" for 4; past eight, the digits. */
+export function countWord(n: number): string {
+  return WORDS[n] ?? String(n);
+}
+
 /** A name to show: the one given, or the address before the @. */
 export function shown(p: { email: string; name: string }): string {
   return p.name || p.email.split("@")[0]!;
@@ -72,6 +84,10 @@ export function errorText(e: unknown): string {
         return "Das kann nur, wer das Spiel vorgeschlagen hat.";
       case "no-snapshot":
         return "Die Plätze wurden noch nicht abgefragt.";
+      case "places":
+        return "So viele Plätze gehen nicht: nie weniger, als schon dabei sind, und höchstens acht.";
+      case "not-reserve":
+        return "Diese Person wartet nicht mehr auf einen Platz.";
     }
   }
   return "Das hat nicht geklappt. Versuch es nochmal.";

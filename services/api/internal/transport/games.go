@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/seburgi/padel-kaernten/services/api/internal/games"
@@ -322,7 +323,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request, id gen.GameId)
 	h.answerGame(w, r, http.StatusOK, email, g, err)
 }
 
-// UpdateGame books or cancels a game.
+// UpdateGame books or cancels a game, or changes its places.
 func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request, id gen.GameId, params gen.UpdateGameParams) {
 	email, ok := h.person(w, r)
 	if !ok {
@@ -332,7 +333,19 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request, id gen.Game
 	if !decode(w, r, &body) {
 		return
 	}
-	g, err := h.Games.SetState(r.Context(), email, params.IdempotencyKey.String(), id, body.State)
+	key := params.IdempotencyKey.String()
+	var g games.Game
+	var err error
+	switch {
+	case body.State != nil && body.Players == nil && body.Accept == nil:
+		g, err = h.Games.SetState(r.Context(), email, key, id, *body.State)
+	case body.Players != nil && body.State == nil && body.Accept == nil:
+		g, err = h.Games.SetPlayers(r.Context(), email, key, id, *body.Players)
+	case body.Accept != nil && body.State == nil && body.Players == nil:
+		g, err = h.Games.Accept(r.Context(), email, key, id, strings.ToLower(*body.Accept))
+	default:
+		err = games.ErrInvalid
+	}
 	h.answerGame(w, r, http.StatusOK, email, g, err)
 }
 
@@ -389,7 +402,12 @@ func (h *Handler) gameError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, games.ErrForbidden):
 		problem.Write(w, problem.New(http.StatusForbidden, "not-allowed", "Only whoever proposed the game may", ""))
 	case errors.Is(err, games.ErrInvalid):
-		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-game", "A game is 60, 90 or 120 minutes; an answer in or out", ""))
+		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-game",
+			"A game is 60, 90 or 120 minutes with 2 to 8 places; an answer in or out; one change at a time", ""))
+	case errors.Is(err, games.ErrPlaces):
+		problem.Write(w, problem.New(http.StatusConflict, "places", "Fewer places than are in, or more than 8", ""))
+	case errors.Is(err, games.ErrNotReserve):
+		problem.Write(w, problem.New(http.StatusConflict, "not-reserve", "Nobody of that address is waiting", ""))
 	case errors.Is(err, games.ErrGone):
 		problem.Write(w, problem.New(http.StatusConflict, "court-gone", "The court is no longer free", ""))
 	case errors.Is(err, games.ErrClosed):

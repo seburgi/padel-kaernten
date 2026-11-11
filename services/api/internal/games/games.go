@@ -31,10 +31,22 @@ var (
 	ErrGone = errors.New("the court is no longer free")
 	// ErrClosed means the game is cancelled or over.
 	ErrClosed = errors.New("the game is closed")
+	// ErrPlaces means fewer places than are in, or more than MaxPlayers.
+	ErrPlaces = errors.New("not that many places")
+	// ErrNotReserve means whoever is to be taken in is not waiting.
+	ErrNotReserve = errors.New("not a reserve")
 )
 
-// Players is how many play a game of padel.
+// Players is how many play a game of padel, and the places a game starts
+// with; fits look for this many.
 const Players = 4
+
+// The places whoever proposed a game may give it (Seb, 2026-11-11): two or
+// three when fewer want to play, more to share the court among more.
+const (
+	MinPlayers = 2
+	MaxPlayers = 8
+)
 
 // The states of a game, and of a player in it.
 const (
@@ -443,4 +455,103 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 		}
 		return []Event{{Kind: kind, Who: who}}, nil
 	})
+}
+
+// SetPlayers gives a game n places; only whoever proposed it may, and never
+// fewer than are in. More places let the reserves move up in order; as many
+// places as are in make it full.
+func (s *Service) SetPlayers(ctx context.Context, who, key string, id int64, n int) (Game, error) {
+	if n < MinPlayers || n > MaxPlayers {
+		return Game{}, ErrInvalid
+	}
+	today := s.Window().Today
+	return s.write(ctx, who, key, "game-players", id, n, func(tx pgx.Tx, g Game) ([]Event, error) {
+		if err := mayChange(g, who, today); err != nil {
+			return nil, err
+		}
+		if g.Players == n {
+			return nil, nil
+		}
+		playing, err := countIn(ctx, tx, id)
+		if err != nil {
+			return nil, err
+		}
+		if n < playing {
+			return nil, ErrPlaces
+		}
+		if _, err := tx.Exec(ctx, `UPDATE games SET players = $2 WHERE id = $1`, id, n); err != nil {
+			return nil, err
+		}
+		rows, err := tx.Query(ctx, `
+			UPDATE game_players SET state = 'in' WHERE (game_id, email) IN (
+				SELECT game_id, email FROM game_players WHERE game_id = $1 AND state = 'reserve'
+				 ORDER BY answered_at, email LIMIT $2)
+			RETURNING email`, id, n-playing)
+		if err != nil {
+			return nil, err
+		}
+		moved, err := pgx.CollectRows(rows, pgx.RowTo[string])
+		if err != nil {
+			return nil, err
+		}
+		var events []Event
+		for _, m := range moved {
+			events = append(events, Event{Kind: EventMovedUp, Who: m})
+		}
+		if len(moved) == 0 && playing == n && g.Players > playing {
+			events = append(events, Event{Kind: EventFull, Who: who})
+		}
+		return events, nil
+	})
+}
+
+// Accept takes the reserve email in; only whoever proposed the game may.
+// A full game gets one place more for them, so the court is shared by more.
+func (s *Service) Accept(ctx context.Context, who, key string, id int64, email string) (Game, error) {
+	today := s.Window().Today
+	return s.write(ctx, who, key, "game-accept", id, email, func(tx pgx.Tx, g Game) ([]Event, error) {
+		if err := mayChange(g, who, today); err != nil {
+			return nil, err
+		}
+		var state string
+		err := tx.QueryRow(ctx, `SELECT state FROM game_players WHERE game_id = $1 AND email = $2`, id, email).Scan(&state)
+		if errors.Is(err, pgx.ErrNoRows) || err == nil && state == Out {
+			return nil, ErrNotReserve
+		}
+		if err != nil || state == In {
+			return nil, err
+		}
+		playing, err := countIn(ctx, tx, id)
+		if err != nil {
+			return nil, err
+		}
+		if playing+1 > MaxPlayers {
+			return nil, ErrPlaces
+		}
+		if _, err := tx.Exec(ctx, `UPDATE games SET players = greatest(players, $2) WHERE id = $1`, id, playing+1); err != nil {
+			return nil, err
+		}
+		if _, err := tx.Exec(ctx,
+			`UPDATE game_players SET state = 'in' WHERE game_id = $1 AND email = $2`, id, email); err != nil {
+			return nil, err
+		}
+		return []Event{{Kind: EventMovedUp, Who: email}}, nil
+	})
+}
+
+// mayChange is whether who may change the places of g today.
+func mayChange(g Game, who, today string) error {
+	switch {
+	case g.ProposedBy != who:
+		return ErrForbidden
+	case g.State == Cancelled || g.Day < today:
+		return ErrClosed
+	}
+	return nil
+}
+
+func countIn(ctx context.Context, tx pgx.Tx, id int64) (int, error) {
+	var n int
+	err := tx.QueryRow(ctx, `SELECT count(*) FROM game_players WHERE game_id = $1 AND state = 'in'`, id).Scan(&n)
+	return n, err
 }

@@ -159,6 +159,26 @@ func TestGames(t *testing.T) {
 	if w := a.send(seb, "PATCH", path, `{`); w.Code != 400 {
 		t.Errorf("broken change: %d", w.Code)
 	}
+	for body, want := range map[string]string{
+		`{"players":3}`:                  "places",
+		`{"players":9}`:                  "invalid-game",
+		`{}`:                             "invalid-game",
+		`{"state":"booked","players":5}`: "invalid-game",
+		`{"accept":"Eva@example.at"}`:    "not-reserve",
+	} {
+		if w := a.send(seb, "PATCH", path, body); problemType(w) != want {
+			t.Errorf("%s: %d %s", body, w.Code, w.Body)
+		}
+	}
+	if w := a.send(anna, "PATCH", path, `{"players":6}`); w.Code != 403 {
+		t.Errorf("anna adds places: %d %s", w.Code, w.Body)
+	}
+	if w := a.send(seb, "PATCH", path, `{"players":6}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"players":6`) {
+		t.Errorf("six places: %d %s", w.Code, w.Body)
+	}
+	if w := a.send(seb, "PATCH", path, `{"players":4}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"players":4`) {
+		t.Errorf("four again: %d %s", w.Code, w.Body)
+	}
 	if w := a.send(seb, "PATCH", path, `{"state":"booked"}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"state":"booked"`) {
 		t.Errorf("booked: %d %s", w.Code, w.Body)
 	}

@@ -213,8 +213,15 @@ export const CHAPTERS: Chapter[] = [
           nach, wenn jemand absagt.
         </p>
         <p>
-          Auf der Seite eines Spiels zeigen vier Kreise, wer schon dabei ist, und{" "}
+          Auf der Seite eines Spiels zeigen Kreise, wer schon dabei ist, einer je Platz, und{" "}
           {b("So geht es weiter")} die drei Schritte bis zum gebuchten Platz.
+        </p>
+        <p>
+          Ein Spiel hat vier Plätze, aber wer vorgeschlagen hat, kann das unter {b("Plätze")}{" "}
+          ändern: zwei oder drei, wenn ihr weniger seid, bis zu acht, um den Preis auf mehr Köpfe zu
+          teilen. Mehr Plätze lassen den Ersatz der Reihe nach nachrücken, und mit {b("Aufnehmen")}{" "}
+          holst du eine Person vom Ersatz gleich ins Spiel. Weniger Plätze, als schon dabei sind,
+          gehen nicht.
         </p>
         <p>
           Wer vorgeschlagen hat, bucht: {b("Zur Buchung")} öffnet die Seite der Anlage, danach sagt{" "}

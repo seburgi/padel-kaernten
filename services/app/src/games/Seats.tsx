@@ -1,4 +1,4 @@
-// The four places of a game as rounds: filled with who is in, dashed where
+// The places of a game (four, or two to eight) as rounds: filled with who is in, dashed where
 // one is still wanted. Says at a glance how full a game is.
 import type { Game } from "../api/client";
 import { playing, shown } from "./games";
@@ -8,7 +8,11 @@ export function Seats({ g, big = false }: { g: Game; big?: boolean }) {
   const free = Math.max(g.players - ins.length, 0);
   const size = big ? "h-11 w-11 text-sm" : "h-8 w-8 text-xs";
   return (
-    <div className="flex gap-1.5" aria-label={`${ins.length} von ${g.players} dabei`} role="img">
+    <div
+      className={`flex flex-wrap gap-1.5 ${big ? "justify-center" : ""}`}
+      aria-label={`${ins.length} von ${g.players} dabei`}
+      role="img"
+    >
       {ins.map((p) => (
         <span
           key={p.email}

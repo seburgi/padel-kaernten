@@ -1,12 +1,27 @@
 // Ein Spiel (docs/design/games.md): who is in, who is a reserve, who has
 // not answered; saying yes or no; and, for whoever proposed it, the way to
-// the venue's booking page, "Gebucht" and cancelling.
+// the venue's booking page, "Gebucht" and cancelling, and how many places
+// the game has: fewer for two or three, more to take reserves in and share
+// the court (Seb, 2026-11-11).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Game as G } from "../api/client";
 import { card, danger, link, primary, quiet } from "../ui";
-import { byTime, dayLabel, errorText, euros, names, playing, reserves, shown, span } from "./games";
+import {
+  byTime,
+  countWord,
+  dayLabel,
+  errorText,
+  euros,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  names,
+  playing,
+  reserves,
+  shown,
+  span,
+} from "./games";
 import { Seats } from "./Seats";
 import { PageHead } from "../PageHead";
 
@@ -80,6 +95,20 @@ export function Game({ notify }: { notify?: ReactNode }) {
       ),
     onSuccess: done,
   });
+  const placesKey = useWriteKey();
+  const places = useMutation({
+    mutationFn: (change: { players: number } | { accept: string }) =>
+      call(
+        api.PATCH("/api/v1/games/{gameId}", {
+          params: {
+            path: { gameId: id },
+            header: { "Idempotency-Key": placesKey(JSON.stringify(change)) },
+          },
+          body: change,
+        }),
+      ),
+    onSuccess: done,
+  });
   const [cancelling, setCancelling] = useState(false);
 
   if (!Number.isSafeInteger(id) || (game.error instanceof ApiError && game.error.status === 404))
@@ -127,12 +156,12 @@ export function Game({ notify }: { notify?: ReactNode }) {
       : g.state === "cancelled"
         ? "Abgesagt"
         : full
-          ? `Ihr seid vier. ${booker} jetzt.`
+          ? `Ihr seid ${countWord(g.players)}. ${booker} jetzt.`
           : `Noch ${g.players - ins.length} gesucht`;
   const steps = [
     { label: "Vorgeschlagen", done: true, note: `von ${proposer ? "dir" : shown(g.proposedBy)}` },
     {
-      label: "Vier sagen zu",
+      label: `${upper(countWord(g.players))} sagen zu`,
       done: full || g.state === "booked",
       note: `${ins.length} von ${g.players}`,
     },
@@ -246,6 +275,19 @@ export function Game({ notify }: { notify?: ReactNode }) {
         <h2 className="mb-2 font-semibold">
           Dabei ({ins.length} von {g.players})
         </h2>
+        {proposer && open && (
+          <Places
+            players={g.players}
+            least={Math.max(MIN_PLAYERS, ins.length)}
+            busy={places.isPending}
+            onChange={(n) => places.mutate({ players: n })}
+          />
+        )}
+        {places.isError && (
+          <p role="alert" className="mb-2 text-sm text-danger-text">
+            {errorText(places.error)}
+          </p>
+        )}
         {ins.length > 0 && (
           <ul className={`${card} divide-y divide-line`}>
             {ins.map((p) => (
@@ -256,10 +298,35 @@ export function Game({ notify }: { notify?: ReactNode }) {
             ))}
           </ul>
         )}
-        {res.length > 0 && (
+        {res.length > 0 && !(proposer && open) && (
           <p className="mt-2 text-sm">
             <span className="font-semibold">Ersatz:</span> {res.map(shown).join(", ")}
           </p>
+        )}
+        {res.length > 0 && proposer && open && (
+          <div className="mt-3">
+            <h3 className="text-sm font-semibold">Ersatz</h3>
+            <p className="mb-2 text-sm text-ink-muted">
+              {ins.length < MAX_PLAYERS
+                ? "Nimmst du jemanden auf, bekommt das Spiel einen Platz mehr und der Preis teilt sich auf mehr Köpfe."
+                : `Mehr als ${countWord(MAX_PLAYERS)} gehen nicht.`}
+            </p>
+            <ul className={`${card} divide-y divide-line`}>
+              {res.map((p) => (
+                <li key={p.email} className="flex items-center justify-between gap-3 px-4 py-2">
+                  <span className="min-w-0 truncate">{shown(p)}</span>
+                  <button
+                    type="button"
+                    className={quiet}
+                    disabled={places.isPending || ins.length >= MAX_PLAYERS}
+                    onClick={() => places.mutate({ accept: p.email })}
+                  >
+                    Aufnehmen
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {outs.length > 0 && (
           <p className="mt-1 text-sm text-ink-muted">Können nicht: {outs.map(shown).join(", ")}</p>
@@ -302,7 +369,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
             Gebucht wird auf der Seite der Anlage. Danach hier „Gebucht“ tippen, damit alle es
             wissen.
             {!full &&
-              ` Noch ${g.players - ins.length === 1 ? "fehlt eine Person" : `fehlen ${g.players - ins.length}`}: bucht am besten erst, wenn ihr ${g.players === 4 ? "vier" : g.players} seid.`}
+              ` Noch ${g.players - ins.length === 1 ? "fehlt eine Person" : `fehlen ${g.players - ins.length}`}: bucht am besten erst, wenn ihr ${countWord(g.players)} seid.`}
           </p>
           <div className="flex flex-wrap gap-2">
             {g.link && (
@@ -356,5 +423,55 @@ export function Game({ notify }: { notify?: ReactNode }) {
         </section>
       )}
     </main>
+  );
+}
+
+const upper = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+
+/** The places of a game, for whoever proposed it: never fewer than are in. */
+function Places({
+  players,
+  least,
+  busy,
+  onChange,
+}: {
+  players: number;
+  least: number;
+  busy: boolean;
+  onChange: (n: number) => void;
+}) {
+  const step = `${quiet} w-11 px-0 text-lg`;
+  return (
+    <div className={`${card} mb-3 flex items-center justify-between gap-3 px-4 py-2`}>
+      <span className="min-w-0">
+        <span className="block font-semibold">Plätze</span>
+        <span className="block text-sm text-ink-muted">
+          2 bis 8. Mehr Plätze teilen den Preis auf mehr Köpfe.
+        </span>
+      </span>
+      <span className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          className={step}
+          aria-label="Ein Platz weniger"
+          disabled={busy || players <= least}
+          onClick={() => onChange(players - 1)}
+        >
+          −
+        </button>
+        <span className="w-6 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+          {players}
+        </span>
+        <button
+          type="button"
+          className={step}
+          aria-label="Ein Platz mehr"
+          disabled={busy || players >= MAX_PLAYERS}
+          onClick={() => onChange(players + 1)}
+        >
+          +
+        </button>
+      </span>
+    </div>
   );
 }
