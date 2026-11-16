@@ -70,7 +70,11 @@
   signed as `padel-nudge` (`NUDGE_CALLER`). It tells of each thing once,
   by a key in `push_sent` (migration 0010, reaped after 30 days):
   `stale-<game>` to whoever proposed a game that still lacks people within
-  24 hours of its start; `missing-<game>` when a proposed game lacks one,
+  24 hours of its start; `taken-<game>` from 7:00 to 22:00 to whoever
+  proposed a game whose court the latest snapshot shows taken
+  (`games.Taken`, `games.md`; Seb, 2026-11-16: only them, the one who can
+  book or move it), once per game even when the court comes free and goes
+  again; `missing-<game>` when a proposed game lacks one,
   to the members who have not answered, drive to the venue and either have
   spans covering the whole game or said nothing that day (with Bin dabei
   and Kann nicht); `before-<game>` from 18:00 to whoever is in a booked
@@ -84,7 +88,7 @@
   here and there is never news (Seb, 2026-11-04). One fit a group a run;
   the daily cap does the rest.
 - **Kinds** (`notify.Kinds`, Seb 2026-11-04): `game` (proposed, full,
-  moved up, booked, cancelled), `before`, `stale`, `fits`, `missing` and
+  moved up, booked, cancelled), `before`, `stale`, `taken`, `fits`, `missing` and
   `remind`. Each person turns kinds off on the page Mitteilungen, for all
   their browsers (`push_off`, migration 0009; `GET /api/v1/push/kinds`,
   `PUT /api/v1/push/kinds/{kind}`); no row means on. `Deliver` leaves out

@@ -1511,7 +1511,7 @@ components:
       properties:
         kind:
           type: string
-          description: game, before, stale, fits, missing or remind.
+          description: game, before, stale, taken, fits, missing or remind.
         "on":
           type: boolean
         daily:

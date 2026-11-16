@@ -25,6 +25,10 @@ const (
 	FitsFrom   = 8
 	FitsUntil  = 20
 	BeforeFrom = 18
+	// TakenFrom and TakenUntil are the hours a taken court is told of;
+	// one found at night waits for the morning.
+	TakenFrom  = 7
+	TakenUntil = 22
 	// FitsDays is how far ahead a new fit is told of: today and two more.
 	FitsDays = 3
 )
@@ -35,6 +39,8 @@ const (
 //   - stale: whoever proposed a game that still lacks people, a day before;
 //   - missing: when a game lacks one, the members who have not answered,
 //     drive there and might have time;
+//   - taken: from 7:00 to 22:00, whoever proposed a game whose court the
+//     latest snapshot shows taken (games.Taken);
 //   - before: from 18:00, whoever plays a booked game tomorrow;
 //   - fits: from 8:00 to 20:00, a new 90-minute time in the next three days
 //     when four of a group can and a court is free, to those who can.
@@ -62,7 +68,7 @@ func (h *Handler) nudgeTask(w http.ResponseWriter, r *http.Request) {
 		h.internal(w, r, "nudging", err)
 		return
 	}
-	h.Log.InfoContext(ctx, "nudged", "stale", n.sent["stale"], "missing", n.sent["missing"],
+	h.Log.InfoContext(ctx, "nudged", "stale", n.sent["stale"], "taken", n.sent["taken"], "missing", n.sent["missing"],
 		"before", n.sent["before"], "fits", n.sent["fits"])
 	writeJSON(w, http.StatusOK, n.sent)
 }
@@ -74,6 +80,8 @@ type nudger struct {
 	sent map[string]int
 	// groups by id, read once.
 	all map[int64]groups.Group
+	// snap is the latest snapshot, every court, read once (empty without one).
+	snap []games.Venue
 }
 
 // minutesUntil is how long from now in Vienna until day at start.
@@ -132,6 +140,9 @@ func (n *nudger) games(ahead []games.Game) error {
 		in := lineup(g, games.In)
 		when := whenText(g.Day, g.Start)
 		url := fmt.Sprintf("/games/%d", g.ID)
+		if err := n.taken(g, when, url); err != nil {
+			return err
+		}
 		switch {
 		case g.State == games.Booked:
 			if hour >= BeforeFrom && g.Day == tomorrow {
@@ -163,6 +174,34 @@ func (n *nudger) games(ahead []games.Game) error {
 		}
 	}
 	return nil
+}
+
+// taken tells whoever proposed g, once, that the latest snapshot shows its
+// court taken (Seb, 2026-11-16: only them, they are the one who can act).
+// They may have booked it and not said Gebucht, so it asks.
+func (n *nudger) taken(g games.Game, when, url string) error {
+	hour := n.w.NotBefore / 60
+	if g.State != games.Proposed || hour < TakenFrom || hour >= TakenUntil {
+		return nil
+	}
+	if n.snap == nil {
+		v, _, err := n.h.venues(n.ctx, groups.Anywhere)
+		if errors.Is(err, slots.ErrNone) {
+			v = []games.Venue{}
+		} else if err != nil {
+			return err
+		}
+		n.snap = v
+	}
+	if !games.Taken(g, n.snap, n.w) {
+		return nil
+	}
+	return n.send(notify.KindTaken, fmt.Sprintf("taken-%d", g.ID), notify.Message{
+		To: []string{g.ProposedBy}, Title: "Platz nicht mehr frei",
+		Body: fmt.Sprintf("%s in %s: %s ist laut den Platzdaten belegt. Schon gebucht? Sonst such eine andere Zeit.",
+			when, g.VenueName, g.Court),
+		URL: url, Tag: fmt.Sprintf("game-%d", g.ID),
+	})
 }
 
 // missing asks the members who have not answered, drive to the venue and

@@ -109,6 +109,27 @@ func TestNudge(t *testing.T) {
 		t.Errorf("again sent %v", sent)
 	}
 
+	// Newer court data without Court 1 on d1: Seb, who proposed the game
+	// there, hears of it once; the booked game on Court 2 says nothing.
+	snap := *a.sites.snap
+	snap.Venues = []sites.Venue{snap.Venues[0]}
+	snap.Venues[0].Courts = []sites.Court{{Name: "Court 1", Free: free[1:]}, {Name: "Court 2", Free: nil}}
+	data, _ := json.Marshal(snap)
+	if _, err := a.pool.Exec(t.Context(), `UPDATE snapshot SET data = $1::json`, string(data)); err != nil {
+		t.Fatal(err)
+	}
+	if w := a.do(gatewaytest.From(nudgeAccount, "POST", "/nudge", "")); w.Body.String() != `{"taken":1}`+"\n" {
+		t.Errorf("taken: %s", w.Body)
+	}
+	if sent := a.queue.take(); len(sent) != 1 || sent[0].Kind != notify.KindTaken || !sameSet(sent[0].To, seb) ||
+		sent[0].Title != "Platz nicht mehr frei" || sent[0].URL != fmt.Sprintf("/games/%d", short) ||
+		sent[0].Body != "Mi 11.11., 19:30 in Padel Villach: Court 1 ist laut den Platzdaten belegt. Schon gebucht? Sonst such eine andere Zeit." {
+		t.Errorf("taken sent %+v", sent)
+	}
+	if w := a.do(gatewaytest.From(nudgeAccount, "POST", "/nudge", "")); w.Body.String() != "{}\n" {
+		t.Errorf("taken again: %s", w.Body)
+	}
+
 	// A second group of the same four with a game on d2 at 19:30: 18:00 on
 	// d2 still fits on Court 1, but a day with a game is no news.
 	w = a.send(seb, "POST", "/api/v1/groups", `{"name":"Zweite","kind":"private"}`)

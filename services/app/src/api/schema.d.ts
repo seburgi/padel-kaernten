@@ -1038,7 +1038,7 @@ export interface components {
       items: components["schemas"]["PushKind"][];
     };
     PushKind: {
-      /** @description game, before, stale, fits, missing or remind. */
+      /** @description game, before, stale, taken, fits, missing or remind. */
       kind: string;
       on: boolean;
       /** @description One of the kinds of which each person hears at most one a day. */

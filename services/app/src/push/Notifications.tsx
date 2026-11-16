@@ -21,6 +21,10 @@ export const KIND_TEXT: Record<string, { label: string; note: string }> = {
     label: "Dein Vorschlag wackelt",
     note: "Wenn deinem Spiel einen Tag vorher noch Leute fehlen.",
   },
+  taken: {
+    label: "Dein Platz ist belegt",
+    note: "Wenn die neuesten Platzdaten den Platz deines noch nicht gebuchten Spiels belegt zeigen.",
+  },
   fits: {
     label: "Es passt für vier",
     note: "Wenn in den nächsten drei Tagen vier können und ein Platz 90 Minuten frei ist.",

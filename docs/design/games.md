@@ -113,7 +113,7 @@
   proposer may have booked it already ("Gebucht") or finds another time
   (Andere Zeit suchen, the group's fits); everyone else is told the
   proposer may have booked it and to ask. It never says someone else
-  took it.
+  took it. The hourly run tells the proposer once by push (`notify.md`).
 - **What happened** (`Service.Changed`): proposed, full, moved up, booked
   and cancelled, once per write; Mitteilungen tell people (`notify.md`).
 
@@ -126,8 +126,9 @@
 - **No booking in the app.** The venues' sites take the money and the
   booking; the app links there and is told afterwards.
 - **Leaving a group does not take back one's answers** to its games yet.
-- **No push when a court is taken** yet, and the game is not cancelled
-  or moved by itself: the proposer decides.
+- **A taken court is not acted on by itself**: the game is not
+  cancelled or moved, and only whoever proposed it hears of it by push
+  (`notify.md`, kind `taken`); the proposer decides.
 - **Old games are not reaped yet**; past days simply drop out of the
   lists.
 - **No fits for more or fewer than four.** Fits, near misses, Wer kann

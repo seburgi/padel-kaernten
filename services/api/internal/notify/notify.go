@@ -74,10 +74,13 @@ const (
 	KindMissing = "missing"
 	// KindRemind is Sunday's "Wann kannst du?".
 	KindRemind = "remind"
+	// KindTaken tells whoever proposed a game that the latest court data
+	// show its court taken (Seb, 2026-11-16).
+	KindTaken = "taken"
 )
 
 // Kinds is every kind, in the order the app lists them.
-var Kinds = []string{KindGame, KindBefore, KindStale, KindFits, KindMissing, KindRemind}
+var Kinds = []string{KindGame, KindBefore, KindStale, KindTaken, KindFits, KindMissing, KindRemind}
 
 // Daily says whether a kind is one that is not about a game of one's own:
 // of those, each person gets at most one a day (Seb, 2026-11-04).
