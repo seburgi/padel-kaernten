@@ -555,3 +555,36 @@ func countIn(ctx context.Context, tx pgx.Tx, id int64) (int, error) {
 	err := tx.QueryRow(ctx, `SELECT count(*) FROM game_players WHERE game_id = $1 AND state = 'in'`, id).Scan(&n)
 	return n, err
 }
+
+// Taken says whether venues, the latest snapshot, show the court of a
+// proposed game no longer free for all of it (docs/design/games.md): taken
+// elsewhere, or booked by whoever proposed it without saying Gebucht. It
+// says nothing (false) for a booked or cancelled game, one that has
+// started, a venue that failed or is not in the snapshot, and a day the
+// site takes no bookings for yet. A court missing from a venue that
+// answered counts as taken: the sites list only courts with a free time.
+func Taken(g Game, venues []Venue, w Window) bool {
+	if g.State != Proposed || g.Day < w.Today || (g.Day == w.Today && g.Start < w.NotBefore) {
+		return false
+	}
+	for _, v := range venues {
+		if v.ID != g.VenueID {
+			continue
+		}
+		if v.Failed || slices.Contains(v.NotBookable, g.Day) {
+			return false
+		}
+		for _, c := range v.Courts {
+			if c.Name != g.Court {
+				continue
+			}
+			for _, b := range blocks(c.Free) {
+				if b.day == g.Day && b.from <= g.Start && g.Start+g.Minutes <= b.to {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
+}

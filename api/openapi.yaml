@@ -1455,6 +1455,14 @@ components:
         state:
           type: string
           description: proposed, booked or cancelled; clients tolerate others.
+        courtTaken:
+          type: boolean
+          description: >-
+            True when the latest snapshot shows the court of a proposed game
+            no longer free for all of it (taken elsewhere, or booked by whoever
+            proposed it without saying Gebucht). Absent or false when the
+            venue failed, the day takes no bookings yet, the game started or
+            there is no snapshot.
         proposedBy:
           $ref: "#/components/schemas/Person"
         lineup:

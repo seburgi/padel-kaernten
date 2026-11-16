@@ -1012,6 +1012,8 @@ export interface components {
       link?: string;
       /** @description proposed, booked or cancelled; clients tolerate others. */
       state: string;
+      /** @description True when the latest snapshot shows the court of a proposed game no longer free for all of it (taken elsewhere, or booked by whoever proposed it without saying Gebucht). Absent or false when the venue failed, the day takes no bookings yet, the game started or there is no snapshot. */
+      courtTaken?: boolean;
       proposedBy: components["schemas"]["Person"];
       /** @description Every answer, in the order given. */
       lineup: components["schemas"]["Player"][];

@@ -4,6 +4,7 @@
 // group screens get this from App, so the slices stay apart.
 import { Link } from "react-router";
 import { card, quiet } from "../ui";
+import { TakenMark } from "./Taken";
 import { answerOf, dayLabel, euros, playing, span, useGames, useMe } from "./games";
 
 export function Upcoming({ group }: { group?: number }) {
@@ -59,6 +60,7 @@ export function Upcoming({ group }: { group?: number }) {
                   {group === undefined && ` · ${g.groupName}`}
                   {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
                 </div>
+                <TakenMark g={g} />
               </Link>
             </li>
           ))}

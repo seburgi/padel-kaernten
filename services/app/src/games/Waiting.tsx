@@ -10,6 +10,7 @@ import { api, call, useWriteKey, type Game } from "../api/client";
 import { primary, quiet, waits } from "../ui";
 import { answerOf, dayLabel, errorText, euros, span, useGames, useMe } from "./games";
 import { Seats, wanted } from "./Seats";
+import { TakenMark } from "./Taken";
 
 export function Waiting({ invites, invited = 0 }: { invites?: ReactNode; invited?: number }) {
   const me = useMe();
@@ -70,6 +71,7 @@ function Ask({ g }: { g: Game }) {
           {g.venueName} · {g.court}
           {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
         </div>
+        <TakenMark g={g} />
         <div className="mt-2 flex items-center justify-between gap-2">
           <Seats g={g} />
           <span className="text-sm text-ink-muted">{wanted(g)}</span>

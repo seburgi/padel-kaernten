@@ -502,6 +502,42 @@ describe("Game", () => {
     expect(screen.getByText(/Ersatz:/).parentElement).toHaveTextContent("Ersatz: Lisa");
   });
 
+  it("warns when the court is taken, and says what to do", async () => {
+    let me = seb;
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...me, canInvite: false }),
+      "GET /api/v1/games/7": () => answer(200, game({ courtTaken: true })),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    const a = at("/games/7", <Game />, "/games/:id");
+    const note = await screen.findByRole("status");
+    expect(note).toHaveTextContent("Der Platz ist nicht mehr frei");
+    expect(note).toHaveTextContent("Court 1 bei Padel Villach zu dieser Zeit belegt");
+    expect(note).toHaveTextContent("Hast du schon gebucht?");
+    expect(within(note).getByRole("link", { name: "Andere Zeit suchen" })).toHaveAttribute(
+      "href",
+      "/groups/1/fits",
+    );
+    a.unmount();
+
+    me = anna;
+    at("/games/7", <Game />, "/games/:id");
+    const theirs = await screen.findByRole("status");
+    expect(theirs).toHaveTextContent("Vielleicht hat Seb schon gebucht");
+    expect(within(theirs).queryByRole("link")).toBeNull();
+  });
+
+  it("does not warn while the court is free", async () => {
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...seb, canInvite: false }),
+      "GET /api/v1/games/7": () => answer(200, game()),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText("Noch 3 gesucht")).toBeInTheDocument();
+    expect(screen.queryByText("Der Platz ist nicht mehr frei")).toBeNull();
+  });
+
   it("lets a member say yes and no", async () => {
     let g = game({
       lineup: [
@@ -671,7 +707,7 @@ describe("Upcoming", () => {
         "GET /api/v1/games": (sent) =>
           answer(200, {
             items: sent.url.searchParams.get("groupId")
-              ? []
+              ? [game({ id: 12, courtTaken: true })]
               : [
                   game(),
                   game({ id: 8, state: "booked", perHead: undefined, day: "2026-10-30" }),
@@ -697,8 +733,11 @@ describe("Upcoming", () => {
     expect(list[0]).toHaveAttribute("href", "/games/7");
     a.unmount();
 
+    expect(screen.queryByText("Platz nicht mehr frei")).toBeNull();
     renderWithQuery(<Upcoming group={1} />);
-    expect(await screen.findByText("Noch kein Spiel geplant.")).toBeInTheDocument();
+    // The group's page shows already that the court is taken.
+    expect(await screen.findByText("Platz nicht mehr frei")).toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/games/12");
     expect(
       calls
         .filter((c) => c.url.pathname === "/api/v1/games")

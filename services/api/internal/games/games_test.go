@@ -557,3 +557,38 @@ func TestAhead(t *testing.T) {
 		t.Error("a database that is down")
 	}
 }
+
+func TestTaken(t *testing.T) {
+	w := games.Window{Today: "2026-10-29", NotBefore: 600}
+	game := func(court string, start, minutes int, state string) games.Game {
+		return games.Game{VenueID: "villach", Court: court, Day: "2026-10-29", Start: start, Minutes: minutes, State: state}
+	}
+	failed, notYet := villach(), villach()
+	failed.Failed, failed.Courts = true, nil
+	notYet.NotBookable = []string{"2026-10-29"}
+	for _, c := range []struct {
+		name   string
+		g      games.Game
+		venues []games.Venue
+		w      games.Window
+		want   bool
+	}{
+		{"free across two slots", game("Court 1", 1170, 60, games.Proposed), []games.Venue{villach()}, w, false},
+		{"runs past the free time", game("Court 2", 1110, 90, games.Proposed), []games.Venue{villach()}, w, true},
+		{"before the free time", game("Court 1", 960, 90, games.Proposed), []games.Venue{villach()}, w, true},
+		{"court gone from the venue", game("Court 3", 1080, 60, games.Proposed), []games.Venue{villach()}, w, true},
+		{"booked", game("Court 2", 1110, 90, games.Booked), []games.Venue{villach()}, w, false},
+		{"cancelled", game("Court 2", 1110, 90, games.Cancelled), []games.Venue{villach()}, w, false},
+		{"started", game("Court 2", 1110, 90, games.Proposed), []games.Venue{villach()},
+			games.Window{Today: "2026-10-29", NotBefore: 1120}, false},
+		{"day past", game("Court 2", 1110, 90, games.Proposed), []games.Venue{villach()},
+			games.Window{Today: "2026-10-30"}, false},
+		{"venue failed", game("Court 1", 1080, 60, games.Proposed), []games.Venue{failed}, w, false},
+		{"day not bookable", game("Court 3", 1080, 60, games.Proposed), []games.Venue{notYet}, w, false},
+		{"venue not asked", game("Court 1", 1080, 60, games.Proposed), nil, w, false},
+	} {
+		if got := games.Taken(c.g, c.venues, c.w); got != c.want {
+			t.Errorf("%s: %v, want %v", c.name, got, c.want)
+		}
+	}
+}

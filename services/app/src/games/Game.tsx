@@ -23,6 +23,7 @@ import {
   span,
 } from "./games";
 import { Seats } from "./Seats";
+import { TakenNote } from "./Taken";
 import { PageHead } from "../PageHead";
 
 const STATE: Record<string, string> = {
@@ -182,6 +183,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
         {g.venueName} · {g.court}
         {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
       </PageHead>
+      <TakenNote g={g} proposer={proposer} />
       <div className={`${card} mt-3 mb-4 flex flex-col items-center gap-2 p-4 text-center`}>
         <Seats g={g} big />
         <p className="font-semibold">{headline}</p>

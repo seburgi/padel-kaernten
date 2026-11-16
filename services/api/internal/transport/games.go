@@ -298,7 +298,8 @@ func (h *Handler) ListGames(w http.ResponseWriter, r *http.Request, params gen.L
 	}
 	out := gen.GameList{Items: make([]gen.Game, 0, len(list))}
 	seen := map[int64]groups.Group{}
-	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links only; none without a snapshot
+	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links and courtTaken; none without a snapshot
+	win := h.Games.Window()
 	for _, g := range list {
 		grp, ok := seen[g.GroupID]
 		if !ok {
@@ -308,7 +309,7 @@ func (h *Handler) ListGames(w http.ResponseWriter, r *http.Request, params gen.L
 			}
 			seen[g.GroupID] = grp
 		}
-		out.Items = append(out.Items, gameOut(g, grp, venues))
+		out.Items = append(out.Items, gameOut(g, grp, venues, win))
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -373,11 +374,13 @@ func (h *Handler) answerGame(w http.ResponseWriter, r *http.Request, status int,
 		h.internal(w, r, "reading a game's group", err)
 		return
 	}
-	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links only; none without a snapshot
-	writeJSON(w, status, gameOut(g, grp, venues))
+	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links and courtTaken; none without a snapshot
+	writeJSON(w, status, gameOut(g, grp, venues, h.Games.Window()))
 }
 
-func gameOut(g games.Game, grp groups.Group, venues []games.Venue) gen.Game {
+// gameOut is a game as the API hands it out; venues, the latest snapshot,
+// give the booking link and whether the court is still free.
+func gameOut(g games.Game, grp groups.Group, venues []games.Venue, w games.Window) gen.Game {
 	name := names(grp)
 	price, each := euros(g.PriceCents, g.Players)
 	out := gen.Game{Id: g.ID, GroupId: g.GroupID, GroupName: grp.Name, VenueId: g.VenueID, VenueName: g.VenueName,
@@ -388,6 +391,10 @@ func gameOut(g games.Game, grp groups.Group, venues []games.Venue) gen.Game {
 		if v.ID == g.VenueID {
 			out.Link = link(v.Links, g.Day)
 		}
+	}
+	if games.Taken(g, venues, w) {
+		taken := true
+		out.CourtTaken = &taken
 	}
 	for _, p := range g.Lineup {
 		out.Lineup = append(out.Lineup, gen.Player{Email: p.Email, Name: name[p.Email], State: p.State})

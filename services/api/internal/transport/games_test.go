@@ -135,6 +135,29 @@ func TestGames(t *testing.T) {
 	if !strings.Contains(w.Body.String(), `"email":"lisa@example.at","name":"","state":"in"`) {
 		t.Errorf("lisa in: %s", w.Body)
 	}
+	if strings.Contains(a.do(a.as(anna, "GET", path, "")).Body.String(), `"courtTaken"`) {
+		t.Errorf("court taken while free")
+	}
+	// A newer snapshot without the court's evening: the game warns, in the
+	// list and on its own, until it is booked (games.md).
+	setSnapshot := func(free []sites.Slot) {
+		t.Helper()
+		snap := *a.sites.snap
+		snap.Venues = []sites.Venue{snap.Venues[0]}
+		snap.Venues[0].Courts = []sites.Court{{Name: "Court 1", Area: "ueberdacht", Free: free}}
+		data, _ := json.Marshal(snap)
+		if _, err := a.pool.Exec(t.Context(), `UPDATE snapshot SET data = $1::json`, string(data)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setSnapshot([]sites.Slot{{Day: tomorrow, From: 1080, To: 1140}})
+	if w := a.do(a.as(anna, "GET", path, "")); !strings.Contains(w.Body.String(), `"courtTaken":true`) {
+		t.Errorf("court taken: %s", w.Body)
+	}
+	if w := a.do(a.as(anna, "GET", "/api/v1/games", "")); !strings.Contains(w.Body.String(), `"courtTaken":true`) {
+		t.Errorf("court taken in the list: %s", w.Body)
+	}
+	setSnapshot([]sites.Slot{{Day: tomorrow, From: 1080, To: 1260}})
 	if w := a.send(anna, "PUT", path+"/players/me", `{"answer":"maybe"}`); w.Code != 400 {
 		t.Errorf("maybe: %d %s", w.Code, w.Body)
 	}
@@ -181,6 +204,10 @@ func TestGames(t *testing.T) {
 	}
 	if w := a.send(seb, "PATCH", path, `{"state":"booked"}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"state":"booked"`) {
 		t.Errorf("booked: %d %s", w.Code, w.Body)
+	}
+	setSnapshot(nil)
+	if w := a.do(a.as(anna, "GET", path, "")); strings.Contains(w.Body.String(), `"courtTaken"`) {
+		t.Errorf("a booked game warns: %s", w.Body)
 	}
 	if w := a.send(seb, "PATCH", path, `{"state":"cancelled"}`); w.Code != 200 {
 		t.Errorf("cancelled: %d %s", w.Code, w.Body)

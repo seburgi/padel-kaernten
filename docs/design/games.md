@@ -100,6 +100,20 @@
   lineup says who answered, and the fits are asked per group. A snapshot older than five minutes is refreshed once when
   the fits open, as on the courts. The group screens get the games as
   props from `App.tsx`, so the slices stay apart.
+- **Court taken** (Seb, 2026-11-16; `games.Taken`, `courtTaken` on
+  every game the API hands out): a proposed game whose court the latest
+  snapshot no longer shows free for all of it. Computed on each read from
+  the snapshot, never stored, so it comes and goes with the snapshot. It
+  says nothing for a booked or cancelled game, one that has started, a
+  venue that failed or is missing, or a day the site takes no bookings for
+  yet; a court missing from a venue that answered counts as taken, since
+  the sites list only courts with a free time. The app marks the game's
+  card "Platz nicht mehr frei" on the group's page and on Spielen (Wartet
+  auf dich, Deine nächsten Spiele), and the game says what to do: the
+  proposer may have booked it already ("Gebucht") or finds another time
+  (Andere Zeit suchen, the group's fits); everyone else is told the
+  proposer may have booked it and to ask. It never says someone else
+  took it.
 - **What happened** (`Service.Changed`): proposed, full, moved up, booked
   and cancelled, once per write; Mitteilungen tell people (`notify.md`).
 
@@ -112,6 +126,8 @@
 - **No booking in the app.** The venues' sites take the money and the
   booking; the app links there and is told afterwards.
 - **Leaving a group does not take back one's answers** to its games yet.
+- **No push when a court is taken** yet, and the game is not cancelled
+  or moved by itself: the proposer decides.
 - **Old games are not reaped yet**; past days simply drop out of the
   lists.
 - **No fits for more or fewer than four.** Fits, near misses, Wer kann
