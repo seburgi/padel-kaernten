@@ -79,7 +79,7 @@
 - **A screen changed, its picture did not.** No test notices; run
   `help-shots.mjs` again in the same commit as a change to a screen the
   Hilfe shows (`plaetze`, `zeiten`, `zeiten-tag`, `gruppen-finden`,
-  `gruppe`, `spiele-passt`, `spiele-fast`, `spiel`, `spielen`), and look
+  `gruppe`, `spiele-passt`, `spiele-fast`, `spiel`, `spielen`, `vorschlagen`), and look
   at the pictures before pushing. `Help.test.tsx` checks only that every
   named picture exists, light and dark.
 - A picture is cut from one locator's top to another's bottom; a screen

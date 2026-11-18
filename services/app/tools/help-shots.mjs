@@ -271,7 +271,19 @@ const shots = ({ group, game }) => [
     name: "spielen",
     path: "/play",
     from: "h1",
-    to: "main section:has(h2:text-is('Deine Gruppen'))",
+    to: "main section[aria-labelledby=waiting]",
+  },
+  {
+    name: "vorschlagen",
+    path: "/play",
+    step: async (page) => {
+      await page.getByRole("button", { name: "Spiel vorschlagen" }).click();
+      await page.waitForTimeout(800); // its slide up
+    },
+    fixed: true,
+    from: "[role=dialog]",
+    to: "[role=dialog]",
+    top: 0,
   },
 ];
 

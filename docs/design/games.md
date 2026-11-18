@@ -84,8 +84,17 @@
   game), Da nicht frei (declined, or part of the game left out) and
   Nichts eingetragen; while the game still wants people, the card on top
   names who would have time. It reads `GET /groups/{id}/availability`, the
-  query Wer kann wann uses; without it the names stay one plain list; on the group's page "Passt für vier" (`BestFits` for that group alone,
-  with Alle Zeiten to its fits) above its coming games. On Spielen (Seb,
+  query Wer kann wann uses; without it the names stay one plain list.
+  With a group chosen on Spielen (Seb, 2026-11-18; `groups.md`), "Spiel
+  vorschlagen" (`Propose`) is the one way into proposing: a sheet with the
+  length (`Durations`), the group's three soonest fits (`BestFits` for
+  that group alone, bare) and the ways on: Alle Zeiten (its fits), Wer
+  kann wann, and Freien Platz selbst wählen (Plätze, whose start times
+  ask the group, `AskGroup`); below it the group's waiting games
+  (`Waiting` for that group) and its coming ones, and on the group's chip
+  how many wait (`WaitingCount`). A fit's card is `FitRow`, and
+  `Durations` and `FitRow` are kept apart so moving a game can use them.
+  On Spielen with Alle (Seb,
   2026-10-29): "Wartet auf dich" (`Waiting`) holds every proposed game the
   person has not answered, with Bin dabei and Kann nicht on its card and
   the places as rounds (`Seats`); "Deine nächsten Spiele" (`Upcoming`)

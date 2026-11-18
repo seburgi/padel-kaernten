@@ -1,19 +1,56 @@
-// Spielen (docs/design/groups.md): what is on. First what waits for the
-// person (the games slice's unanswered games, with the invitations from
-// here), then the games and the times that fit for four (from the games
-// slice too; App puts both in), then the groups one is in. A person
-// without a name is asked for one first, since the others see it.
+// Spielen (docs/design/groups.md): what is on, and one's groups as a row of
+// chips at the top (Seb, 2026-11-18). Alle is what waits for the person
+// (the games slice's unanswered games, with the invitations from here),
+// their games and the times that fit for four, from every group. A group
+// chosen turns the page into that group: how it is set up and Verwalten,
+// Spiel vorschlagen and Wer kann wann, what waits in it, its games, its
+// members. Someone in one group sees no Alle; the page is that group. The
+// chosen one is kept on this device, so the tab opens on it again; a group
+// one is not in, reached by its address, is Group's page. A person without
+// a name is asked for one first, since the others see it.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useParams } from "react-router";
 import { api, call, useWriteKey, type GroupSummary } from "../api/client";
 import { card, field, link, primary, quiet, waits } from "../ui";
-import { errorText, kindLabel, useDropInvitation, useGroups, useJoin, useMe } from "./groups";
+import { errorText, useDropInvitation, useGroups, useJoin, useMe } from "./groups";
+import { Group, GroupFrame, GroupLine, Members } from "./Group";
+import { AddGroup } from "./Groups";
 import { PageHead } from "../PageHead";
 
+const KEPT = "padel.play.group";
+
+function kept(): number | "all" | undefined {
+  try {
+    const v = localStorage.getItem(KEPT);
+    if (v === "all") return "all";
+    const n = Number(v);
+    return v && Number.isSafeInteger(n) ? n : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function keep(v: number | "all") {
+  try {
+    localStorage.setItem(KEPT, String(v));
+  } catch {
+    // A private window: the choice lasts this visit only.
+  }
+}
+
+/** One group's parts from the games slice, which App puts in. */
+export type GroupParts = {
+  /** Spiel vorschlagen: the button and its sheet. */
+  propose?: ReactNode;
+  /** Wer kann wann, the group's waiting games and its coming ones. */
+  games?: ReactNode;
+};
+
 /** waiting is Wartet auf dich, given the invitations and how many there
- * are; games is the coming games and the fits. Both are the games
- * slice's (App puts them in). */
+ * are; games is the coming games and the fits; group is a chosen group's
+ * parts and badge what waits in it, on its chip. All from the games slice
+ * (App puts them in). group, the address's group, when there is one. */
 export function Play({
   waiting = (invites, n) =>
     n > 0 && (
@@ -24,19 +61,52 @@ export function Play({
     ),
   games,
   start,
+  parts,
+  badge,
+  group,
 }: {
   waiting?: (invites: ReactNode, count: number) => ReactNode;
   games?: ReactNode;
   /** The first steps for someone new, from the help slice. */
   start?: ReactNode;
+  parts?: (id: number, name: string) => GroupParts;
+  badge?: (id: number) => ReactNode;
+  group?: number;
 }) {
   const me = useMe();
   const groups = useGroups();
-  const join = useJoin();
+  const join = useJoin((id, state) => {
+    if (state === "member") choose(id);
+  });
   const decline = useDropInvitation();
+  const [chosen, setChosen] = useState(kept);
+  const [adding, setAdding] = useState(false);
   const invited = groups.data?.filter((g) => g.how === "invited") ?? [];
   const mine = groups.data?.filter((g) => g.how === "member") ?? [];
   const asked = groups.data?.filter((g) => g.how !== "member" && g.requested) ?? [];
+  const isMine = (id: number | "all" | undefined) => mine.some((g) => g.id === id);
+
+  function choose(v: number | "all") {
+    keep(v);
+    setChosen(v);
+  }
+  // The address's group is the one chosen from now on.
+  useEffect(() => {
+    if (group !== undefined && isMine(group)) choose(group);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group, groups.data]);
+
+  const selected =
+    group !== undefined
+      ? group
+      : mine.length === 1
+        ? mine[0]!.id
+        : typeof chosen === "number" && isMine(chosen)
+          ? chosen
+          : undefined;
+
+  // A group one is not in, reached by its address: its own page.
+  if (group !== undefined && groups.data && !isMine(group)) return <Group id={group} />;
 
   const invites = invited.length > 0 && (
     <>
@@ -76,15 +146,19 @@ export function Play({
 
   return (
     <main>
-      <PageHead title="Spielen">
-        Was auf dich wartet, deine Spiele und wann es für vier passt.
-      </PageHead>
+      <PageHead title="Spielen">Was auf dich wartet und deine nächsten Spiele.</PageHead>
+      {groups.data && (
+        <Chips
+          mine={mine}
+          selected={selected}
+          badge={badge}
+          onAll={() => choose("all")}
+          onPick={choose}
+          onAdd={() => setAdding(true)}
+        />
+      )}
       {start}
       {me.data && me.data.name === "" && <NamePrompt />}
-
-      {waiting(invites, invited.length)}
-
-      {games}
 
       {groups.isPending && (
         <div aria-busy="true" aria-label="Lädt">
@@ -105,59 +179,116 @@ export function Play({
         </div>
       )}
 
-      {groups.data && (
-        <section>
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <h2 className="font-semibold">Deine Gruppen</h2>
-            <span className="flex gap-3 whitespace-nowrap">
-              <Link to="/groups" className={`${link} text-sm`}>
-                Gruppen finden
-              </Link>
-              <Link to="/groups/new" className={`${link} text-sm`}>
-                Neue Gruppe
-              </Link>
-            </span>
-          </div>
-          {mine.length === 0 ? (
-            <p className="text-ink-muted">
-              Du bist noch in keiner Gruppe. Gründe eine, oder schau, welche offen sind.{" "}
-              <Link to="/help#gruppen" className={link}>
-                So geht’s
-              </Link>
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {mine.map((g) => (
-                <GroupCard key={g.id} g={g} />
-              ))}
-            </ul>
-          )}
-          {asked.length > 0 && (
-            <p className="mt-3 text-sm text-ink-muted">
-              Angefragt: {asked.map((g) => g.name).join(", ")}
-            </p>
-          )}
-        </section>
+      {groups.data && selected !== undefined ? (
+        <GroupFrame key={selected} id={selected}>
+          {(g, myEmail) => {
+            const p = parts?.(g.id, g.name) ?? {};
+            return (
+              <>
+                <GroupLine g={g} />
+                {p.propose}
+                {invited.length > 0 && (
+                  <section className="mb-6">
+                    <h2 className="mb-2 font-semibold">Einladungen</h2>
+                    {invites}
+                  </section>
+                )}
+                {p.games}
+                <Members g={g} me={myEmail} />
+              </>
+            );
+          }}
+        </GroupFrame>
+      ) : (
+        groups.data && (
+          <>
+            {waiting(invites, invited.length)}
+            {games}
+            {mine.length === 0 && (
+              <p className="mb-6 text-ink-muted">
+                Du bist noch in keiner Gruppe. Gründe eine, oder schau, welche offen sind.{" "}
+                <Link to="/help#gruppen" className={link}>
+                  So geht’s
+                </Link>
+              </p>
+            )}
+          </>
+        )
       )}
+      {asked.length > 0 && (
+        <p className="mt-3 text-sm text-ink-muted">
+          Angefragt: {asked.map((g) => g.name).join(", ")}
+        </p>
+      )}
+      {adding && <AddGroup onClose={() => setAdding(false)} />}
     </main>
   );
+}
+
+/** Spielen at /groups/:id: the address's group chosen. */
+export function PlayGroup(props: Omit<Parameters<typeof Play>[0], "group">) {
+  const id = Number(useParams().id);
+  // No such address: Group says so.
+  if (!Number.isSafeInteger(id)) return <Group />;
+  return <Play {...props} group={id} />;
 }
 
 function members(n: number) {
   return n === 1 ? "1 Mitglied" : `${n} Mitglieder`;
 }
 
-function GroupCard({ g }: { g: GroupSummary }) {
+const chip = (on: boolean) =>
+  `inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-semibold ${
+    on ? "border-accent bg-accent text-accent-ink" : "border-line bg-card text-ink hover:bg-hover"
+  }`;
+
+/** Alle (with two groups or more), each group, and + Gruppe. */
+function Chips({
+  mine,
+  selected,
+  badge,
+  onAll,
+  onPick,
+  onAdd,
+}: {
+  mine: GroupSummary[];
+  selected?: number;
+  badge?: (id: number) => ReactNode;
+  onAll: () => void;
+  onPick: (id: number) => void;
+  onAdd: () => void;
+}) {
   return (
-    <li>
-      <Link to={`/groups/${g.id}`} className={`${card} block p-4 hover:bg-hover`}>
-        <div className="font-semibold">{g.name}</div>
-        <div className="text-sm text-ink-muted">
-          {members(g.members)} · {kindLabel(g.kind)}
-          {g.role === "admin" && " · du bist Admin"}
-        </div>
-      </Link>
-    </li>
+    <nav
+      aria-label="Deine Gruppen"
+      className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4 py-0.5 [scrollbar-width:none]"
+    >
+      {mine.length > 1 && (
+        <Link
+          to="/play"
+          onClick={onAll}
+          aria-current={selected === undefined ? "page" : undefined}
+          className={chip(selected === undefined)}
+        >
+          Alle
+        </Link>
+      )}
+      {mine.map((g) => (
+        <Link
+          key={g.id}
+          to={`/groups/${g.id}`}
+          onClick={() => onPick(g.id)}
+          aria-current={selected === g.id ? "page" : undefined}
+          className={chip(selected === g.id)}
+        >
+          {g.name}
+          {selected !== g.id && badge?.(g.id)}
+        </Link>
+      ))}
+      <button type="button" onClick={onAdd} className={`${chip(false)} text-accent-text`}>
+        + Gruppe
+      </button>
+    </nav>
   );
 }
 
@@ -173,7 +304,6 @@ export function Profile() {
     </main>
   );
 }
-
 function NamePrompt({ initial = "" }: { initial?: string }) {
   const client = useQueryClient();
   const [name, setName] = useState(initial);

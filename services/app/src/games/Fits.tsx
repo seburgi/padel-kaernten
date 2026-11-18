@@ -9,11 +9,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { api, ApiError, call, newKey, useWriteKey, type Fit } from "../api/client";
-import { card, link, pressed, primary, quiet } from "../ui";
+import { card, link, primary, quiet } from "../ui";
+import { Durations, type Duration } from "./Durations";
 import { clock, dayLabel, errorText, euros, shown, span } from "./games";
 import { PageHead } from "../PageHead";
 
-const DURATIONS = [60, 90, 120] as const;
 const AREA: Record<string, string> = {
   alle: "Halle und Freiluft",
   halle: "Nur Halle (mit überdachten Plätzen)",
@@ -25,7 +25,7 @@ export function Fits() {
   const id = Number(useParams().id);
   const client = useQueryClient();
   const navigate = useNavigate();
-  const [minutes, setMinutes] = useState<(typeof DURATIONS)[number]>(90);
+  const [minutes, setMinutes] = useState<Duration>(90);
   const fits = useQuery({
     queryKey: ["fits", id, minutes],
     queryFn: () =>
@@ -118,19 +118,7 @@ export function Fits() {
           So geht’s
         </Link>
       </PageHead>
-      <div className="mb-2 flex gap-2" role="group" aria-label="Wie lange?">
-        {DURATIONS.map((d) => (
-          <button
-            key={d}
-            type="button"
-            aria-pressed={minutes === d}
-            className={`rounded-full border px-3 py-1.5 text-sm ${pressed(minutes === d)}`}
-            onClick={() => setMinutes(d)}
-          >
-            {d} Min
-          </button>
-        ))}
-      </div>
+      <Durations minutes={minutes} onChange={setMinutes} />
       <p className="mb-4 text-sm text-ink-muted">
         {AREA[area] ?? AREA.alle} ·{" "}
         <Link to={`/groups/${id}/settings`} className={link}>

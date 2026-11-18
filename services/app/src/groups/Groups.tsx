@@ -1,21 +1,17 @@
 // Gruppen finden, and founding one (docs/design/groups.md). The groups one
 // can see but is not in: open ones to join, ones on request to ask into.
+// Spielen's chip + Gruppe opens the same in a sheet (AddGroup, Seb
+// 2026-11-18); /groups stays for links to it.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, call, useWriteKey } from "../api/client";
+import { Sheet } from "@burgstaller/web/sheet";
 import { card, field, link, pressed, primary, quiet } from "../ui";
 import { errorText, KINDS, kindLabel, useGroups, useJoin } from "./groups";
 import { PageHead } from "../PageHead";
 
 export function Groups() {
-  const groups = useGroups();
-  const navigate = useNavigate();
-  const join = useJoin((id, state) => {
-    if (state === "member") navigate(`/groups/${id}`);
-  });
-  const listed = groups.data?.filter((g) => g.how === "listed") ?? [];
-
   return (
     <main>
       <PageHead title="Gruppen finden">
@@ -28,6 +24,43 @@ export function Groups() {
       <Link to="/groups/new" className={`${primary} mb-6`}>
         Neue Gruppe gründen
       </Link>
+      <Listed />
+    </main>
+  );
+}
+
+/** + Gruppe on Spielen: founding one, or going into an open one. */
+export function AddGroup({ onClose }: { onClose: () => void }) {
+  return (
+    <Sheet label="Gruppen" wide="dialog" onClose={onClose}>
+      <h2 className="mb-1 text-lg font-semibold">Gruppen</h2>
+      <p className="mb-4 text-sm text-ink-muted">
+        Gründe eine eigene, oder geh in eine, die offen ist. Private Gruppen siehst du nur mit
+        Einladung.
+      </p>
+      <Link to="/groups/new" className={`${primary} mb-5 w-full`}>
+        Neue Gruppe gründen
+      </Link>
+      <h3 className="mb-2 font-semibold">Offen für dich</h3>
+      <Listed />
+      <button type="button" className={`${quiet} mt-4 w-full`} onClick={onClose}>
+        Schließen
+      </button>
+    </Sheet>
+  );
+}
+
+/** The groups one sees but is not in, to join or ask into. */
+function Listed() {
+  const groups = useGroups();
+  const navigate = useNavigate();
+  const join = useJoin((id, state) => {
+    if (state === "member") navigate(`/groups/${id}`);
+  });
+  const listed = groups.data?.filter((g) => g.how === "listed") ?? [];
+
+  return (
+    <>
       {groups.isPending && (
         <div aria-busy="true" aria-label="Lädt">
           {[0, 1].map((i) => (
@@ -80,7 +113,7 @@ export function Groups() {
           {errorText(join.error)}
         </p>
       )}
-    </main>
+    </>
   );
 }
 

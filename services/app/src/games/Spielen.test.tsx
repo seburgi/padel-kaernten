@@ -7,7 +7,8 @@ import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
 import { AskGroup } from "./AskGroup";
 import { BestFits } from "./BestFits";
-import { Waiting } from "./Waiting";
+import { Propose } from "./Propose";
+import { Waiting, WaitingCount } from "./Waiting";
 
 const p = (email: string, name = "") => ({ email, name });
 const seb = p("seb@example.at", "Seb");
@@ -408,5 +409,75 @@ describe("AskGroup", () => {
       await screen.findByRole("button", { name: "In Dienstagsrunde vorschlagen" }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("Der Platz ist inzwischen weg.");
+  });
+});
+
+describe("Propose", () => {
+  it("opens the group's soonest times for the length chosen, and the ways on", async () => {
+    const calls: Sent[] = [];
+    serve(
+      {
+        "GET /api/v1/groups": () =>
+          answer(200, { items: [summary(1, "Dienstagsrunde"), summary(2, "Mittwochsliga")] }),
+        "GET /api/v1/groups/2/fits": (sent) =>
+          sent.url.searchParams.get("minutes") === "60"
+            ? fits([fit({ minutes: 60 }), fit({ minutes: 60, start: 1200 })])
+            : fits([fit()]),
+        "GET /api/v1/games": () => answer(200, { items: [] }),
+      },
+      calls,
+    );
+    at(<Propose group={2} name="Mittwochsliga" />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Spiel vorschlagen" }));
+    const sheet = within(await screen.findByRole("dialog"));
+    expect(sheet.getByText(/^Mittwochsliga: die nächsten Zeiten/)).toBeInTheDocument();
+    expect(await sheet.findAllByRole("button", { name: /vorschlagen$/ })).toHaveLength(1);
+    expect(sheet.queryByRole("heading", { name: "Passt für vier" })).toBeNull();
+    await userEvent.click(sheet.getByRole("button", { name: "60 Min" }));
+    await waitFor(() =>
+      expect(sheet.getAllByRole("button", { name: /vorschlagen$/ })).toHaveLength(2),
+    );
+    expect(sheet.getByRole("link", { name: /Alle Zeiten/ })).toHaveAttribute(
+      "href",
+      "/groups/2/fits",
+    );
+    expect(sheet.getByRole("link", { name: /Wer kann wann/ })).toHaveAttribute(
+      "href",
+      "/groups/2/who-can",
+    );
+    expect(sheet.getByRole("link", { name: /Freien Platz selbst wählen/ })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(calls.some((c) => c.url.pathname === "/api/v1/groups/1/fits")).toBe(false);
+    await userEvent.click(sheet.getByRole("button", { name: "Schließen" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+});
+
+describe("Waiting for one group", () => {
+  it("keeps to the group, and counts on its chip what waits", async () => {
+    serve({
+      "GET /api/v1/me": me,
+      "GET /api/v1/games": () =>
+        answer(200, {
+          items: [
+            game(),
+            game({ id: 8, groupId: 2, groupName: "Mittwochsliga" }),
+            game({ id: 9, groupId: 2, groupName: "Mittwochsliga" }),
+          ],
+        }),
+    });
+    at(
+      <>
+        <Waiting group={2} />
+        <WaitingCount group={2} />
+        <WaitingCount group={3} />
+      </>,
+    );
+    expect(await screen.findByLabelText("2 warten auf dich")).toHaveTextContent("2");
+    expect(screen.getAllByRole("button", { name: "Bin dabei" })).toHaveLength(2);
+    expect(screen.queryByText("Dienstagsrunde")).toBeNull();
   });
 });

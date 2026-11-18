@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Group as G } from "../api/client";
 import { answer, problem, serve, type Sent } from "../test/fetch";
 import { renderWithQuery } from "../test/render";
-import { Group, GroupSettings } from "./Group";
+import { GroupSettings } from "./Group";
+import { PlayGroup } from "./Play";
 
 const at = "2026-10-28T07:00:00Z";
 const member = (email: string, name: string, role = "member", daysEntered = 0) => ({
@@ -41,13 +42,26 @@ const group = (over: Partial<G> = {}): G => ({
   ...over,
 });
 
+// What the list of groups says of it, which Spielen reads first.
+const summary = (g: G) => ({
+  id: g.id,
+  name: g.name,
+  kind: g.kind,
+  area: g.area,
+  how: g.how,
+  role: g.role,
+  members: g.members,
+  requested: g.requested,
+});
+
 const me = (email: string) => () => answer(200, { email, name: "", canInvite: false });
 
-// The screen reads its id from the path, as under the app's routes.
+// The screen reads its id from the path, as under the app's routes: a
+// member's group is Spielen with it chosen, anyone else's its own page.
 function show(path = "/groups/1") {
   return renderWithQuery(
     <Routes>
-      <Route path="/groups/:id" element={<Group />} />
+      <Route path="/groups/:id" element={<PlayGroup />} />
       <Route path="/groups/:id/settings" element={<GroupSettings />} />
       <Route path="*" element={<p>woanders</p>} />
     </Routes>,
@@ -231,10 +245,11 @@ describe("Group", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the group's page to playing, with the way to Verwalten", async () => {
+  it("shows a member's group on Spielen, with the way to Verwalten", async () => {
     serve({
       "GET /api/v1/me": me("seb@example.at"),
       "GET /api/v1/groups/1": () => answer(200, group({ area: "halle" })),
+      "GET /api/v1/groups": () => answer(200, { items: [summary(group({ area: "halle" }))] }),
     });
     const { router } = show();
     await screen.findByText("Privat · 3 Mitglieder · Nur Halle");
@@ -257,6 +272,7 @@ describe("Group", () => {
     serve({
       "GET /api/v1/me": me("seb@example.at"),
       "GET /api/v1/groups/1": () => answer(200, g),
+      "GET /api/v1/groups": () => answer(200, { items: [summary(g)] }),
     });
     const a = show();
     expect(await screen.findByText("Eine Person möchte hinein")).toBeInTheDocument();
@@ -303,6 +319,7 @@ describe("Group", () => {
     serve({
       "GET /api/v1/me": me("eva@example.at"),
       "GET /api/v1/groups/1": () => answer(200, g),
+      "GET /api/v1/groups": () => answer(200, { items: [summary(g)] }),
       "POST /api/v1/groups/1/join": () => problem(429, "rate-limited"),
     });
     const first = show();
@@ -334,6 +351,7 @@ describe("Group", () => {
       "GET /api/v1/me": me("eva@example.at"),
       "GET /api/v1/groups/2": () => problem(404, "no-group"),
       "GET /api/v1/groups/1": () => (up ? answer(200, group()) : problem(500, "internal")),
+      "GET /api/v1/groups": () => answer(200, { items: [summary(group())] }),
     });
     const a = show("/groups/2");
     expect(await screen.findByRole("heading", { name: "Keine Gruppe" })).toBeInTheDocument();
@@ -345,6 +363,10 @@ describe("Group", () => {
     expect(await screen.findByText("Die Gruppe konnte nicht geladen werden.")).toBeInTheDocument();
     up = true;
     await userEvent.click(screen.getByRole("button", { name: "Nochmal versuchen" }));
-    expect(await screen.findByRole("heading", { name: "Padel Kärnten" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Verwalten" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Padel Kärnten" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });

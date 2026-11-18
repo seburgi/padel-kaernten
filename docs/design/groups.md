@@ -12,7 +12,7 @@
   the other courts out (`games.md`). Any member sets it (`PATCH
   /api/v1/groups/{id}` with only `area`); the name and the kind stay the
   admins'. The app offers it as Beides, Halle, Freiluft under Verwalten, and
-  the group's page and its fits say where it plays.
+  the group on Spielen and its fits say where it plays.
 - **Who sees a group is the view `group_visibility`** (migration 0003): a
   member, someone invited into it, or anyone in the app (`people`) when it
   is not private. Every read joins it; a group out of sight answers 404
@@ -49,19 +49,31 @@
   as admin and everyone in `invitations` as a member (`EnsureFirst`, under
   an advisory lock). Their invitation into the app stays.
 - **Where the app opens** (Seb, 2026-10-29): at its bare address, someone
-  in a group starts on Spielen; anyone else on Plätze. Only the entry the
+  in a group starts on Spielen; anyone else on Plätze. Spielen then shows
+  the group chosen last on that device, or Alle. Only the entry the
   app opened on (`App.tsx`, the router's key "default"); a tap on Plätze
   stays there. `tools/browse.mjs` and `help-shots.mjs` expect it.
 - **In the app** (`services/app/src/groups`): the tab Spielen (`/play`)
-  answers "Was steht an?" (Seb, 2026-10-29): it asks a person without a
-  name for one, then shows "Wartet auf dich" (the games slice's unanswered
-  games, with the invitations to accept or decline from here, as a card
-  the colour of a warning), the games and "Passt für vier" (both from the
-  games slice; `App.tsx` puts them in), and last the groups one is in,
-  with Gruppen finden and Neue Gruppe; `/groups` lists the groups one can
-  join or ask into, `/groups/new` founds one, `/groups/{id}` is for playing: to members
-  its fits and games, a note when someone asks in, and to everyone the
-  members with their days entered. Everything about the group itself is
+  answers "Was steht an?" (Seb, 2026-10-29), and one's groups sit on it
+  as a row of chips at the top (Seb, 2026-11-18, after Günther asked for
+  the groups to be quick to find): Alle (only with two groups or more),
+  each group, and "+ Gruppe". Alle asks a person without a name for one,
+  then shows "Wartet auf dich" (the games slice's unanswered games, with
+  the invitations to accept or decline from here, as a card the colour of
+  a warning), the games and "Passt für vier" from every group (both from
+  the games slice; `App.tsx` puts them in). A group chosen is that group
+  on the same page, also at `/groups/{id}` (`PlayGroup`): its kind,
+  members and area with Verwalten, who asks in, Spiel vorschlagen, Wer
+  kann wann, its waiting and coming games (the games slice's, through
+  `parts`), the invitations still open, and the members with their days
+  entered. Someone in one group sees no Alle; Spielen is that group. The
+  choice is kept on the device (`localStorage` `padel.play.group`), so the
+  tab opens on it again. "+ Gruppe" is a sheet (`AddGroup`) with Neue
+  Gruppe gründen and the groups one can join or ask into; `/groups` shows
+  the same as a page for old links, and Mehr no longer lists it.
+  `/groups/new` founds one. `/groups/{id}` for a group one is not in is its
+  own page: join, accept or ask, and who is in it. Everything about the
+  group itself is
   its own page Verwalten (`/groups/{id}/settings`, members only; Seb,
   2026-10-29): where it plays, the members (removing them, admins),
   requests, inviting and the open invitations, the name and kind
@@ -73,9 +85,9 @@
   each member said when they can (`availability.md`); transport joins the
   two slices.
 - **Wer kann wann** (Seb, 2026-10-31, feedback #68; its own page since
-  2026-11-04, feedback #73): `/groups/{id}/who-can`, linked from a card on
-  the group's page under Passt für vier and from Passt für vier when
-  nothing fits. The next 14 days of the whole group, every half hour from
+  2026-11-04, feedback #73): `/groups/{id}/who-can`, linked from a card
+  under Spiel vorschlagen with the group chosen on Spielen, from inside
+  that sheet, and from Passt für vier when nothing fits. The next 14 days of the whole group, every half hour from
   7 to 22 (Seb, 2026-10-31; times entered outside are not shown), the
   darker the more members can (`groups/WhoCan.tsx`). `GET
   /api/v1/groups/{id}/availability` gives every member's spans and
@@ -104,6 +116,12 @@
   everyone sees the same fits. Someone who never plays outdoors says so
   in the group, or the group picks Halle.
 - **Groups are not paged**: a person sees a handful.
+- **No tab of its own for the groups, and Spielen keeps its name**
+  (Seb, 2026-11-18): most have one group, so a tab would be a list of one,
+  and the top of Spielen is personal and spans the groups. The chips put
+  the groups one tap away instead.
+- **The chosen group is not kept on the server**: one device may sit on
+  one group and another on Alle.
 - **Wer kann wann names no courts where it fits**: it says that one is
   free; which, and proposing it, is Wann passt es für vier?'s
   (`games.md`). Below four it says nothing about courts.

@@ -4,6 +4,7 @@
 // Dein Name comes first, then the pages; under them the venues one drives
 // to (Seb, 2026-10-30). Mitteilungen is a page of its own (Seb,
 // 2026-11-04), with this browser's switch and the kinds of message.
+// Gruppen finden moved to Spielen's chip + Gruppe (Seb, 2026-11-18).
 import { Icon } from "@burgstaller/web/icons";
 import type { IconName } from "@burgstaller/web/icons";
 import type { ReactNode } from "react";
@@ -44,7 +45,6 @@ export function More({
     },
     { to: "/help", label: "Hilfe", icon: "info" },
     { to: "/feedback", label: "Dein Feedback", icon: "feedback" },
-    { to: "/groups", label: "Gruppen finden", icon: "search" },
     ...(canInvite ? [{ to: "/invites", label: "Einladen", icon: "mail" as const }] : []),
   ];
   return (

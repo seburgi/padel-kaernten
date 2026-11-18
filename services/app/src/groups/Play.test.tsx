@@ -41,16 +41,28 @@ describe("Profile", () => {
 });
 
 describe("Play", () => {
-  it("asks for a name, answers invitations and lists the groups", async () => {
+  it("asks for a name, answers invitations and switches between the groups", async () => {
     let me = { email: "anna@example.at", name: "", canInvite: false };
     let items = [
       g({ id: 1, role: "admin" }),
+      g({ id: 5, name: "Sonntagsrunde", members: 2 }),
       g({ id: 2, name: "Donnerstagsrunde", how: "invited", members: 1 }),
       g({ id: 3, name: "Morgenrunde", how: "invited" }),
       g({ id: 4, name: "Offene Runde", how: "listed", kind: "on_request", requested: true }),
     ];
     let platformDown = true;
     const calls: Sent[] = [];
+    const full = (id: number) => {
+      const s = items.find((i) => i.id === id)!;
+      return {
+        ...s,
+        memberList: [
+          { email: "anna@example.at", name: "Anna", role: "admin", joinedAt: "", daysEntered: 3 },
+        ],
+        invitations: [],
+        requests: [],
+      };
+    };
     serve(
       {
         "GET /api/v1/me": () => answer(200, me),
@@ -59,6 +71,8 @@ describe("Play", () => {
           return answer(200, me);
         },
         "GET /api/v1/groups": () => answer(200, { items }),
+        "GET /api/v1/groups/1": () => answer(200, full(1)),
+        "GET /api/v1/groups/2": () => answer(200, full(2)),
         "POST /api/v1/groups/2/join": () => {
           if (platformDown) return problem(502, "platform-failed");
           items = items.map((i) => (i.id === 2 ? { ...i, how: "member", members: 2 } : i));
@@ -71,7 +85,12 @@ describe("Play", () => {
       },
       calls,
     );
-    renderWithQuery(<Play />);
+    renderWithQuery(
+      <Play
+        parts={(id, name) => ({ propose: <p>vorschlagen {name}</p>, games: <p>spiele {id}</p> })}
+        badge={(id) => (id === 5 ? <span>2</span> : null)}
+      />,
+    );
     await userEvent.type(
       await screen.findByLabelText("Wie sollen dich die anderen sehen?"),
       " Anna ",
@@ -80,8 +99,12 @@ describe("Play", () => {
     await waitFor(() => expect(screen.queryByLabelText(/Wie sollen dich/)).toBeNull());
     expect(calls.find((c) => c.method === "PUT")!.body).toEqual({ name: "Anna" });
 
-    expect(screen.getByRole("link", { name: /Padel Kärnten/ })).toHaveTextContent(
-      "4 Mitglieder · Privat · du bist Admin",
+    // Alle: the chips, the invitations waiting, who one asked.
+    const chips = within(screen.getByRole("navigation", { name: "Deine Gruppen" }));
+    expect(chips.getByRole("link", { name: "Alle" })).toHaveAttribute("aria-current", "page");
+    expect(chips.getByRole("link", { name: "Sonntagsrunde2" })).toHaveAttribute(
+      "href",
+      "/groups/5",
     );
     expect(screen.getByText("Angefragt: Offene Runde")).toBeInTheDocument();
     const thursday = screen.getByText("Donnerstagsrunde").closest("li")!;
@@ -90,12 +113,61 @@ describe("Play", () => {
     expect(await screen.findByText(/Die Anmeldung hat nicht geantwortet/)).toBeInTheDocument();
     platformDown = false;
     await userEvent.click(within(thursday).getByRole("button", { name: "Annehmen" }));
-    expect(await screen.findByRole("link", { name: /Donnerstagsrunde/ })).toBeInTheDocument();
 
+    // Joined, the group is chosen: its parts, members and Verwalten.
+    expect(await screen.findByText("vorschlagen Donnerstagsrunde")).toBeInTheDocument();
+    expect(screen.getByText("spiele 2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Verwalten" })).toHaveAttribute(
+      "href",
+      "/groups/2/settings",
+    );
+    expect(screen.getByRole("link", { name: "Donnerstagsrunde" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(localStorage.getItem("padel.play.group")).toBe("2");
+
+    // The invitation left still shows here, and goes.
     const morning = screen.getByText("Morgenrunde").closest("li")!;
     await userEvent.click(within(morning).getByRole("button", { name: "Ablehnen" }));
     await waitFor(() => expect(screen.queryByText("Morgenrunde")).toBeNull());
     expect(screen.queryByText("Einladungen")).toBeNull();
+
+    // Another group, then Alle again.
+    await userEvent.click(screen.getByRole("link", { name: "Padel Kärnten" }));
+    expect(await screen.findByText("vorschlagen Padel Kärnten")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: "Alle" }));
+    await waitFor(() => expect(screen.queryByText(/vorschlagen/)).toBeNull());
+    expect(localStorage.getItem("padel.play.group")).toBe("all");
+
+    // + Gruppe: founding one, or one that is open.
+    await userEvent.click(screen.getByRole("button", { name: "+ Gruppe" }));
+    expect(await screen.findByRole("link", { name: "Neue Gruppe gründen" })).toHaveAttribute(
+      "href",
+      "/groups/new",
+    );
+    await userEvent.click(screen.getAllByRole("button", { name: "Schließen" }).at(-1)!);
+  });
+
+  it("is the group for someone in one, and keeps the choice of several", async () => {
+    let items = [g({ id: 1 })];
+    serve({
+      "GET /api/v1/me": () => answer(200, { email: "a@example.at", name: "A", canInvite: false }),
+      "GET /api/v1/groups": () => answer(200, { items }),
+      "GET /api/v1/groups/1": () =>
+        answer(200, { ...items[0], memberList: [], invitations: [], requests: [] }),
+      "GET /api/v1/groups/7": () =>
+        answer(200, { ...items[1], memberList: [], invitations: [], requests: [] }),
+    });
+    const one = renderWithQuery(<Play parts={(id) => ({ games: <p>spiele {id}</p> })} />);
+    expect(await screen.findByText("spiele 1")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Alle" })).toBeNull();
+    one.unmount();
+
+    items = [g({ id: 1 }), g({ id: 7, name: "Zweite" })];
+    localStorage.setItem("padel.play.group", "7");
+    renderWithQuery(<Play parts={(id) => ({ games: <p>spiele {id}</p> })} />);
+    expect(await screen.findByText("spiele 7")).toBeInTheDocument();
   });
 
   it("says when there are no groups, and when they do not load", async () => {

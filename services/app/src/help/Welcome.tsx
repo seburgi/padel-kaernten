@@ -23,7 +23,7 @@ const STEPS: { title: string; text: string; shot: Shot }[] = [
   },
   {
     title: "Spiel in einer Gruppe",
-    text: "Nimm eine Einladung an, tritt unter „Gruppen finden“ einer bei, oder gründe eine und lade Leute ein.",
+    text: "Nimm eine Einladung an, tritt unter „+ Gruppe“ auf Spielen einer bei, oder gründe eine und lade Leute ein.",
     shot: {
       name: "gruppen-finden",
       alt: "Gruppen finden: eine Gruppe auf Anfrage und eine offene.",

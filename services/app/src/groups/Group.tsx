@@ -1,5 +1,7 @@
-// One group (docs/design/groups.md): its page, with what fits and its games
-// for members and who is in it; and its own page Verwalten
+// One group (docs/design/groups.md): for a member it is Spielen with the
+// group chosen (Play, Seb 2026-11-18), which takes GroupLine and Members
+// from here; /groups/:id for someone outside says whether to join and who
+// is in it; and its own page Verwalten
 // (/groups/:id/settings, Seb 2026-10-29) with everything about the group
 // itself: where it plays, the members (removing them, for admins), who
 // asked in, inviting, the name and who may join (admins), and leaving.
@@ -20,8 +22,16 @@ import {
 import { PageHead } from "../PageHead";
 
 /** Loads the group by the address and says when it cannot. */
-export function GroupFrame({ children }: { children: (g: G, me: string) => ReactNode }) {
-  const id = Number(useParams().id);
+export function GroupFrame({
+  id: given,
+  children,
+}: {
+  /** The group, when it is not the address's (Spielen with a group chosen). */
+  id?: number;
+  children: (g: G, me: string) => ReactNode;
+}) {
+  const param = Number(useParams().id);
+  const id = given ?? param;
   const me = useMe();
   const group = useQuery({
     queryKey: ["group", id],
@@ -60,75 +70,71 @@ export function GroupFrame({ children }: { children: (g: G, me: string) => React
   return <>{children(group.data, me.data?.email ?? "")}</>;
 }
 
-/** games is a member's view of the group's games, from the games slice
- * (App puts it in). */
-export function Group({ games }: { games?: (id: number) => ReactNode }) {
+/** A group one is not in, as /groups/:id shows it to them: whether to
+ * join or ask in, and who is in it. A member's group is Spielen with the
+ * group chosen (Play), which hands this the groups it does not hold. */
+export function Group({ id }: { id?: number }) {
   const join = useJoin();
   return (
-    <GroupFrame>
-      {(g, myEmail) => {
-        const member = g.how === "member";
-        return (
-          <main>
-            <PageHead
-              title={g.name}
-              back={{ to: "/play", label: "Spielen" }}
-              action={
-                member && (
-                  <Link to={`/groups/${g.id}/settings`} className={link}>
-                    Verwalten
-                  </Link>
-                )
-              }
-            >
-              {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
-              {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
-            </PageHead>
-
-            {member && g.requests.length > 0 && (
-              <Link
-                to={`/groups/${g.id}/settings`}
-                className={`${waits} mb-4 block p-4 font-semibold hover:opacity-90`}
+    <GroupFrame id={id}>
+      {(g, myEmail) => (
+        <main>
+          <PageHead title={g.name} back={{ to: "/play", label: "Spielen" }}>
+            {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
+            {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
+          </PageHead>
+          <div className="mb-4">
+            {g.requested ? (
+              <p className="text-ink-muted">Du hast gefragt, ob du hinein darfst.</p>
+            ) : (
+              <button
+                type="button"
+                className={primary}
+                disabled={join.isPending}
+                onClick={() => join.mutate(g.id)}
               >
-                {g.requests.length === 1
-                  ? "Eine Person möchte hinein"
-                  : `${g.requests.length} möchten hinein`}{" "}
-                <span className="font-normal text-ink-muted">· unter Verwalten</span>
-              </Link>
+                {g.how === "invited" ? "Annehmen" : g.kind === "open" ? "Beitreten" : "Anfragen"}
+              </button>
             )}
-
-            {!member && (
-              <div className="mb-4">
-                {g.requested ? (
-                  <p className="text-ink-muted">Du hast gefragt, ob du hinein darfst.</p>
-                ) : (
-                  <button
-                    type="button"
-                    className={primary}
-                    disabled={join.isPending}
-                    onClick={() => join.mutate(g.id)}
-                  >
-                    {g.how === "invited"
-                      ? "Annehmen"
-                      : g.kind === "open"
-                        ? "Beitreten"
-                        : "Anfragen"}
-                  </button>
-                )}
-                {join.isError && (
-                  <p role="alert" className="mt-2 text-sm text-danger-text">
-                    {errorText(join.error)}
-                  </p>
-                )}
-              </div>
+            {join.isError && (
+              <p role="alert" className="mt-2 text-sm text-danger-text">
+                {errorText(join.error)}
+              </p>
             )}
-
-            {member && games?.(g.id)}
-            <Members g={g} me={myEmail} />
-          </main>
-        );
-      }}
+          </div>
+          <Members g={g} me={myEmail} />
+        </main>
+      )}
     </GroupFrame>
+  );
+}
+
+/** What a member sees of the group itself on Spielen: how it is set up,
+ * Verwalten, and who asked in. */
+export function GroupLine({ g }: { g: G }) {
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-sm text-ink-muted">
+          {kindLabel(g.kind)} · {g.members} {g.members === 1 ? "Mitglied" : "Mitglieder"}
+          {areaLabel(g.area) && ` · ${areaLabel(g.area)}`}
+        </p>
+        <Link to={`/groups/${g.id}/settings`} className={link}>
+          Verwalten
+        </Link>
+      </div>
+      {g.requests.length > 0 && (
+        <Link
+          to={`/groups/${g.id}/settings`}
+          className={`${waits} mb-4 block p-4 font-semibold hover:opacity-90`}
+        >
+          {g.requests.length === 1
+            ? "Eine Person möchte hinein"
+            : `${g.requests.length} möchten hinein`}{" "}
+          <span className="font-normal text-ink-muted">· unter Verwalten</span>
+        </Link>
+      )}
+    </>
   );
 }
 
@@ -237,7 +243,7 @@ function useRemove(g: G, after?: () => void) {
   });
 }
 
-function Members({ g, me, manage = false }: { g: G; me: string; manage?: boolean }) {
+export function Members({ g, me, manage = false }: { g: G; me: string; manage?: boolean }) {
   const [asking, setAsking] = useState<string | null>(null);
   const remove = useRemove(g, () => setAsking(null));
   return (

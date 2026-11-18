@@ -5,6 +5,8 @@
 // 2026-10-30: a link into one group's page made no sense there), shown only
 // when there is more than the three; on a group's page it is the group's
 // "Wann passt es für vier?".
+// In a group's Spiel vorschlagen sheet the same list stands bare, for the
+// length chosen there (Seb, 2026-11-18).
 // Times already proposed as a game are left out. 90 minutes, the default
 // there; the snapshot is not refreshed here, the schedule keeps it fresh.
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,15 +14,25 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api, ApiError, call, useWriteKey, type Fit } from "../api/client";
 import { Sheet } from "@burgstaller/web/sheet";
-import { card, link, quiet } from "../ui";
-import { clock, dayLabel, errorText, euros, shown, span, useGames } from "./games";
+import { link, quiet } from "../ui";
+import { FitRow } from "./FitRow";
+import { dayLabel, errorText, useGames } from "./games";
 
 const MINUTES = 90;
 const SHOWN = 3;
 
 type Pick = { f: Fit; groupId: number; groupName: string };
 
-export function BestFits({ group }: { group?: number }) {
+export function BestFits({
+  group,
+  minutes = MINUTES,
+  bare = false,
+}: {
+  group?: number;
+  minutes?: number;
+  /** Without the heading and Alle Zeiten: inside Spiel vorschlagen. */
+  bare?: boolean;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const groups = useQuery({
@@ -32,11 +44,11 @@ export function BestFits({ group }: { group?: number }) {
     groups.data?.filter((g) => g.how === "member" && (group === undefined || g.id === group)) ?? [];
   const fits = useQueries({
     queries: mine.map((g) => ({
-      queryKey: ["fits", g.id, MINUTES],
+      queryKey: ["fits", g.id, minutes],
       queryFn: () =>
         call(
           api.GET("/api/v1/groups/{groupId}/fits", {
-            params: { path: { groupId: g.id }, query: { minutes: MINUTES } },
+            params: { path: { groupId: g.id }, query: { minutes: minutes as 60 | 90 | 120 } },
           }),
         ),
       retry: false,
@@ -103,27 +115,29 @@ export function BestFits({ group }: { group?: number }) {
   const one = mine.length === 1 ? mine[0]! : undefined;
 
   return (
-    <section className="mb-6" aria-labelledby="best-fits">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h2 id="best-fits" className="font-semibold">
-          Passt für vier
-        </h2>
-        {group !== undefined ? (
-          <Link to={`/groups/${group}/fits`} className={`${link} text-sm whitespace-nowrap`}>
-            Alle Zeiten
-          </Link>
-        ) : (
-          every.length > SHOWN && (
-            <button
-              type="button"
-              className={`${link} text-sm whitespace-nowrap`}
-              onClick={() => setAll(true)}
-            >
-              Alle Zeiten ({every.length})
-            </button>
-          )
-        )}
-      </div>
+    <section className={bare ? "mb-4" : "mb-6"} aria-labelledby={bare ? undefined : "best-fits"}>
+      {!bare && (
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
+          <h2 id="best-fits" className="font-semibold">
+            Passt für vier
+          </h2>
+          {group !== undefined ? (
+            <Link to={`/groups/${group}/fits`} className={`${link} text-sm whitespace-nowrap`}>
+              Alle Zeiten
+            </Link>
+          ) : (
+            every.length > SHOWN && (
+              <button
+                type="button"
+                className={`${link} text-sm whitespace-nowrap`}
+                onClick={() => setAll(true)}
+              >
+                Alle Zeiten ({every.length})
+              </button>
+            )
+          )}
+        </div>
+      )}
       {loading && picks.length === 0 && (
         <div
           aria-busy="true"
@@ -143,7 +157,7 @@ export function BestFits({ group }: { group?: number }) {
           <Link to="/availability" className={link}>
             Wann kann ich?
           </Link>
-          {group !== undefined && (
+          {group !== undefined && !bare && (
             <>
               {" "}
               Warum es wann nicht passt, steht unter{" "}
@@ -167,7 +181,7 @@ export function BestFits({ group }: { group?: number }) {
         <Sheet label="Alle passenden Zeiten" wide="float" onClose={() => setAll(false)}>
           <h2 className="mb-1 text-lg font-semibold">Alle passenden Zeiten</h2>
           <p className="mb-3 text-sm text-ink-muted">
-            {MINUTES} Minuten{mine.length > 1 ? ", aus all deinen Gruppen" : ""}.
+            {minutes} Minuten{mine.length > 1 ? ", aus all deinen Gruppen" : ""}.
           </p>
           {propose.isError && (
             <p role="alert" className="mb-3 text-sm text-danger-text">
@@ -201,36 +215,15 @@ export function BestFits({ group }: { group?: number }) {
 
   function row(p: Pick, withDay: boolean, withGroup: boolean, more = 0) {
     return (
-      <li
+      <FitRow
         key={keyOf(p)}
-        className={`${card} flex flex-wrap items-center justify-between gap-2 p-4`}
-      >
-        <div className="min-w-0">
-          <div className="font-semibold">
-            {withDay && `${dayLabel(p.f.day)}, `}
-            {span(p.f.start, p.f.minutes)}
-            {!withDay && ` · ${p.f.venueName}`}
-          </div>
-          <div className="text-sm text-ink-muted">
-            {withDay ? p.f.venueName : p.f.court}
-            {p.f.perHead && ` · ${euros(p.f.perHead.amount)} pro Kopf`}
-            {withGroup && ` · ${p.groupName}`}
-            {more > 0 && ` · noch ${more} ${more === 1 ? "Anlage" : "Anlagen"} frei`}
-          </div>
-          <div className="text-sm">
-            {p.f.can.length} können: {p.f.can.map(shown).join(", ")}
-          </div>
-        </div>
-        <button
-          type="button"
-          className={quiet}
-          disabled={propose.isPending}
-          aria-label={`${dayLabel(p.f.day)} ${clock(p.f.start)} in ${p.f.venueName} vorschlagen`}
-          onClick={() => propose.mutate(p)}
-        >
-          Vorschlagen
-        </button>
-      </li>
+        f={p.f}
+        withDay={withDay}
+        group={withGroup ? p.groupName : undefined}
+        more={more}
+        busy={propose.isPending}
+        onPropose={() => propose.mutate(p)}
+      />
     );
   }
 }

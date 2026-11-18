@@ -25,7 +25,11 @@
   },
   "spielen": {
     "width": 780,
-    "height": 2644
+    "height": 1208
+  },
+  "vorschlagen": {
+    "width": 780,
+    "height": 1038
   },
   "wer-kann": {
     "width": 780,

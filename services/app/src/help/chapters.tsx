@@ -147,17 +147,25 @@ export const CHAPTERS: Chapter[] = [
           <li>{b("Offen")}: Alle sehen sie und können gleich beitreten.</li>
         </ul>
         <p>
-          {b("Gruppen finden")} unter Spielen zeigt, wo du beitreten oder anfragen kannst.{" "}
-          {b("Neue Gruppe")} gründet eine; du bist dann ihr Admin und kannst Namen und Art ändern.
+          Deine Gruppen stehen oben auf Spielen nebeneinander. Ein Tipp auf eine zeigt alles zu ihr:{" "}
+          {b("Spiel vorschlagen")}, {b("Wer kann wann")}, was in ihr auf dich wartet, ihre Spiele
+          und die Mitglieder. {b("Alle")} zeigt wieder, was aus all deinen Gruppen ansteht. Die App
+          merkt sich, welche du zuletzt gewählt hast. Bist du nur in einer Gruppe, zeigt Spielen
+          gleich sie.
         </p>
         <p>
-          Alles, was die Gruppe selbst betrifft, steht auf ihrer Seite unter {b("Verwalten")}: wo
-          ihr spielt, die Mitglieder, wer hinein möchte, Einladen, Name und Art (für Admins) und
-          Verlassen. Dort lädst du jemanden mit der E-Mail-Adresse ein. Wer noch nicht in der App
-          ist, kommt damit auch hinein und meldet sich auf padel.burgstaller.me an; wer neu ist,
-          bekommt eine Mail, um ein Passwort zu setzen. Einladungen findest du unter Spielen und
-          nimmst sie dort an oder lehnst sie ab. Du kannst bis zu 20 offene Einladungen haben und 10
-          neue am Tag verschicken.
+          {b("+ Gruppe")} am Ende der Reihe zeigt die offenen Gruppen, wo du beitreten oder anfragen
+          kannst, und {b("Neue Gruppe gründen")} gründet eine; du bist dann ihr Admin und kannst
+          Namen und Art ändern.
+        </p>
+        <p>
+          Alles, was die Gruppe selbst betrifft, steht unter {b("Verwalten")}, rechts neben der
+          gewählten Gruppe: wo ihr spielt, die Mitglieder, wer hinein möchte, Einladen, Name und Art
+          (für Admins) und Verlassen. Dort lädst du jemanden mit der E-Mail-Adresse ein. Wer noch
+          nicht in der App ist, kommt damit auch hinein und meldet sich auf padel.burgstaller.me an;
+          wer neu ist, bekommt eine Mail, um ein Passwort zu setzen. Einladungen findest du unter
+          Spielen und nimmst sie dort an oder lehnst sie ab. Du kannst bis zu 20 offene Einladungen
+          haben und 10 neue am Tag verschicken.
         </p>
         <p>
           Bei den Mitgliedern steht, an wie vielen der nächsten 14 Tage sie ihre Zeiten eingetragen
@@ -184,28 +192,29 @@ export const CHAPTERS: Chapter[] = [
     body: (
       <>
         <p>
-          Auf der Seite einer Gruppe stehen unter {b("Passt für vier")} die nächsten passenden
-          Zeiten. {b("Alle Zeiten")} öffnet {b("Wann passt es für vier?")} mit allen, nach Tagen,
-          für 60, 90 oder 120 Minuten, mit Preis pro Kopf. Unter {b("Fast: eine Person fehlt")}{" "}
-          stehen Zeiten, zu denen drei können und jemand den Tag noch nicht eingetragen hat. Die
-          Person könnt ihr fragen, oder du schlägst die Zeit gleich vor, und ein Platz bleibt frei,
-          bis jemand zusagt.
+          Ist oben auf Spielen eine Gruppe gewählt, öffnet {b("Spiel vorschlagen")} die nächsten
+          Zeiten, zu denen vier von euch können und ein Platz frei ist, für 60, 90 oder 120 Minuten.
+          Darunter öffnet {b("Alle Zeiten")} {b("Wann passt es für vier?")} mit allen, nach Tagen,
+          mit Preis pro Kopf; {b("Freien Platz selbst wählen")} führt zu den Plätzen, wo ein Tipp
+          auf eine Startzeit die Gruppe fragt. Unter {b("Fast: eine Person fehlt")} stehen Zeiten,
+          zu denen drei können und jemand den Tag noch nicht eingetragen hat. Die Person könnt ihr
+          fragen, oder du schlägst die Zeit gleich vor, und ein Platz bleibt frei, bis jemand
+          zusagt.
         </p>
         <p>
-          Darunter führt {b("Wer kann wann")} auf eine eigene Seite: die nächsten 14 Tage der ganzen
-          Gruppe, jede halbe Stunde von 7 bis 22 Uhr. Je dunkler ein Feld, desto mehr von euch
-          können. Ein Punkt heißt: vier können, und ein Platz ist frei. Rot heißt: vier könnten,
-          aber es gibt keinen passenden Platz. Am Computer stehen die Namen da, wenn du mit der Maus
-          darüberfährst. Ein Tipp auf einen Tag zeigt seine Zeiten mit Namen und bei den roten,
-          warum es nicht passt: zu viert zu kurz, kein Platz frei, nur draußen oder nur in der Halle
-          frei, oder zu wenige fahren zu der Anlage, die frei wäre. Dazu, wer „Passt nicht“ gesagt
-          hat und wer den Tag noch offen hat.
+          {b("Wer kann wann")}, im selben Blatt und unter Spiel vorschlagen, führt auf eine eigene
+          Seite: die nächsten 14 Tage der ganzen Gruppe, jede halbe Stunde von 7 bis 22 Uhr. Je
+          dunkler ein Feld, desto mehr von euch können. Ein Punkt heißt: vier können, und ein Platz
+          ist frei. Rot heißt: vier könnten, aber es gibt keinen passenden Platz. Am Computer stehen
+          die Namen da, wenn du mit der Maus darüberfährst. Ein Tipp auf einen Tag zeigt seine
+          Zeiten mit Namen und bei den roten, warum es nicht passt: zu viert zu kurz, kein Platz
+          frei, nur draußen oder nur in der Halle frei, oder zu wenige fahren zu der Anlage, die
+          frei wäre. Dazu, wer „Passt nicht“ gesagt hat und wer den Tag noch offen hat.
         </p>
         <p>
           Wo ihr spielt, wählt ihr unter {b("Verwalten")}: {b("Halle")}, {b("Freiluft")} oder{" "}
           {b("Beides")}. Das gilt für die ganze Gruppe, und jedes Mitglied kann es ändern.
-          Überdachte Plätze zählen zur Halle. Steht nicht Beides, sieht man es auch auf der Seite
-          der Gruppe.
+          Überdachte Plätze zählen zur Halle. Steht nicht Beides, steht es auch oben bei der Gruppe.
         </p>
         <p>
           {b("Vorschlagen")} macht aus einer Zeit ein Spiel, und du bist dabei. Die anderen sagen{" "}
@@ -228,12 +237,13 @@ export const CHAPTERS: Chapter[] = [
           {b("Gebucht")} allen Bescheid. {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
         </p>
         <p>
-          Unter Spielen steht ganz oben {b("Wartet auf dich")}: Spiele, auf die du noch nicht
-          geantwortet hast, mit {b("Bin dabei")} und {b("Kann nicht")} gleich auf der Karte, und
-          Einladungen in Gruppen. Darunter {b("Deine nächsten Spiele")}, bei denen du dabei oder
-          Ersatz bist, und {b("Passt für vier")}: die nächsten passenden Zeiten aus all deinen
-          Gruppen, zum Vorschlagen mit einem Tipp. Gibt es mehr als drei, öffnet {b("Alle Zeiten")}{" "}
-          sie alle, nach Tagen. Alle Spiele einer Gruppe stehen auf ihrer Seite.
+          Bei {b("Alle")} steht unter Spielen ganz oben {b("Wartet auf dich")}: Spiele, auf die du
+          noch nicht geantwortet hast, mit {b("Bin dabei")} und {b("Kann nicht")} gleich auf der
+          Karte, und Einladungen in Gruppen. Darunter {b("Deine nächsten Spiele")}, bei denen du
+          dabei oder Ersatz bist, und {b("Passt für vier")}: die nächsten passenden Zeiten aus all
+          deinen Gruppen, zum Vorschlagen mit einem Tipp. Gibt es mehr als drei, öffnet{" "}
+          {b("Alle Zeiten")} sie alle, nach Tagen. Alle Spiele einer Gruppe siehst du, wenn du sie
+          oben wählst.
         </p>
       </>
     ),
@@ -256,7 +266,11 @@ export const CHAPTERS: Chapter[] = [
       },
       {
         name: "spielen",
-        alt: "Spielen: Wartet auf dich mit einem Spiel und Bin dabei, deine nächsten Spiele, Passt für vier und deine Gruppen.",
+        alt: "Spielen mit einer Gruppe gewählt: oben die Gruppe und + Gruppe, darunter Verwalten, Spiel vorschlagen, Wer kann wann und Wartet auf dich mit einem Spiel und Bin dabei.",
+      },
+      {
+        name: "vorschlagen",
+        alt: "Spiel vorschlagen: 60, 90 oder 120 Minuten, die nächsten passenden Zeiten mit Vorschlagen oder ein Hinweis, wenn gerade nichts passt, darunter Alle Zeiten, Wer kann wann und Freien Platz selbst wählen.",
       },
     ],
   },

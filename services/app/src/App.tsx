@@ -11,7 +11,7 @@ import { Icon } from "@burgstaller/web/icons";
 import { TabBar } from "@burgstaller/web/nav";
 import { InstallHint, UpdateNote } from "@burgstaller/web/pwa";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router";
 import { api, call } from "./api/client";
 import { Availability, MyVenues, useMyVenues } from "./availability/Availability";
@@ -21,10 +21,11 @@ import { BestFits } from "./games/BestFits";
 import { Fits } from "./games/Fits";
 import { Game } from "./games/Game";
 import { Upcoming } from "./games/Upcoming";
-import { Waiting } from "./games/Waiting";
-import { Group, GroupSettings } from "./groups/Group";
+import { Propose } from "./games/Propose";
+import { Waiting, WaitingCount } from "./games/Waiting";
+import { GroupSettings } from "./groups/Group";
 import { Groups, NewGroup } from "./groups/Groups";
-import { Play, Profile } from "./groups/Play";
+import { Play, PlayGroup, Profile } from "./groups/Play";
 import { WhoCanLink, WhoCanPage } from "./groups/WhoCan";
 import { FirstSteps } from "./help/FirstSteps";
 import { Help } from "./help/Help";
@@ -76,6 +77,30 @@ export function App() {
   const toPlay = opening && inGroup;
   const deciding = opening && groups.isPending;
   useKeepPush();
+  // Spielen, at /play and at /groups/:id: the games slice's parts in the
+  // groups slice's page.
+  const spielen = {
+    start: <FirstSteps />,
+    waiting: (invites: ReactNode, n: number) => <Waiting invites={invites} invited={n} />,
+    games: (
+      <>
+        <PushCard where="play" />
+        <Upcoming />
+        <BestFits />
+      </>
+    ),
+    parts: (id: number, name: string) => ({
+      propose: <Propose group={id} name={name} />,
+      games: (
+        <>
+          <WhoCanLink group={id} />
+          <Waiting group={id} />
+          <Upcoming key={id} group={id} />
+        </>
+      ),
+    }),
+    badge: (id: number) => <WaitingCount group={id} />,
+  };
   const playing = ["/play", "/groups", "/availability", "/games"].some((p) => path.startsWith(p));
   const when = path === "/availability";
 
@@ -159,38 +184,11 @@ export function App() {
           <Route path="/invites" element={canInvite ? <Invitations /> : <Courts only={only} />} />
           {/* The page's address until 2026-10-28; links to it keep working. */}
           <Route path="/einladen" element={<Navigate to="/invites" replace />} />
-          <Route
-            path="/play"
-            element={
-              <Play
-                start={<FirstSteps />}
-                waiting={(invites, n) => <Waiting invites={invites} invited={n} />}
-                games={
-                  <>
-                    <PushCard where="play" />
-                    <Upcoming />
-                    <BestFits />
-                  </>
-                }
-              />
-            }
-          />
+          <Route path="/play" element={<Play {...spielen} />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/new" element={<NewGroup />} />
-          <Route
-            path="/groups/:id"
-            element={
-              <Group
-                games={(id) => (
-                  <>
-                    <BestFits key={`fits-${id}`} group={id} />
-                    <WhoCanLink group={id} />
-                    <Upcoming key={id} group={id} />
-                  </>
-                )}
-              />
-            }
-          />
+          {/* A member's group is Spielen with it chosen (Seb, 2026-11-18). */}
+          <Route path="/groups/:id" element={<PlayGroup {...spielen} />} />
           <Route path="/groups/:id/fits" element={<Fits />} />
           <Route path="/groups/:id/who-can" element={<WhoCanPage />} />
           <Route path="/groups/:id/settings" element={<GroupSettings />} />

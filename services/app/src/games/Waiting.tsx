@@ -12,14 +12,17 @@ import { answerOf, dayLabel, errorText, euros, span, useGames, useMe } from "./g
 import { Seats, wanted } from "./Seats";
 import { TakenMark } from "./Taken";
 
-export function Waiting({ invites, invited = 0 }: { invites?: ReactNode; invited?: number }) {
-  const me = useMe();
-  const games = useGames();
-  const email = me.data?.email;
-  const open =
-    email === undefined
-      ? []
-      : (games.data ?? []).filter((g) => g.state === "proposed" && answerOf(g, email) === "none");
+export function Waiting({
+  invites,
+  invited = 0,
+  group,
+}: {
+  invites?: ReactNode;
+  invited?: number;
+  /** Only this group's, on Spielen with a group chosen. */
+  group?: number;
+}) {
+  const open = useOpen(group);
   const count = open.length + invited;
   if (count === 0) return null;
   return (
@@ -39,6 +42,35 @@ export function Waiting({ invites, invited = 0 }: { invites?: ReactNode; invited
       )}
       {invites}
     </section>
+  );
+}
+
+/** The proposed games one has not answered, of one group or all. */
+function useOpen(group?: number) {
+  const me = useMe();
+  const games = useGames();
+  const email = me.data?.email;
+  return email === undefined
+    ? []
+    : (games.data ?? []).filter(
+        (g) =>
+          g.state === "proposed" &&
+          answerOf(g, email) === "none" &&
+          (group === undefined || g.groupId === group),
+      );
+}
+
+/** How many games of a group wait for an answer, on its chip on Spielen. */
+export function WaitingCount({ group }: { group: number }) {
+  const n = useOpen(group).length;
+  if (n === 0) return null;
+  return (
+    <span
+      aria-label={`${n} warten auf dich`}
+      className="rounded-full border border-warning-border bg-warning-subtle px-1.5 text-[12px] text-warning-text"
+    >
+      {n}
+    </span>
   );
 }
 
