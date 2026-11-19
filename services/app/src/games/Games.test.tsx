@@ -372,7 +372,8 @@ describe("Game", () => {
         "GET /api/v1/games/7": () => answer(200, g),
         "GET /api/v1/groups/1": () => answer(200, group),
         "PATCH /api/v1/games/7": (sent) => {
-          g = { ...g, state: (sent.body as { state: string }).state };
+          const b = sent.body as { state?: string; code?: string };
+          g = { ...g, state: b.state ?? g.state, code: b.code ?? g.code };
           return answer(200, g);
         },
       },
@@ -398,9 +399,27 @@ describe("Game", () => {
       "href",
       "https://book.example/29",
     );
+    // Gebucht asks for the access code first.
     await userEvent.click(screen.getByRole("button", { name: "Gebucht" }));
+    const sheet = await screen.findByRole("dialog", { name: "Als gebucht markieren" });
+    await userEvent.type(within(sheet).getByLabelText(/Zugangscode/), " 4711 ");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Gebucht" }));
     expect(await screen.findByText(/vorgeschlagen von dir/)).toHaveTextContent("Gebucht");
-    expect(screen.queryByRole("button", { name: "Gebucht" })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Gebucht" })).toBeNull());
+    const code = screen.getByRole("region", { name: "Zugangscode" });
+    expect(code).toHaveTextContent("4711");
+    // Changed later, in the same sheet.
+    await userEvent.click(within(code).getByRole("button", { name: "Ändern" }));
+    const edit = await screen.findByRole("dialog", { name: "Zugangscode" });
+    const input = within(edit).getByLabelText(/Zugangscode/);
+    expect(input).toHaveValue("4711");
+    await userEvent.clear(input);
+    await userEvent.type(input, "0815#");
+    await userEvent.click(within(edit).getByRole("button", { name: "Speichern" }));
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Zugangscode" })).toHaveTextContent("0815#"),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     await userEvent.click(screen.getByRole("button", { name: "Spiel absagen …" }));
     await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
@@ -410,9 +429,76 @@ describe("Game", () => {
     expect(screen.queryByRole("button", { name: /dabei|Kann/ })).toBeNull();
     expect(screen.queryByText(/Noch keine Antwort/)).toBeNull();
     expect(calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([
-      { state: "booked" },
+      { state: "booked", code: "4711" },
+      { code: "0815#" },
       { state: "cancelled" },
     ]);
+  });
+
+  it("books without a code, and lets the proposer add one later", async () => {
+    let g = game();
+    const calls: Sent[] = [];
+    serve(
+      {
+        "GET /api/v1/me": () => answer(200, { ...seb, canInvite: true }),
+        "GET /api/v1/games/7": () => answer(200, g),
+        "GET /api/v1/groups/1": () => answer(200, group),
+        "PATCH /api/v1/games/7": (sent) => {
+          const b = sent.body as { state?: string; code?: string };
+          g = { ...g, state: b.state ?? g.state, code: b.code || undefined };
+          return answer(200, g);
+        },
+      },
+      calls,
+    );
+    at("/games/7", <Game />, "/games/:id");
+    await userEvent.click(await screen.findByRole("button", { name: "Gebucht" }));
+    const sheet = await screen.findByRole("dialog", { name: "Als gebucht markieren" });
+    await userEvent.click(within(sheet).getByRole("button", { name: "Gebucht" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Code eintragen" }));
+    const edit = await screen.findByRole("dialog", { name: "Zugangscode" });
+    await userEvent.type(within(edit).getByLabelText(/Zugangscode/), "A1B2");
+    await userEvent.click(within(edit).getByRole("button", { name: "Speichern" }));
+    expect(await screen.findByRole("region", { name: "Zugangscode" })).toHaveTextContent("A1B2");
+    expect(calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([
+      { state: "booked" },
+      { code: "A1B2" },
+    ]);
+  });
+
+  it("shows the code to those playing, without a way to change it", async () => {
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...anna, canInvite: true }),
+      "GET /api/v1/games/7": () => answer(200, game({ state: "booked", code: "4711" })),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    const copied: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: (t: string) => (copied.push(t), Promise.resolve()) },
+    });
+    at("/games/7", <Game />, "/games/:id");
+    const code = await screen.findByRole("region", { name: "Zugangscode" });
+    expect(code).toHaveTextContent("Zugangscode für den Eingang4711");
+    expect(within(code).queryByRole("button", { name: "Ändern" })).toBeNull();
+    try {
+      await userEvent.click(within(code).getByRole("button", { name: "Kopieren" }));
+      expect(await within(code).findByRole("button", { name: "Kopiert" })).toBeInTheDocument();
+      expect(copied).toEqual(["4711"]);
+    } finally {
+      Reflect.deleteProperty(navigator, "clipboard");
+    }
+  });
+
+  it("shows nothing about a code to a player when there is none", async () => {
+    serve({
+      "GET /api/v1/me": () => answer(200, { ...anna, canInvite: true }),
+      "GET /api/v1/games/7": () => answer(200, game({ state: "booked" })),
+      "GET /api/v1/groups/1": () => answer(200, group),
+    });
+    at("/games/7", <Game />, "/games/:id");
+    expect(await screen.findByText(/vorgeschlagen von/)).toBeInTheDocument();
+    expect(screen.queryByText(/Zugangscode/)).toBeNull();
   });
 
   it("lets the proposer change the places and take a reserve in", async () => {
@@ -694,6 +780,8 @@ describe("Game", () => {
     });
     at("/games/7", <Game />, "/games/:id");
     await userEvent.click(await screen.findByRole("button", { name: "Gebucht" }));
+    const sheet = await screen.findByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Gebucht" }));
     expect(await screen.findByText(/nur, wer das Spiel vorgeschlagen hat/)).toBeInTheDocument();
   });
 });

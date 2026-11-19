@@ -5,7 +5,10 @@
 - **What people hear of** (`internal/transport/push.go`, `gameMessage`):
   a proposed game (every member of the group but whoever proposed it), a
   game that is full (whoever proposed it: now book), moving up from
-  reserve (whoever moved up), booked (whoever is in) and cancelled
+  reserve (whoever moved up), booked (whoever is in; "Den Zugangscode
+  findest du im Spiel" when there is one), an access code entered or
+  changed on a booked game (whoever is in or a reserve; never the code
+  itself, since a Mitteilung shows on a locked phone) and cancelled
   (whoever was in or a reserve). Nobody hears of what they did
   themselves. Texts are German, with the day, the time and the venue;
   a tap opens the game. A later message about the same game replaces the

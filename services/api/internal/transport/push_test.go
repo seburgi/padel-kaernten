@@ -186,6 +186,11 @@ func TestGameMessages(t *testing.T) {
 		sent[0].Body != "Padel Villach, Court 1. Seb hat gebucht." {
 		t.Errorf("booked: %+v", sent)
 	}
+	_ = a.send(seb, "PATCH", path, `{"code":"4711"}`)
+	if sent := a.queue.take(); len(sent) != 1 || sent[0].Title != "Zugangscode: "+when || !sameSet(sent[0].To, anna, lisa, eva) ||
+		strings.Contains(sent[0].Body, "4711") {
+		t.Errorf("code: %+v", sent)
+	}
 	_ = a.send(markus, "PUT", path+"/players/me", `{"answer":"in"}`)
 	a.queue.err = errors.New("queue down")
 	if w := a.send(seb, "PATCH", path, `{"state":"cancelled"}`); w.Code != 200 {

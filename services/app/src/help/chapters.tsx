@@ -234,7 +234,9 @@ export const CHAPTERS: Chapter[] = [
         </p>
         <p>
           Wer vorgeschlagen hat, bucht: {b("Zur Buchung")} öffnet die Seite der Anlage, danach sagt{" "}
-          {b("Gebucht")} allen Bescheid. {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
+          {b("Gebucht")} allen Bescheid. Schickt die Anlage einen Zugangscode für die Tür, wie Padel
+          Ten, trägst du ihn dabei oder später ein, und alle, die mitspielen, sehen ihn im Spiel.{" "}
+          {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
         </p>
         <p>
           Bei {b("Alle")} steht unter Spielen ganz oben {b("Wartet auf dich")}: Spiele, auf die du

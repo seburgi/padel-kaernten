@@ -159,6 +159,14 @@ func gameMessage(e games.Event, grp groups.Group) (notify.Message, bool) {
 		to = lineup(g, games.In)
 		m.Title = "Gebucht: " + when
 		m.Body = fmt.Sprintf("%s, %s. %s hat gebucht.", g.VenueName, g.Court, who(g.ProposedBy))
+		if g.Code != "" {
+			m.Body += " Den Zugangscode findest du im Spiel."
+		}
+	case games.EventCode:
+		// Never the code itself: a Mitteilung shows on a locked phone.
+		to = lineup(g, games.In, games.Reserve)
+		m.Title = "Zugangscode: " + when
+		m.Body = fmt.Sprintf("%s hat den Zugangscode für %s eingetragen. Du findest ihn im Spiel.", who(g.ProposedBy), g.VenueName)
 	case games.EventCancelled:
 		to = lineup(g, games.In, games.Reserve)
 		m.Title = "Abgesagt: " + when

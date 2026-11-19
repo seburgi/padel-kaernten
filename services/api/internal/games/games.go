@@ -10,8 +10,10 @@ import (
 	"errors"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 	_ "time/tzdata" // the image has no zoneinfo
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -82,7 +84,36 @@ type Game struct {
 	ProposedBy string
 	CreatedAt  time.Time
 	BookedAt   *time.Time
-	Lineup     []Player
+	// Code is what to type in at the venue's door, when it gave one;
+	// empty when there is none. Only Sees may be shown it.
+	Code   string
+	Lineup []Player
+}
+
+// MaxCode is the longest access code a game takes, in characters.
+const MaxCode = 40
+
+// Sees is whether viewer may be shown the game's access code: whoever
+// proposed it, and those in or waiting as reserve.
+func (g Game) Sees(viewer string) bool {
+	if viewer == g.ProposedBy {
+		return true
+	}
+	for _, p := range g.Lineup {
+		if p.Email == viewer {
+			return p.State == In || p.State == Reserve
+		}
+	}
+	return false
+}
+
+// cleanCode trims code and checks its length; empty clears it.
+func cleanCode(code string) (string, error) {
+	code = strings.TrimSpace(code)
+	if utf8.RuneCountInString(code) > MaxCode || strings.ContainsAny(code, "\r\n") {
+		return "", ErrInvalid
+	}
+	return code, nil
 }
 
 var vienna = mustZone("Europe/Vienna")
@@ -102,6 +133,8 @@ const (
 	EventMovedUp   = "moved-up"
 	EventBooked    = "booked"
 	EventCancelled = "cancelled"
+	// EventCode is a booked game's access code entered or changed.
+	EventCode = "code"
 )
 
 // Event is something people may want to hear of: Game as it is after,
@@ -148,12 +181,13 @@ func (s *Service) Window() Window {
 }
 
 const columns = `g.id, g.group_id, g.venue_id, g.venue_name, g.court, to_char(g.day, 'YYYY-MM-DD'),
-	g.start_min, g.minutes, g.players, g.price_cents, g.state, g.proposed_by, g.created_at, g.booked_at`
+	g.start_min, g.minutes, g.players, g.price_cents, g.state, g.proposed_by, g.created_at, g.booked_at,
+	coalesce(g.code, '')`
 
 func scan(row pgx.Row) (Game, error) {
 	var g Game
 	err := row.Scan(&g.ID, &g.GroupID, &g.VenueID, &g.VenueName, &g.Court, &g.Day, &g.Start, &g.Minutes,
-		&g.Players, &g.PriceCents, &g.State, &g.ProposedBy, &g.CreatedAt, &g.BookedAt)
+		&g.Players, &g.PriceCents, &g.State, &g.ProposedBy, &g.CreatedAt, &g.BookedAt, &g.Code)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Game{}, ErrNotFound
 	}
@@ -428,12 +462,21 @@ func (s *Service) Answer(ctx context.Context, who, key string, id int64, answer 
 	})
 }
 
-// SetState books or cancels a game; only whoever proposed it may.
-func (s *Service) SetState(ctx context.Context, who, key string, id int64, state string) (Game, error) {
-	if state != Booked && state != Cancelled {
+// SetState books or cancels a game; only whoever proposed it may. code,
+// when not nil, is the access code to keep with a booking (Booked only).
+func (s *Service) SetState(ctx context.Context, who, key string, id int64, state string, code *string) (Game, error) {
+	if state != Booked && state != Cancelled || code != nil && state != Booked {
 		return Game{}, ErrInvalid
 	}
-	return s.write(ctx, who, key, "game-state", id, state, func(tx pgx.Tx, g Game) ([]Event, error) {
+	var c *string
+	if code != nil {
+		clean, err := cleanCode(*code)
+		if err != nil {
+			return Game{}, err
+		}
+		c = &clean
+	}
+	return s.write(ctx, who, key, "game-state", id, []any{state, c}, func(tx pgx.Tx, g Game) ([]Event, error) {
 		if g.ProposedBy != who {
 			return nil, ErrForbidden
 		}
@@ -441,11 +484,15 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 			return nil, ErrClosed
 		}
 		if g.State == state {
-			return nil, nil
+			if c == nil {
+				return nil, nil
+			}
+			return setCode(ctx, tx, g, *c)
 		}
 		_, err := tx.Exec(ctx, `
-			UPDATE games SET state = $2, booked_at = CASE WHEN $2 = 'booked' THEN coalesce(booked_at, now()) ELSE booked_at END
-			 WHERE id = $1`, id, state)
+			UPDATE games SET state = $2, booked_at = CASE WHEN $2 = 'booked' THEN coalesce(booked_at, now()) ELSE booked_at END,
+			       code = CASE WHEN $3::boolean THEN nullif($4, '') ELSE code END
+			 WHERE id = $1`, id, state, c != nil, deref(c))
 		if err != nil {
 			return nil, err
 		}
@@ -455,6 +502,43 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 		}
 		return []Event{{Kind: kind, Who: who}}, nil
 	})
+}
+
+// SetCode keeps code as the game's access code, empty to take it away;
+// only whoever proposed the game may, until its day is over. A code
+// entered or changed on a booked game tells those playing (EventCode).
+func (s *Service) SetCode(ctx context.Context, who, key string, id int64, code string) (Game, error) {
+	clean, err := cleanCode(code)
+	if err != nil {
+		return Game{}, err
+	}
+	today := s.Window().Today
+	return s.write(ctx, who, key, "game-code", id, clean, func(tx pgx.Tx, g Game) ([]Event, error) {
+		if err := mayChange(g, who, today); err != nil {
+			return nil, err
+		}
+		return setCode(ctx, tx, g, clean)
+	})
+}
+
+func setCode(ctx context.Context, tx pgx.Tx, g Game, code string) ([]Event, error) {
+	if g.Code == code {
+		return nil, nil
+	}
+	if _, err := tx.Exec(ctx, `UPDATE games SET code = nullif($2, '') WHERE id = $1`, g.ID, code); err != nil {
+		return nil, err
+	}
+	if code == "" || g.State != Booked {
+		return nil, nil
+	}
+	return []Event{{Kind: EventCode, Who: g.ProposedBy}}, nil
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // SetPlayers gives a game n places; only whoever proposed it may, and never

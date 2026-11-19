@@ -202,8 +202,32 @@ func TestGames(t *testing.T) {
 	if w := a.send(seb, "PATCH", path, `{"players":4}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"players":4`) {
 		t.Errorf("four again: %d %s", w.Code, w.Body)
 	}
-	if w := a.send(seb, "PATCH", path, `{"state":"booked"}`); w.Code != 200 || !strings.Contains(w.Body.String(), `"state":"booked"`) {
+	// The access code: with the booking, and only for those playing.
+	_ = a.send(markus, "PUT", path+"/players/me", `{"answer":"out"}`)
+	if w := a.send(seb, "PATCH", path, `{"state":"booked","code":" 4711 "}`); w.Code != 200 ||
+		!strings.Contains(w.Body.String(), `"state":"booked"`) || !strings.Contains(w.Body.String(), `"code":"4711"`) {
 		t.Errorf("booked: %d %s", w.Code, w.Body)
+	}
+	if w := a.do(a.as(anna, "GET", path, "")); !strings.Contains(w.Body.String(), `"code":"4711"`) {
+		t.Errorf("anna plays and sees the code: %s", w.Body)
+	}
+	if w := a.do(a.as(markus, "GET", path, "")); strings.Contains(w.Body.String(), `"code"`) {
+		t.Errorf("markus said no and sees the code: %s", w.Body)
+	}
+	for body, want := range map[string]string{
+		`{"code":"12345678901234567890123456789012345678901"}`: "invalid-game",
+		`{"code":"1","players":5}`:                             "invalid-game",
+		`{"state":"cancelled","code":"1"}`:                     "invalid-game",
+	} {
+		if w := a.send(seb, "PATCH", path, body); problemType(w) != want {
+			t.Errorf("%s: %d %s", body, w.Code, w.Body)
+		}
+	}
+	if w := a.send(anna, "PATCH", path, `{"code":"1"}`); w.Code != 403 {
+		t.Errorf("anna sets the code: %d %s", w.Code, w.Body)
+	}
+	if w := a.send(seb, "PATCH", path, `{"code":""}`); w.Code != 200 || strings.Contains(w.Body.String(), `"code"`) {
+		t.Errorf("code taken away: %d %s", w.Code, w.Body)
 	}
 	setSnapshot(nil)
 	if w := a.do(a.as(anna, "GET", path, "")); strings.Contains(w.Body.String(), `"courtTaken"`) {

@@ -66,6 +66,17 @@
 - **Only the proposer books and cancels** (`PATCH
   /api/v1/games/{gameId}`): booking happens on the venue's own page (the
   app links to it), and "Gebucht" tells the others. Anyone else gets 403.
+- **Access code** (Seb, 2026-11-19; `games.code`, migration 0011): some
+  venues, like Padel Ten, send a code to type in at the door. Whoever
+  proposed the game enters it in the sheet that "Gebucht" opens (`PATCH`
+  with `state` booked and `code`) or later on its own (`code` alone,
+  until the game's day is over; empty takes it away). At most 40
+  characters, trimmed. The API hands `code` only to the proposer and
+  those in or waiting as reserve (`Game.Sees`); other members of the
+  group never get it. On a booked game it stands under the head, large,
+  with Kopieren, and Ändern for the proposer, or "Code eintragen" while
+  there is none (`Code.tsx`). Entering or changing it on a booked game
+  tells those playing (`EventCode`, `notify.md`).
 - **Who sees a game**: the members of its group, through the view
   `game_visibility`, like `group_visibility`; anyone else gets 404.
 - **In the app** (`services/app/src/games`): "Wann passt es für vier?" on
@@ -144,6 +155,8 @@
   wann and "Es passt für vier" still look for four; a game of two or three
   is a game of four with places taken away, and more places come from
   the reserves.
+- **The access code is not cleared by itself**: it stays when the game is
+  cancelled, and nobody but the proposer changes it.
 - **Fewer places never push anyone out.** Someone must say Kann doch
   nicht first.
 

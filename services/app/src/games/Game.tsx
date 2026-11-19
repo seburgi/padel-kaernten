@@ -2,7 +2,8 @@
 // not answered; saying yes or no; and, for whoever proposed it, the way to
 // the venue's booking page, "Gebucht" and cancelling, and how many places
 // the game has: fewer for two or three, more to take reserves in and share
-// the court (Seb, 2026-11-11).
+// the court (Seb, 2026-11-11). A booked game shows its access code to those
+// playing (Code.tsx).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
@@ -22,6 +23,7 @@ import {
   shown,
   span,
 } from "./games";
+import { CodeCard, CodeSheet } from "./Code";
 import { Seats } from "./Seats";
 import { TakenNote } from "./Taken";
 import { PageHead } from "../PageHead";
@@ -85,16 +87,38 @@ export function Game({ notify }: { notify?: ReactNode }) {
       ),
     onSuccess: done,
   });
+  // The sheet for the access code: when saying Gebucht, or to change it.
+  const [codeSheet, setCodeSheet] = useState<"book" | "edit" | null>(null);
   const stateKey = useWriteKey();
   const setState = useMutation({
-    mutationFn: (state: "booked" | "cancelled") =>
+    mutationFn: (change: { state: "booked" | "cancelled"; code?: string }) =>
       call(
         api.PATCH("/api/v1/games/{gameId}", {
-          params: { path: { gameId: id }, header: { "Idempotency-Key": stateKey(state) } },
-          body: { state },
+          params: {
+            path: { gameId: id },
+            header: { "Idempotency-Key": stateKey(JSON.stringify(change)) },
+          },
+          body: change,
         }),
       ),
-    onSuccess: done,
+    onSuccess: (g) => {
+      done(g);
+      setCodeSheet(null);
+    },
+  });
+  const codeKey = useWriteKey();
+  const saveCode = useMutation({
+    mutationFn: (code: string) =>
+      call(
+        api.PATCH("/api/v1/games/{gameId}", {
+          params: { path: { gameId: id }, header: { "Idempotency-Key": codeKey(code) } },
+          body: { code },
+        }),
+      ),
+    onSuccess: (g) => {
+      done(g);
+      setCodeSheet(null);
+    },
   });
   const placesKey = useWriteKey();
   const places = useMutation({
@@ -199,6 +223,14 @@ export function Game({ notify }: { notify?: ReactNode }) {
           </p>
         )}
       </div>
+      <CodeCard
+        g={g}
+        proposer={proposer}
+        onEdit={() => {
+          saveCode.reset();
+          setCodeSheet("edit");
+        }}
+      />
 
       {open && (
         <section className="mb-4" aria-labelledby="next">
@@ -386,7 +418,10 @@ export function Game({ notify }: { notify?: ReactNode }) {
                 // 2026-11-04).
                 className={full ? primary : quiet}
                 disabled={setState.isPending}
-                onClick={() => setState.mutate("booked")}
+                onClick={() => {
+                  setState.reset();
+                  setCodeSheet("book");
+                }}
               >
                 Gebucht
               </button>
@@ -399,7 +434,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
                   type="button"
                   className={danger}
                   disabled={setState.isPending}
-                  onClick={() => setState.mutate("cancelled")}
+                  onClick={() => setState.mutate({ state: "cancelled" })}
                 >
                   Spiel absagen
                 </button>
@@ -417,12 +452,26 @@ export function Game({ notify }: { notify?: ReactNode }) {
               </button>
             )}
           </div>
-          {setState.isError && (
+          {setState.isError && !codeSheet && (
             <p role="alert" className="mt-2 text-sm text-danger-text">
               {errorText(setState.error)}
             </p>
           )}
         </section>
+      )}
+      {codeSheet && (
+        <CodeSheet
+          booking={codeSheet === "book"}
+          initial={g.code ?? ""}
+          busy={codeSheet === "book" ? setState.isPending : saveCode.isPending}
+          error={codeSheet === "book" ? setState.error : saveCode.error}
+          onSave={(code) =>
+            codeSheet === "book"
+              ? setState.mutate(code ? { state: "booked", code } : { state: "booked" })
+              : saveCode.mutate(code)
+          }
+          onClose={() => setCodeSheet(null)}
+        />
       )}
     </main>
   );

@@ -580,8 +580,8 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Mark the game booked, cancel it, change its places or take in a reserve; whoever proposed it
-     * @description Exactly one of state, players and accept. 409 with type places when more are in than the places asked for, or a reserve would make more than 8; 409 with type not-reserve when accept names nobody waiting.
+     * Mark the game booked, cancel it, change its places, take in a reserve or keep its access code; whoever proposed it
+     * @description Exactly one of state, players, accept and code; code may also come with state booked. 400 invalid-game for a code past 40 characters. 409 with type places when more are in than the places asked for, or a reserve would make more than 8; 409 with type not-reserve when accept names nobody waiting.
      */
     patch: operations["updateGame"];
     trace?: never;
@@ -1012,6 +1012,8 @@ export interface components {
       link?: string;
       /** @description proposed, booked or cancelled; clients tolerate others. */
       state: string;
+      /** @description What to type in at the venue's door, when whoever proposed the game entered one. Only for whoever proposed it and those in or waiting as reserve; absent for everyone else and when there is none. */
+      code?: string;
       /** @description True when the latest snapshot shows the court of a proposed game no longer free for all of it (taken elsewhere, or booked by whoever proposed it without saying Gebucht). Absent or false when the venue failed, the day takes no bookings yet, the game started or there is no snapshot. */
       courtTaken?: boolean;
       proposedBy: components["schemas"]["Person"];
@@ -1021,7 +1023,7 @@ export interface components {
     GameList: {
       items: components["schemas"]["Game"][];
     };
-    /** @description Exactly one of the three. */
+    /** @description Exactly one of the four; code may also come with state booked. */
     GameChange: {
       /** @description booked or cancelled. */
       state?: string;
@@ -1029,6 +1031,8 @@ export interface components {
       players?: number;
       /** @description A reserve's address; it is in, with one place more when the game is full. */
       accept?: string;
+      /** @description The access code, at most 40 characters, trimmed; empty takes it away. Until the game's day is over, not once cancelled. */
+      code?: string;
     };
     PushInfo: {
       /** @description The VAPID public key, base64url; absent when push is off. */

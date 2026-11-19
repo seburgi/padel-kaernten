@@ -309,7 +309,7 @@ func (h *Handler) ListGames(w http.ResponseWriter, r *http.Request, params gen.L
 			}
 			seen[g.GroupID] = grp
 		}
-		out.Items = append(out.Items, gameOut(g, grp, venues, win))
+		out.Items = append(out.Items, gameOut(g, grp, venues, win, email))
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -324,7 +324,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request, id gen.GameId)
 	h.answerGame(w, r, http.StatusOK, email, g, err)
 }
 
-// UpdateGame books or cancels a game, or changes its places.
+// UpdateGame books or cancels a game, changes its places or keeps its access code.
 func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request, id gen.GameId, params gen.UpdateGameParams) {
 	email, ok := h.person(w, r)
 	if !ok {
@@ -339,11 +339,13 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request, id gen.Game
 	var err error
 	switch {
 	case body.State != nil && body.Players == nil && body.Accept == nil:
-		g, err = h.Games.SetState(r.Context(), email, key, id, *body.State)
-	case body.Players != nil && body.State == nil && body.Accept == nil:
+		g, err = h.Games.SetState(r.Context(), email, key, id, *body.State, body.Code)
+	case body.Players != nil && body.State == nil && body.Accept == nil && body.Code == nil:
 		g, err = h.Games.SetPlayers(r.Context(), email, key, id, *body.Players)
-	case body.Accept != nil && body.State == nil && body.Players == nil:
+	case body.Accept != nil && body.State == nil && body.Players == nil && body.Code == nil:
 		g, err = h.Games.Accept(r.Context(), email, key, id, strings.ToLower(*body.Accept))
+	case body.Code != nil && body.State == nil && body.Players == nil && body.Accept == nil:
+		g, err = h.Games.SetCode(r.Context(), email, key, id, *body.Code)
 	default:
 		err = games.ErrInvalid
 	}
@@ -375,12 +377,13 @@ func (h *Handler) answerGame(w http.ResponseWriter, r *http.Request, status int,
 		return
 	}
 	venues, _, _ := h.venues(r.Context(), groups.Anywhere) // links and courtTaken; none without a snapshot
-	writeJSON(w, status, gameOut(g, grp, venues, h.Games.Window()))
+	writeJSON(w, status, gameOut(g, grp, venues, h.Games.Window(), viewer))
 }
 
 // gameOut is a game as the API hands it out; venues, the latest snapshot,
-// give the booking link and whether the court is still free.
-func gameOut(g games.Game, grp groups.Group, venues []games.Venue, w games.Window) gen.Game {
+// give the booking link and whether the court is still free. The access
+// code goes only to those viewer may see it as (games.Game.Sees).
+func gameOut(g games.Game, grp groups.Group, venues []games.Venue, w games.Window, viewer string) gen.Game {
 	name := names(grp)
 	price, each := euros(g.PriceCents, g.Players)
 	out := gen.Game{Id: g.ID, GroupId: g.GroupID, GroupName: grp.Name, VenueId: g.VenueID, VenueName: g.VenueName,
@@ -391,6 +394,9 @@ func gameOut(g games.Game, grp groups.Group, venues []games.Venue, w games.Windo
 		if v.ID == g.VenueID {
 			out.Link = link(v.Links, g.Day)
 		}
+	}
+	if g.Code != "" && g.Sees(viewer) {
+		out.Code = &g.Code
 	}
 	if games.Taken(g, venues, w) {
 		taken := true
@@ -410,7 +416,7 @@ func (h *Handler) gameError(w http.ResponseWriter, r *http.Request, err error) {
 		problem.Write(w, problem.New(http.StatusForbidden, "not-allowed", "Only whoever proposed the game may", ""))
 	case errors.Is(err, games.ErrInvalid):
 		problem.Write(w, problem.New(http.StatusBadRequest, "invalid-game",
-			"A game is 60, 90 or 120 minutes with 2 to 8 places; an answer in or out; one change at a time", ""))
+			"A game is 60, 90 or 120 minutes with 2 to 8 places; an answer in or out; a code of at most 40 characters; one change at a time", ""))
 	case errors.Is(err, games.ErrPlaces):
 		problem.Write(w, problem.New(http.StatusConflict, "places", "Fewer places than are in, or more than 8", ""))
 	case errors.Is(err, games.ErrNotReserve):
