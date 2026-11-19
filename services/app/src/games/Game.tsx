@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { api, ApiError, call, useWriteKey, type Game as G } from "../api/client";
-import { card, danger, link, primary, quiet } from "../ui";
+import { card, link, primary, quiet } from "../ui";
 import {
   byTime,
   countWord,
@@ -26,6 +26,7 @@ import {
 import { CodeCard, CodeSheet } from "./Code";
 import { Seats } from "./Seats";
 import { TakenNote } from "./Taken";
+import { ChangeSheets, MovedNote, type Step } from "./Change";
 import { PageHead } from "../PageHead";
 
 const STATE: Record<string, string> = {
@@ -91,7 +92,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
   const [codeSheet, setCodeSheet] = useState<"book" | "edit" | null>(null);
   const stateKey = useWriteKey();
   const setState = useMutation({
-    mutationFn: (change: { state: "booked" | "cancelled"; code?: string }) =>
+    mutationFn: (change: { state: "booked"; code?: string }) =>
       call(
         api.PATCH("/api/v1/games/{gameId}", {
           params: {
@@ -134,7 +135,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
       ),
     onSuccess: done,
   });
-  const [cancelling, setCancelling] = useState(false);
+  const [step, setStep] = useState<Step>(null);
 
   if (!Number.isSafeInteger(id) || (game.error instanceof ApiError && game.error.status === 404))
     return (
@@ -168,6 +169,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
   const proposer = g.proposedBy.email === email;
   const open = g.state !== "cancelled";
   const ins = playing(g);
+  const asked = g.lineup.filter((p) => p.state === "asked");
   const res = reserves(g);
   const outs = g.lineup.filter((p) => p.state === "out");
   const answered = new Set(g.lineup.map((p) => p.email));
@@ -180,9 +182,11 @@ export function Game({ notify }: { notify?: ReactNode }) {
       ? "Gebucht"
       : g.state === "cancelled"
         ? "Abgesagt"
-        : full
-          ? `Ihr seid ${countWord(g.players)}. ${booker} jetzt.`
-          : `Noch ${g.players - ins.length} gesucht`;
+        : asked.length > 0
+          ? `Warten auf ${names(asked)}`
+          : full
+            ? `Ihr seid ${countWord(g.players)}. ${booker} jetzt.`
+            : `Noch ${g.players - ins.length} gesucht`;
   const steps = [
     { label: "Vorgeschlagen", done: true, note: `von ${proposer ? "dir" : shown(g.proposedBy)}` },
     {
@@ -198,6 +202,13 @@ export function Game({ notify }: { notify?: ReactNode }) {
     <main>
       <PageHead
         back={{ to: `/groups/${g.groupId}`, label: g.groupName }}
+        action={
+          proposer && open ? (
+            <button type="button" className={link} onClick={() => setStep("menu")}>
+              Ändern
+            </button>
+          ) : undefined
+        }
         title={
           <>
             {dayLabel(g.day)}, {span(g.start, g.minutes)}
@@ -207,7 +218,19 @@ export function Game({ notify }: { notify?: ReactNode }) {
         {g.venueName} · {g.court}
         {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
       </PageHead>
-      <TakenNote g={g} proposer={proposer} />
+      <TakenNote g={g} proposer={proposer} onMove={() => setStep("move")} />
+      <MovedNote
+        g={g}
+        asked={mine === "asked"}
+        proposer={proposer}
+        busy={answer.isPending}
+        answer={(a) => answer.mutate(a)}
+      />
+      {g.state === "cancelled" && g.cancelNote && (
+        <p className={`${card} mt-3 p-4 text-sm`}>
+          <span className="font-semibold">Abgesagt:</span> „{g.cancelNote}“
+        </p>
+      )}
       <div className={`${card} mt-3 mb-4 flex flex-col items-center gap-2 p-4 text-center`}>
         <Seats g={g} big />
         <p className="font-semibold">{headline}</p>
@@ -265,7 +288,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
         </section>
       )}
 
-      {open && (
+      {open && mine !== "asked" && (
         <div className="mb-6 flex flex-wrap gap-2">
           {mine === "in" || mine === "reserve" ? (
             <button
@@ -283,7 +306,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
               disabled={answer.isPending || !me.data}
               onClick={() => answer.mutate("in")}
             >
-              {ins.length >= g.players ? "Als Ersatz dabei" : "Bin dabei"}
+              {ins.length + asked.length >= g.players ? "Als Ersatz dabei" : "Bin dabei"}
             </button>
           )}
           {mine === undefined && (
@@ -331,6 +354,12 @@ export function Game({ notify }: { notify?: ReactNode }) {
               </li>
             ))}
           </ul>
+        )}
+        {asked.length > 0 && (
+          <p className="mt-2 text-sm">
+            <span className="font-semibold">Neu gefragt:</span> {asked.map(shown).join(", ")}
+            <span className="text-ink-muted"> · ihre Plätze bleiben frei</span>
+          </p>
         )}
         {res.length > 0 && !(proposer && open) && (
           <p className="mt-2 text-sm">
@@ -427,31 +456,13 @@ export function Game({ notify }: { notify?: ReactNode }) {
               </button>
             )}
           </div>
-          <div className="mt-4">
-            {cancelling ? (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className={danger}
-                  disabled={setState.isPending}
-                  onClick={() => setState.mutate({ state: "cancelled" })}
-                >
-                  Spiel absagen
-                </button>
-                <button type="button" className={quiet} onClick={() => setCancelling(false)}>
-                  Abbrechen
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className={`${link} text-sm`}
-                onClick={() => setCancelling(true)}
-              >
-                Spiel absagen …
-              </button>
-            )}
-          </div>
+          <button
+            type="button"
+            className={`${link} mt-4 text-sm`}
+            onClick={() => setStep("cancel")}
+          >
+            Spiel absagen …
+          </button>
           {setState.isError && !codeSheet && (
             <p role="alert" className="mt-2 text-sm text-danger-text">
               {errorText(setState.error)}
@@ -473,6 +484,7 @@ export function Game({ notify }: { notify?: ReactNode }) {
           onClose={() => setCodeSheet(null)}
         />
       )}
+      <ChangeSheets g={g} step={step} setStep={setStep} times={times.data?.members} done={done} />
     </main>
   );
 }

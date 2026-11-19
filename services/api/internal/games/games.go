@@ -37,7 +37,14 @@ var (
 	ErrPlaces = errors.New("not that many places")
 	// ErrNotReserve means whoever is to be taken in is not waiting.
 	ErrNotReserve = errors.New("not a reserve")
+	// ErrDayTaken means the group has another game that day already.
+	ErrDayTaken = errors.New("the group has a game that day")
+	// ErrNotPlaying means whoever is to be taken out is not in the game.
+	ErrNotPlaying = errors.New("not in the game")
 )
+
+// MaxNote is how long a note to the others may be, in characters.
+const MaxNote = 140
 
 // Players is how many play a game of padel, and the places a game starts
 // with; fits look for this many.
@@ -57,6 +64,7 @@ const (
 	Cancelled = "cancelled"
 
 	In      = "in"
+	Asked   = "asked"
 	Reserve = "reserve"
 	Out     = "out"
 )
@@ -88,6 +96,22 @@ type Game struct {
 	// empty when there is none. Only Sees may be shown it.
 	Code   string
 	Lineup []Player
+	// Change is the last time whoever proposed it moved it, if ever.
+	Change *Change
+	// CancelNote is why it was cancelled, when they said.
+	CancelNote string
+}
+
+// Change is where and when a game was before its last move, and the note
+// to the others.
+type Change struct {
+	At        time.Time
+	Note      string
+	Day       string
+	Start     int
+	Minutes   int
+	VenueName string
+	Court     string
 }
 
 // MaxCode is the longest access code a game takes, in characters.
@@ -135,6 +159,14 @@ const (
 	EventCancelled = "cancelled"
 	// EventCode is a booked game's access code entered or changed.
 	EventCode = "code"
+	// EventMoved is a new time or venue: whoever was in says again.
+	EventMoved = "moved"
+	// EventCourtChanged is another court at the same venue and time.
+	EventCourtChanged = "court-changed"
+	// EventRemoved is someone taken out by whoever proposed the game.
+	EventRemoved = "removed"
+	// EventDeclined is someone who was asked again saying no.
+	EventDeclined = "declined"
 )
 
 // Event is something people may want to hear of: Game as it is after,
@@ -182,14 +214,23 @@ func (s *Service) Window() Window {
 
 const columns = `g.id, g.group_id, g.venue_id, g.venue_name, g.court, to_char(g.day, 'YYYY-MM-DD'),
 	g.start_min, g.minutes, g.players, g.price_cents, g.state, g.proposed_by, g.created_at, g.booked_at,
-	coalesce(g.code, '')`
+	coalesce(g.code, ''), g.changed_at, coalesce(g.change_note, ''), coalesce(to_char(g.before_day, 'YYYY-MM-DD'), ''),
+	coalesce(g.before_start, 0), coalesce(g.before_minutes, 0), coalesce(g.before_venue_name, ''),
+	coalesce(g.before_court, ''), coalesce(g.cancel_note, '')`
 
 func scan(row pgx.Row) (Game, error) {
 	var g Game
+	var c Change
+	var at *time.Time
 	err := row.Scan(&g.ID, &g.GroupID, &g.VenueID, &g.VenueName, &g.Court, &g.Day, &g.Start, &g.Minutes,
-		&g.Players, &g.PriceCents, &g.State, &g.ProposedBy, &g.CreatedAt, &g.BookedAt, &g.Code)
+		&g.Players, &g.PriceCents, &g.State, &g.ProposedBy, &g.CreatedAt, &g.BookedAt, &g.Code,
+		&at, &c.Note, &c.Day, &c.Start, &c.Minutes, &c.VenueName, &c.Court, &g.CancelNote)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Game{}, ErrNotFound
+	}
+	if at != nil {
+		c.At = *at
+		g.Change = &c
 	}
 	return g, err
 }
@@ -425,47 +466,66 @@ func (s *Service) Answer(ctx context.Context, who, key string, id int64, answer 
 		state := Out
 		var events []Event
 		if answer == In {
-			var playing int
-			if err := tx.QueryRow(ctx,
-				`SELECT count(*) FROM game_players WHERE game_id = $1 AND state = 'in'`, id).Scan(&playing); err != nil {
+			playing, err := countIn(ctx, tx, id)
+			if err != nil {
+				return nil, err
+			}
+			held, err := countHeld(ctx, tx, id)
+			if err != nil {
 				return nil, err
 			}
 			state = In
 			switch {
-			case playing >= g.Players:
+			case was == Asked:
+				// Their place was kept for them.
+				if playing+1 == g.Players {
+					events = append(events, Event{Kind: EventFull, Who: who})
+				}
+			case held >= g.Players:
 				state = Reserve
 			case playing+1 == g.Players:
 				events = append(events, Event{Kind: EventFull, Who: who})
 			}
+		}
+		if answer == Out && was == Asked && who != g.ProposedBy {
+			events = append(events, Event{Kind: EventDeclined, Who: who})
 		}
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO game_players (game_id, email, state) VALUES ($1, $2, $3)
 			ON CONFLICT (game_id, email) DO UPDATE SET state = $3, answered_at = now()`, id, who, state); err != nil {
 			return nil, err
 		}
-		if was != In {
+		if answer == In || was != In && was != Asked {
 			return events, nil
 		}
-		var moved string
-		err = tx.QueryRow(ctx, `
-				UPDATE game_players SET state = 'in' WHERE (game_id, email) = (
-					SELECT game_id, email FROM game_players WHERE game_id = $1 AND state = 'reserve'
-					 ORDER BY answered_at, email LIMIT 1)
-				RETURNING email`, id).Scan(&moved)
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return events, nil
-		case err != nil:
-			return nil, err
-		}
-		return append(events, Event{Kind: EventMovedUp, Who: moved}), nil
+		return moveUp(ctx, tx, id, events)
 	})
 }
 
-// SetState books or cancels a game; only whoever proposed it may. code,
-// when not nil, is the access code to keep with a booking (Booked only).
-func (s *Service) SetState(ctx context.Context, who, key string, id int64, state string, code *string) (Game, error) {
-	if state != Booked && state != Cancelled || code != nil && state != Booked {
+// moveUp lets the first reserve in, when there is one.
+func moveUp(ctx context.Context, tx pgx.Tx, id int64, events []Event) ([]Event, error) {
+	var moved string
+	err := tx.QueryRow(ctx, `
+			UPDATE game_players SET state = 'in' WHERE (game_id, email) = (
+				SELECT game_id, email FROM game_players WHERE game_id = $1 AND state = 'reserve'
+				 ORDER BY answered_at, email LIMIT 1)
+			RETURNING email`, id).Scan(&moved)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return events, nil
+	case err != nil:
+		return nil, err
+	}
+	return append(events, Event{Kind: EventMovedUp, Who: moved}), nil
+}
+
+// SetState books or cancels a game; only whoever proposed it may. note,
+// for a cancel only, is why, for the others. code, when not nil, is the
+// access code to keep with a booking (Booked only).
+func (s *Service) SetState(ctx context.Context, who, key string, id int64, state, note string, code *string) (Game, error) {
+	note = strings.TrimSpace(note)
+	if state != Booked && state != Cancelled || code != nil && state != Booked ||
+		state == Booked && note != "" || utf8.RuneCountInString(note) > MaxNote {
 		return Game{}, ErrInvalid
 	}
 	var c *string
@@ -476,7 +536,7 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 		}
 		c = &clean
 	}
-	return s.write(ctx, who, key, "game-state", id, []any{state, c}, func(tx pgx.Tx, g Game) ([]Event, error) {
+	return s.write(ctx, who, key, "game-state", id, []any{state, c, note}, func(tx pgx.Tx, g Game) ([]Event, error) {
 		if g.ProposedBy != who {
 			return nil, ErrForbidden
 		}
@@ -491,8 +551,9 @@ func (s *Service) SetState(ctx context.Context, who, key string, id int64, state
 		}
 		_, err := tx.Exec(ctx, `
 			UPDATE games SET state = $2, booked_at = CASE WHEN $2 = 'booked' THEN coalesce(booked_at, now()) ELSE booked_at END,
-			       code = CASE WHEN $3::boolean THEN nullif($4, '') ELSE code END
-			 WHERE id = $1`, id, state, c != nil, deref(c))
+			       code = CASE WHEN $3::boolean THEN nullif($4, '') ELSE code END,
+			       cancel_note = nullif($5, '')
+			 WHERE id = $1`, id, state, c != nil, deref(c), note)
 		if err != nil {
 			return nil, err
 		}
@@ -556,7 +617,7 @@ func (s *Service) SetPlayers(ctx context.Context, who, key string, id int64, n i
 		if g.Players == n {
 			return nil, nil
 		}
-		playing, err := countIn(ctx, tx, id)
+		playing, err := countHeld(ctx, tx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -582,7 +643,11 @@ func (s *Service) SetPlayers(ctx context.Context, who, key string, id int64, n i
 		for _, m := range moved {
 			events = append(events, Event{Kind: EventMovedUp, Who: m})
 		}
-		if len(moved) == 0 && playing == n && g.Players > playing {
+		in, err := countIn(ctx, tx, id)
+		if err != nil {
+			return nil, err
+		}
+		if len(moved) == 0 && in == n && playing == in && g.Players > playing {
 			events = append(events, Event{Kind: EventFull, Who: who})
 		}
 		return events, nil
@@ -605,7 +670,10 @@ func (s *Service) Accept(ctx context.Context, who, key string, id int64, email s
 		if err != nil || state == In {
 			return nil, err
 		}
-		playing, err := countIn(ctx, tx, id)
+		if state == Asked {
+			return nil, ErrNotReserve
+		}
+		playing, err := countHeld(ctx, tx, id)
 		if err != nil {
 			return nil, err
 		}
@@ -638,6 +706,26 @@ func countIn(ctx context.Context, tx pgx.Tx, id int64) (int, error) {
 	var n int
 	err := tx.QueryRow(ctx, `SELECT count(*) FROM game_players WHERE game_id = $1 AND state = 'in'`, id).Scan(&n)
 	return n, err
+}
+
+// countHeld is how many places are taken: those in, and those asked again
+// after a move, whose places are kept for them.
+func countHeld(ctx context.Context, tx pgx.Tx, id int64) (int, error) {
+	var n int
+	err := tx.QueryRow(ctx,
+		`SELECT count(*) FROM game_players WHERE game_id = $1 AND state IN ('in', 'asked')`, id).Scan(&n)
+	return n, err
+}
+
+// Held is who holds a place in g: those in and those asked again.
+func Held(g Game) []string {
+	var out []string
+	for _, p := range g.Lineup {
+		if p.State == In || p.State == Asked {
+			out = append(out, p.Email)
+		}
+	}
+	return out
 }
 
 // Taken says whether venues, the latest snapshot, show the court of a

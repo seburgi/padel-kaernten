@@ -295,21 +295,21 @@ func TestAnswer(t *testing.T) {
 	}
 
 	// Booking and cancelling are the proposer's.
-	if _, err := s.SetState(ctx, bert, key(), g.ID, games.Booked, nil); !errors.Is(err, games.ErrForbidden) {
+	if _, err := s.SetState(ctx, bert, key(), g.ID, games.Booked, "", nil); !errors.Is(err, games.ErrForbidden) {
 		t.Errorf("bert books: %v", err)
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, "played", nil); !errors.Is(err, games.ErrInvalid) {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, "played", "", nil); !errors.Is(err, games.ErrInvalid) {
 		t.Errorf("played: %v", err)
 	}
-	booked, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, nil)
+	booked, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, "", nil)
 	if err != nil || booked.State != games.Booked || booked.BookedAt == nil {
 		t.Fatalf("booked: %+v %v", booked, err)
 	}
-	cancelled, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, nil)
+	cancelled, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, "", nil)
 	if err != nil || cancelled.State != games.Cancelled {
 		t.Fatalf("cancelled: %+v %v", cancelled, err)
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, nil); !errors.Is(err, games.ErrClosed) {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, "", nil); !errors.Is(err, games.ErrClosed) {
 		t.Errorf("book a cancelled game: %v", err)
 	}
 	if _, err := s.Answer(ctx, carla, key(), g.ID, games.Out); !errors.Is(err, games.ErrClosed) {
@@ -397,7 +397,7 @@ func TestPlaces(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("events:\n got %q\nwant %q", got, want)
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, nil); err != nil {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, "", nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := places(anna, 4); !errors.Is(err, games.ErrClosed) {
@@ -429,11 +429,11 @@ func TestCode(t *testing.T) {
 			t.Errorf("code %q: %v", bad, err)
 		}
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, code("1")); !errors.Is(err, games.ErrInvalid) {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, "", code("1")); !errors.Is(err, games.ErrInvalid) {
 		t.Errorf("a code with cancelling: %v", err)
 	}
 	// Booked with the code at once: one event, booked.
-	booked, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, code("  4711 "))
+	booked, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, "", code("  4711 "))
 	if err != nil || booked.Code != "4711" || booked.State != games.Booked {
 		t.Fatalf("booked with a code: %+v %v", booked, err)
 	}
@@ -450,7 +450,7 @@ func TestCode(t *testing.T) {
 	if _, err := s.SetCode(ctx, anna, key(), g.ID, "0815#"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, code("0815#")); err != nil {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Booked, "", code("0815#")); err != nil {
 		t.Fatal(err)
 	}
 	cleared, err := s.SetCode(ctx, anna, key(), g.ID, "")
@@ -460,7 +460,7 @@ func TestCode(t *testing.T) {
 	if want := []string{games.EventBooked, games.EventCode}; !slices.Equal(got, want) {
 		t.Errorf("events %v, want %v", got, want)
 	}
-	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, nil); err != nil {
+	if _, err := s.SetState(ctx, anna, key(), g.ID, games.Cancelled, "", nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.SetCode(ctx, anna, key(), g.ID, "1"); !errors.Is(err, games.ErrClosed) {
@@ -528,7 +528,7 @@ func TestEvents(t *testing.T) {
 	do(bert, games.Out)
 	do(emil, games.Out)
 	for _, st := range []string{games.Booked, games.Booked, games.Cancelled} {
-		if _, err := s.SetState(ctx, anna, key(), g.ID, st, nil); err != nil {
+		if _, err := s.SetState(ctx, anna, key(), g.ID, st, "", nil); err != nil {
 			t.Fatal(err)
 		}
 	}

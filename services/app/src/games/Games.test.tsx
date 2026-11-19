@@ -372,8 +372,13 @@ describe("Game", () => {
         "GET /api/v1/games/7": () => answer(200, g),
         "GET /api/v1/groups/1": () => answer(200, group),
         "PATCH /api/v1/games/7": (sent) => {
-          const b = sent.body as { state?: string; code?: string };
-          g = { ...g, state: b.state ?? g.state, code: b.code ?? g.code };
+          const b = sent.body as { state?: string; code?: string; note?: string };
+          g = {
+            ...g,
+            state: b.state ?? g.state,
+            code: b.code ?? g.code,
+            ...(b.note ? { cancelNote: b.note } : {}),
+          };
           return answer(200, g);
         },
       },
@@ -422,16 +427,22 @@ describe("Game", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
     await userEvent.click(screen.getByRole("button", { name: "Spiel absagen …" }));
-    await userEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Doch nicht" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Doch nicht" })).toBeNull());
     await userEvent.click(screen.getByRole("button", { name: "Spiel absagen …" }));
-    await userEvent.click(screen.getByRole("button", { name: "Spiel absagen" }));
+    const cancel = await screen.findByRole("dialog");
+    expect(cancel).toHaveTextContent("Bescheid bekommen: Anna, markus, Lisa und Eva");
+    expect(cancel).toHaveTextContent("Du hast schon gebucht");
+    await userEvent.click(within(cancel).getByRole("button", { name: "Wetter" }));
+    await userEvent.click(within(cancel).getByRole("button", { name: "Spiel absagen" }));
     expect(await screen.findByText("Abgesagt")).toBeInTheDocument();
+    expect(screen.getByText(/„Wetter“/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /dabei|Kann/ })).toBeNull();
     expect(screen.queryByText(/Noch keine Antwort/)).toBeNull();
     expect(calls.filter((c) => c.method === "PATCH").map((c) => c.body)).toEqual([
       { state: "booked", code: "4711" },
       { code: "0815#" },
-      { state: "cancelled" },
+      { state: "cancelled", note: "Wetter" },
     ]);
   });
 
@@ -600,17 +611,14 @@ describe("Game", () => {
     expect(note).toHaveTextContent("Der Platz ist nicht mehr frei");
     expect(note).toHaveTextContent("Court 1 bei Padel Villach zu dieser Zeit belegt");
     expect(note).toHaveTextContent("Hast du schon gebucht?");
-    expect(within(note).getByRole("link", { name: "Andere Zeit suchen" })).toHaveAttribute(
-      "href",
-      "/groups/1/fits",
-    );
+    expect(within(note).getByRole("button", { name: "Spiel verschieben" })).toBeInTheDocument();
     a.unmount();
 
     me = anna;
     at("/games/7", <Game />, "/games/:id");
     const theirs = await screen.findByRole("status");
     expect(theirs).toHaveTextContent("Vielleicht hat Seb schon gebucht");
-    expect(within(theirs).queryByRole("link")).toBeNull();
+    expect(within(theirs).queryByRole("button")).toBeNull();
   });
 
   it("does not warn while the court is free", async () => {

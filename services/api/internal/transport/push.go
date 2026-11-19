@@ -168,13 +168,43 @@ func gameMessage(e games.Event, grp groups.Group) (notify.Message, bool) {
 		m.Title = "Zugangscode: " + when
 		m.Body = fmt.Sprintf("%s hat den Zugangscode für %s eingetragen. Du findest ihn im Spiel.", who(g.ProposedBy), g.VenueName)
 	case games.EventCancelled:
-		to = lineup(g, games.In, games.Reserve)
+		to = lineup(g, games.In, games.Asked, games.Reserve)
 		m.Title = "Abgesagt: " + when
 		m.Body = fmt.Sprintf("%s hat das Spiel in %s abgesagt.", who(g.ProposedBy), g.VenueName)
+		if g.CancelNote != "" {
+			m.Body += " „" + g.CancelNote + "“"
+		}
+	case games.EventMoved:
+		// Whoever was in says again (with Bin dabei and Kann nicht on the
+		// notification); the reserves hear of it too.
+		to = lineup(g, games.Asked, games.Reserve)
+		m.Title = "Verschoben: " + when
+		m.Game = g.ID
+		m.Body = fmt.Sprintf("%s hat das Spiel verschoben: %s, %s. Passt es dir noch?",
+			who(g.ProposedBy), g.VenueName, spanText(g.Start, g.Minutes))
+		if c := g.Change; c != nil && c.Note != "" {
+			m.Body += " „" + c.Note + "“"
+		}
+	case games.EventCourtChanged:
+		to = lineup(g, games.In, games.Reserve)
+		m.Title = "Anderer Platz: " + when
+		m.Body = fmt.Sprintf("%s: jetzt %s. Sonst bleibt alles gleich.", g.VenueName, g.Court)
+		if c := g.Change; c != nil && c.Note != "" {
+			m.Body += " „" + c.Note + "“"
+		}
+	case games.EventRemoved:
+		to = []string{e.Who}
+		m.Title = "Nicht mehr dabei: " + when
+		m.Body = fmt.Sprintf("%s hat dich aus dem Spiel in %s genommen.", who(g.ProposedBy), g.VenueName)
+	case games.EventDeclined:
+		to = []string{g.ProposedBy}
+		m.Title = "Kann nicht: " + when
+		m.Body = fmt.Sprintf("%s kann zur neuen Zeit in %s nicht.", who(e.Who), g.VenueName)
 	}
-	// Nobody hears of what they did themselves.
+	// Nobody hears of what they did themselves; who moved up or was taken
+	// out is the one it is about.
 	for _, email := range to {
-		if email != e.Who || e.Kind == games.EventMovedUp {
+		if email != e.Who || e.Kind == games.EventMovedUp || e.Kind == games.EventRemoved {
 			m.To = append(m.To, email)
 		}
 	}

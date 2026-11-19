@@ -8,9 +8,15 @@
   reserve (whoever moved up), booked (whoever is in; "Den Zugangscode
   findest du im Spiel" when there is one), an access code entered or
   changed on a booked game (whoever is in or a reserve; never the code
-  itself, since a Mitteilung shows on a locked phone) and cancelled
-  (whoever was in or a reserve). Nobody hears of what they did
-  themselves. Texts are German, with the day, the time and the venue;
+  itself, since a Mitteilung shows on a locked phone), cancelled
+  (whoever was in, asked again or a reserve, with the reason when given),
+  moved to a new time or venue ("Verschoben", whoever is asked again and
+  the reserves, with the note; it carries the game's id, so it has the
+  answer buttons), another court ("Anderer Platz", whoever is in and the
+  reserves), taken out ("Nicht mehr dabei", the one taken out) and a no
+  from someone asked again ("Kann nicht", whoever proposed it). Nobody
+  hears of what they did themselves, except moving up and being taken
+  out. Texts are German, with the day, the time and the venue;
   a tap opens the game. A later message about the same game replaces the
   earlier one on the phone (`tag`).
 - **The weekly reminder** (`transport/remind.go`; Seb, 2026-11-04): on
@@ -62,7 +68,7 @@
   and opens the game on a tap (`push/notification.ts`, kept apart so the
   worker takes nothing of the app with it).
 - **Answering from the notification** (Seb, 2026-11-04): a proposed
-  game's message carries the game's id, and the worker shows "Bin dabei"
+  or moved game's message carries the game's id, and the worker shows "Bin dabei"
   and "Kann nicht" on it where the browser has buttons (Android, desktop;
   not iOS). A button sends `PUT /api/v1/games/{id}/players/me` from the
   worker with the person's own cookies, as the app would, and swaps the
@@ -91,7 +97,8 @@
   here and there is never news (Seb, 2026-11-04). One fit a group a run;
   the daily cap does the rest.
 - **Kinds** (`notify.Kinds`, Seb 2026-11-04): `game` (proposed, full,
-  moved up, booked, cancelled), `before`, `stale`, `taken`, `fits`, `missing` and
+  moved up, booked, code, cancelled, moved, court changed, taken out,
+  declined), `before`, `stale`, `taken`, `fits`, `missing` and
   `remind`. Each person turns kinds off on the page Mitteilungen, for all
   their browsers (`push_off`, migration 0009; `GET /api/v1/push/kinds`,
   `PUT /api/v1/push/kinds/{kind}`); no row means on. `Deliver` leaves out

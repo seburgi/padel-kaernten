@@ -580,10 +580,32 @@ export interface paths {
     options?: never;
     head?: never;
     /**
-     * Mark the game booked, cancel it, change its places, take in a reserve or keep its access code; whoever proposed it
-     * @description Exactly one of state, players, accept and code; code may also come with state booked. 400 invalid-game for a code past 40 characters. 409 with type places when more are in than the places asked for, or a reserve would make more than 8; 409 with type not-reserve when accept names nobody waiting.
+     * Mark the game booked, cancel it, change its places, take in a reserve, keep its access code, move it or take someone out; whoever proposed it
+     * @description Exactly one of state, players, accept, code, move and remove; code may also come with state booked, note only with move or a cancel. 400 invalid-game for a code past 40 characters. 409 with type places when more hold a place than the places asked for, or a reserve would make more than 8; 409 with type not-reserve when accept names nobody waiting; 409 court-gone when the court to move to is no longer free; 409 day-taken when the group has another game that day; 409 not-playing when remove names nobody in the game. A move to another time or venue drops the access code.
      */
     patch: operations["updateGame"];
+    trace?: never;
+  };
+  "/api/v1/games/{gameId}/moves": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    /**
+     * Where and when the game could move to; whoever proposed it
+     * @description Every start on each venue's step from now on where a court of the group's area is free for the whole game in the latest snapshot, one court per venue and start, but every other court at the game's own venue and time. Days the group has another game are left out. At most 300, by day, start and price. 403 for anyone but whoever proposed it, 503 no-snapshot before the sites were ever asked.
+     */
+    get: operations["listMoves"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   "/api/v1/games/{gameId}/players/me": {
@@ -988,7 +1010,7 @@ export interface components {
     Player: {
       email: string;
       name: string;
-      /** @description in, reserve or out; clients tolerate others. */
+      /** @description in, asked (was in; the game moved and their new answer is missing, their place is kept), reserve or out; clients tolerate others. */
       state: string;
     };
     Game: {
@@ -1019,14 +1041,51 @@ export interface components {
       proposedBy: components["schemas"]["Person"];
       /** @description Every answer, in the order given. */
       lineup: components["schemas"]["Player"][];
+      change?: components["schemas"]["GameMoved"];
+      /** @description Why it was cancelled, when whoever proposed it said. */
+      cancelNote?: string;
+    };
+    /** @description The game's last move, absent when it never moved; where and when it was before. */
+    GameMoved: {
+      /** Format: date-time */
+      at: string;
+      /** @description What whoever proposed it told the others. */
+      note?: string;
+      /** Format: date */
+      day: string;
+      start: number;
+      minutes: number;
+      venueName: string;
+      court: string;
+    };
+    MoveList: {
+      /** Format: date-time */
+      takenAt: string;
+      moves: components["schemas"]["Move"][];
+    };
+    Move: {
+      /** Format: date */
+      day: string;
+      start: number;
+      minutes: number;
+      venueId: string;
+      venueName: string;
+      court: string;
+      price?: components["schemas"]["Money"];
+      perHead?: components["schemas"]["Money"];
     };
     GameList: {
       items: components["schemas"]["Game"][];
     };
-    /** @description Exactly one of the four; code may also come with state booked. */
+    /** @description Exactly one of state, players, accept, code, move and remove; code may also come with state booked. */
     GameChange: {
       /** @description booked or cancelled. */
       state?: string;
+      /** @description With move or a cancel, what the others are told. */
+      note?: string;
+      move?: components["schemas"]["NewGame"];
+      /** @description The address of someone in the game, a reserve or asked again; they are out, and the first reserve moves up. */
+      remove?: string;
       /** @description The places, 2 to 8, never fewer than are in; more let the reserves move up in order. */
       players?: number;
       /** @description A reserve's address; it is in, with one place more when the game is full. */
@@ -1905,6 +1964,31 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Game"];
+        };
+      };
+      default: components["responses"]["Problem"];
+    };
+  };
+  listMoves: {
+    parameters: {
+      query: {
+        minutes: 60 | 90 | 120;
+      };
+      header?: never;
+      path: {
+        gameId: components["parameters"]["GameId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The free times. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MoveList"];
         };
       };
       default: components["responses"]["Problem"];

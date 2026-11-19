@@ -3,9 +3,8 @@
 // on the group's page and on Spielen, and on the game itself what to do.
 // The proposer may have booked it and not said Gebucht yet, so neither
 // says it was someone else.
-import { Link } from "react-router";
 import type { Game } from "../api/client";
-import { link } from "../ui";
+import { primary } from "../ui";
 import { shown } from "./games";
 
 /** The short mark on a game's card. */
@@ -19,7 +18,15 @@ export function TakenMark({ g }: { g: Game }) {
 }
 
 /** The warning on the game's own page. */
-export function TakenNote({ g, proposer }: { g: Game; proposer: boolean }) {
+export function TakenNote({
+  g,
+  proposer,
+  onMove,
+}: {
+  g: Game;
+  proposer: boolean;
+  onMove?: () => void;
+}) {
   if (!g.courtTaken) return null;
   return (
     <div
@@ -30,13 +37,13 @@ export function TakenNote({ g, proposer }: { g: Game; proposer: boolean }) {
       <p>
         Laut den neuesten Platzdaten ist {g.court} bei {g.venueName} zu dieser Zeit belegt.{" "}
         {proposer
-          ? "Hast du schon gebucht? Dann tippe unten auf „Gebucht“. Sonst such eine andere Zeit und sag dieses Spiel ab."
+          ? "Hast du schon gebucht? Dann tippe unten auf „Gebucht“. Sonst verschieb das Spiel: alle bekommen Bescheid und sagen neu zu."
           : `Vielleicht hat ${shown(g.proposedBy)} schon gebucht und es nur noch nicht eingetragen. Frag am besten nach.`}
       </p>
       {proposer && (
-        <Link to={`/groups/${g.groupId}/fits`} className={`${link} mt-2 inline-block`}>
-          Andere Zeit suchen
-        </Link>
+        <button type="button" className={`${primary} mt-3`} onClick={onMove}>
+          Spiel verschieben
+        </button>
       )}
     </div>
   );

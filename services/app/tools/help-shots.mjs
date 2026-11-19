@@ -268,6 +268,21 @@ const shots = ({ group, game }) => [
     to: "main section:has(h2:text-is('Buchen'))",
   },
   {
+    name: "spiel-aendern",
+    path: `/games/${game}`,
+    // Ändern, then Zeit oder Ort ändern: the free times to move it to.
+    step: async (page) => {
+      await page.getByRole("button", { name: "Ändern" }).click();
+      await page.getByRole("button", { name: /Zeit oder Ort ändern/ }).click();
+      await page.getByRole("dialog").getByRole("button", { name: /\d–\d/ }).first().waitFor();
+      await page.waitForTimeout(800); // its slide up
+    },
+    fixed: true,
+    from: "[role=dialog]",
+    to: "[role=dialog]",
+    top: 0,
+  },
+  {
     name: "spielen",
     path: "/play",
     from: "h1",

@@ -55,7 +55,8 @@ function useOpen(group?: number) {
     : (games.data ?? []).filter(
         (g) =>
           g.state === "proposed" &&
-          answerOf(g, email) === "none" &&
+          // asked: the game moved and waits for their new answer.
+          ["none", "asked"].includes(answerOf(g, email)) &&
           (group === undefined || g.groupId === group),
       );
 }
@@ -75,6 +76,8 @@ export function WaitingCount({ group }: { group: number }) {
 }
 
 function Ask({ g }: { g: Game }) {
+  const me = useMe();
+  const moved = answerOf(g, me.data?.email ?? "") === "asked";
   const client = useQueryClient();
   const key = useWriteKey();
   const answer = useMutation({
@@ -104,6 +107,11 @@ function Ask({ g }: { g: Game }) {
           {g.perHead && ` · ${euros(g.perHead.amount)} pro Kopf`}
         </div>
         <TakenMark g={g} />
+        {moved && (
+          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-warning-border bg-card px-2 text-[13px] font-semibold text-warning-text">
+            Verschoben · passt es dir noch?
+          </span>
+        )}
         <div className="mt-2 flex items-center justify-between gap-2">
           <Seats g={g} />
           <span className="text-sm text-ink-muted">{wanted(g)}</span>
@@ -116,7 +124,7 @@ function Ask({ g }: { g: Game }) {
           disabled={answer.isPending}
           onClick={() => answer.mutate("in")}
         >
-          Bin dabei
+          {moved ? "Passt mir" : "Bin dabei"}
         </button>
         <button
           type="button"

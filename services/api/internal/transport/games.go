@@ -337,19 +337,101 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request, id gen.Game
 	key := params.IdempotencyKey.String()
 	var g games.Game
 	var err error
+	given := 0
+	for _, set := range []bool{body.State != nil, body.Players != nil, body.Accept != nil, body.Move != nil, body.Remove != nil,
+		body.Code != nil && body.State == nil} {
+		if set {
+			given++
+		}
+	}
+	note := ""
+	if body.Note != nil {
+		note = *body.Note
+	}
 	switch {
-	case body.State != nil && body.Players == nil && body.Accept == nil:
-		g, err = h.Games.SetState(r.Context(), email, key, id, *body.State, body.Code)
-	case body.Players != nil && body.State == nil && body.Accept == nil && body.Code == nil:
-		g, err = h.Games.SetPlayers(r.Context(), email, key, id, *body.Players)
-	case body.Accept != nil && body.State == nil && body.Players == nil && body.Code == nil:
-		g, err = h.Games.Accept(r.Context(), email, key, id, strings.ToLower(*body.Accept))
-	case body.Code != nil && body.State == nil && body.Players == nil && body.Accept == nil:
-		g, err = h.Games.SetCode(r.Context(), email, key, id, *body.Code)
-	default:
+	case given != 1 || note != "" && body.Move == nil && body.State == nil:
 		err = games.ErrInvalid
+	case body.State != nil:
+		g, err = h.Games.SetState(r.Context(), email, key, id, *body.State, note, body.Code)
+	case body.Players != nil:
+		g, err = h.Games.SetPlayers(r.Context(), email, key, id, *body.Players)
+	case body.Accept != nil:
+		g, err = h.Games.Accept(r.Context(), email, key, id, strings.ToLower(*body.Accept))
+	case body.Remove != nil:
+		g, err = h.Games.Remove(r.Context(), email, key, id, strings.ToLower(*body.Remove))
+	case body.Code != nil:
+		g, err = h.Games.SetCode(r.Context(), email, key, id, *body.Code)
+	case body.Move != nil:
+		var venues []games.Venue
+		venues, _, err = h.venues(r.Context(), groups.Anywhere)
+		if errors.Is(err, slots.ErrNone) {
+			noSnapshot(w)
+			return
+		}
+		if err == nil {
+			m := body.Move
+			g, err = h.Games.Move(r.Context(), email, key, id, games.Proposal{
+				VenueID: m.VenueId, Court: m.Court, Day: m.Day.Format(time.DateOnly), Start: m.Start, Minutes: m.Minutes,
+			}, note, venues)
+		}
 	}
 	h.answerGame(w, r, http.StatusOK, email, g, err)
+}
+
+// ListMoves is where and when a game could move to, for whoever proposed
+// it: the free courts of the group's area, without the days the group has
+// another game.
+func (h *Handler) ListMoves(w http.ResponseWriter, r *http.Request, id gen.GameId, params gen.ListMovesParams) {
+	email, ok := h.person(w, r)
+	if !ok {
+		return
+	}
+	if !slices.Contains(games.Durations, int(params.Minutes)) {
+		h.gameError(w, r, games.ErrInvalid)
+		return
+	}
+	g, err := h.Games.Get(r.Context(), email, id)
+	if err == nil && g.ProposedBy != email {
+		err = games.ErrForbidden
+	}
+	if err != nil {
+		h.gameError(w, r, err)
+		return
+	}
+	grp, ok := h.member(w, r, email, g.GroupID)
+	if !ok {
+		return
+	}
+	venues, takenAt, err := h.venues(r.Context(), grp.Area)
+	if errors.Is(err, slots.ErrNone) {
+		noSnapshot(w)
+		return
+	}
+	if err != nil {
+		h.internal(w, r, "reading the snapshot", err)
+		return
+	}
+	ahead, err := h.Games.Ahead(r.Context())
+	if err != nil {
+		h.internal(w, r, "reading the games", err)
+		return
+	}
+	planned := map[string]bool{}
+	for _, a := range ahead {
+		if a.GroupID == g.GroupID && a.ID != g.ID {
+			planned[a.Day] = true
+		}
+	}
+	out := gen.MoveList{TakenAt: utc(takenAt), Moves: []gen.Move{}}
+	for _, m := range games.Moves(venues, g, int(params.Minutes), h.Games.Window()) {
+		if planned[m.Day] {
+			continue
+		}
+		price, each := euros(m.PriceCents, g.Players)
+		out.Moves = append(out.Moves, gen.Move{Day: date(m.Day), Start: m.Start, Minutes: m.Minutes, VenueId: m.VenueID,
+			VenueName: m.VenueName, Court: m.Court, Price: price, PerHead: each})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // AnswerGame is the caller saying yes or no.
@@ -405,6 +487,16 @@ func gameOut(g games.Game, grp groups.Group, venues []games.Venue, w games.Windo
 	for _, p := range g.Lineup {
 		out.Lineup = append(out.Lineup, gen.Player{Email: p.Email, Name: name[p.Email], State: p.State})
 	}
+	if c := g.Change; c != nil {
+		out.Change = &gen.GameMoved{At: c.At.UTC(), Day: date(c.Day), Start: c.Start, Minutes: c.Minutes,
+			VenueName: c.VenueName, Court: c.Court}
+		if c.Note != "" {
+			out.Change.Note = &c.Note
+		}
+	}
+	if g.CancelNote != "" {
+		out.CancelNote = &g.CancelNote
+	}
 	return out
 }
 
@@ -423,6 +515,10 @@ func (h *Handler) gameError(w http.ResponseWriter, r *http.Request, err error) {
 		problem.Write(w, problem.New(http.StatusConflict, "not-reserve", "Nobody of that address is waiting", ""))
 	case errors.Is(err, games.ErrGone):
 		problem.Write(w, problem.New(http.StatusConflict, "court-gone", "The court is no longer free", ""))
+	case errors.Is(err, games.ErrDayTaken):
+		problem.Write(w, problem.New(http.StatusConflict, "day-taken", "The group has another game that day", ""))
+	case errors.Is(err, games.ErrNotPlaying):
+		problem.Write(w, problem.New(http.StatusConflict, "not-playing", "Nobody of that address is in the game", ""))
 	case errors.Is(err, games.ErrClosed):
 		problem.Write(w, problem.New(http.StatusConflict, "game-closed", "The game is cancelled or over", ""))
 	case errors.Is(err, idempotency.ErrKeyReused):

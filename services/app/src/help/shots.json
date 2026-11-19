@@ -13,7 +13,11 @@
   },
   "spiel": {
     "width": 780,
-    "height": 1944
+    "height": 2126
+  },
+  "spiel-aendern": {
+    "width": 780,
+    "height": 1128
   },
   "spiele-fast": {
     "width": 780,

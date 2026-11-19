@@ -658,12 +658,17 @@ paths:
           $ref: "#/components/responses/Problem"
     patch:
       operationId: updateGame
-      summary: Mark the game booked, cancel it, change its places, take in a reserve or keep its access code; whoever proposed it
+      summary: Mark the game booked, cancel it, change its places, take in a reserve, keep its access code, move it or take someone out; whoever proposed it
       description: >-
-        Exactly one of state, players, accept and code; code may also come
-        with state booked. 400 invalid-game for a code past 40 characters. 409 with type places when
-        more are in than the places asked for, or a reserve would make more
-        than 8; 409 with type not-reserve when accept names nobody waiting.
+        Exactly one of state, players, accept, code, move and remove; code
+        may also come with state booked, note only with move or a cancel.
+        400 invalid-game for a code past 40 characters. 409 with type places
+        when more hold a place than the places asked for, or a reserve would
+        make more than 8; 409 with type not-reserve when accept names nobody
+        waiting; 409 court-gone when the court to move to is no longer free;
+        409 day-taken when the group has another game that day; 409
+        not-playing when remove names nobody in the game. A move to another
+        time or venue drops the access code.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -679,6 +684,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Game"
+        default:
+          $ref: "#/components/responses/Problem"
+  /api/v1/games/{gameId}/moves:
+    parameters:
+      - $ref: "#/components/parameters/GameId"
+    get:
+      operationId: listMoves
+      summary: Where and when the game could move to; whoever proposed it
+      description: >-
+        Every start on each venue's step from now on where a court of the
+        group's area is free for the whole game in the latest snapshot, one
+        court per venue and start, but every other court at the game's own
+        venue and time. Days the group has another game are left out. At
+        most 300, by day, start and price. 403 for anyone but whoever
+        proposed it, 503 no-snapshot before the sites were ever asked.
+      parameters:
+        - name: minutes
+          in: query
+          required: true
+          schema:
+            type: integer
+            enum: [60, 90, 120]
+      responses:
+        "200":
+          description: The free times.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoveList"
         default:
           $ref: "#/components/responses/Problem"
   /api/v1/games/{gameId}/players/me:
@@ -1417,7 +1451,10 @@ components:
           type: string
         state:
           type: string
-          description: in, reserve or out; clients tolerate others.
+          description: >-
+            in, asked (was in; the game moved and their new answer is
+            missing, their place is kept), reserve or out; clients tolerate
+            others.
     Game:
       type: object
       required: [id, groupId, groupName, venueId, venueName, court, day, start, minutes, players, state, proposedBy, lineup]
@@ -1477,6 +1514,65 @@ components:
           description: Every answer, in the order given.
           items:
             $ref: "#/components/schemas/Player"
+        change:
+          $ref: "#/components/schemas/GameMoved"
+        cancelNote:
+          type: string
+          description: Why it was cancelled, when whoever proposed it said.
+    GameMoved:
+      type: object
+      description: The game's last move, absent when it never moved; where and when it was before.
+      required: [at, day, start, minutes, venueName, court]
+      properties:
+        at:
+          type: string
+          format: date-time
+        note:
+          type: string
+          description: What whoever proposed it told the others.
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+        minutes:
+          type: integer
+        venueName:
+          type: string
+        court:
+          type: string
+    MoveList:
+      type: object
+      required: [takenAt, moves]
+      properties:
+        takenAt:
+          type: string
+          format: date-time
+        moves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Move"
+    Move:
+      type: object
+      required: [day, start, minutes, venueId, venueName, court]
+      properties:
+        day:
+          type: string
+          format: date
+        start:
+          type: integer
+        minutes:
+          type: integer
+        venueId:
+          type: string
+        venueName:
+          type: string
+        court:
+          type: string
+        price:
+          $ref: "#/components/schemas/Money"
+        perHead:
+          $ref: "#/components/schemas/Money"
     GameList:
       type: object
       required: [items]
@@ -1487,11 +1583,20 @@ components:
             $ref: "#/components/schemas/Game"
     GameChange:
       type: object
-      description: Exactly one of the four; code may also come with state booked.
+      description: Exactly one of state, players, accept, code, move and remove; code may also come with state booked.
       properties:
         state:
           type: string
           description: booked or cancelled.
+        note:
+          type: string
+          maxLength: 140
+          description: With move or a cancel, what the others are told.
+        move:
+          $ref: "#/components/schemas/NewGame"
+        remove:
+          type: string
+          description: The address of someone in the game, a reserve or asked again; they are out, and the first reserve moves up.
         players:
           type: integer
           description: The places, 2 to 8, never fewer than are in; more let the reserves move up in order.

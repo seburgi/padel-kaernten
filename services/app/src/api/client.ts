@@ -23,6 +23,7 @@ export type Fit = components["schemas"]["Fit"];
 export type FitList = components["schemas"]["FitList"];
 export type FourHalfHour = components["schemas"]["FourHalfHour"];
 export type Game = components["schemas"]["Game"];
+export type Move = components["schemas"]["Move"];
 
 /** An answer that was not what the call wanted; kind is the end of the
  * problem's type URI ("sites-failed"), or "network". */

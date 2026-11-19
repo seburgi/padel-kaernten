@@ -60,7 +60,8 @@
   make it full (`full`). `accept` with a reserve's address takes that one
   in, with a place more when the game is full (409 `places` past 8, 409
   `not-reserve` for anyone not waiting). One change per request: `state`,
-  `players` or `accept`. The price per head is over the places, so it
+  `players`, `accept`, `code`, `move` or `remove` (`code` may come with
+  `state` booked, `note` with `move` or a cancel). The price per head is over the places, so it
   falls as places are added. Answers, Seats, the push and the hourly
   run all read `players`, never a fixed four.
 - **Only the proposer books and cancels** (`PATCH
@@ -76,7 +77,42 @@
   group never get it. On a booked game it stands under the head, large,
   with Kopieren, and Ändern for the proposer, or "Code eintragen" while
   there is none (`Code.tsx`). Entering or changing it on a booked game
-  tells those playing (`EventCode`, `notify.md`).
+  tells those playing (`EventCode`, `notify.md`). A move to another
+  time, day or venue drops it; another court at the same time keeps it.
+- **Changing a game** (Seb, 2026-11-18: "Neu zusagen ja, herausnehmen
+  ja"; `change.go`, migration 0012): whoever proposed it opens "Ändern"
+  on the game, until its day is over:
+  - **Zeit oder Ort ändern**: `GET /api/v1/games/{gameId}/moves?minutes=`
+    (proposer only) lists every free start of the latest snapshot in the
+    group's area (`Moves`), one court per venue and start, plus every
+    other court at the game's own venue and time ("Gleiche Zeit, anderer
+    Platz"); never the game itself, past starts or a day the group has
+    another game. The app marks who would have time from "Wann kann ich?"
+    (only shown, never entered for them). `PATCH` with `move` (and an
+    optional `note`, at most 140 characters) checks the court again (409
+    `court-gone`) and the day (409 `day-taken`). Another court at the same
+    venue and time keeps every answer and the booking (`court-changed`).
+    A new time, day or venue (`moved`): whoever was in is `asked` again
+    and keeps their place until they answer; those who said no are asked
+    again (their answer is dropped); reserves stay reserves; a booked game
+    is proposed again, to be booked anew, without its access code. The
+    game keeps where and when it was before and the note
+    (`Game.change`), shown as "… hat das Spiel verschoben, vorher …".
+  - **`asked`** is a player state: it holds a place (`Held`, for places,
+    Accept and the hourly run) but is not in. Bin dabei keeps the place
+    (and makes it full when it is the last); Kann nicht lets the first
+    reserve up and tells the proposer (`declined`). The app shows asked
+    players as outlined rounds, "Warten auf …", and their game under
+    "Wartet auf dich" with "Verschoben · passt es dir noch?".
+  - **Spieler**: `PATCH` with `remove` and an address takes someone out
+    who told the proposer they cannot come (never the proposer; 409
+    `not-playing` for anyone not in, asked or reserve). It counts as
+    their no: the first reserve moves up into a place they held
+    (`removed`, `moved-up`).
+  - **Spiel absagen**: a sheet with reason chips (Zu wenige, Platz
+    ausgebucht, Etwas kam dazwischen, Wetter) or own words; `state`
+    cancelled with `note`, kept as `cancelNote`, shown on the game and
+    in the push.
 - **Who sees a game**: the members of its group, through the view
   `game_visibility`, like `group_visibility`; anyone else gets 404.
 - **In the app** (`services/app/src/games`): "Wann passt es für vier?" on
@@ -131,11 +167,12 @@
   card "Platz nicht mehr frei" on the group's page and on Spielen (Wartet
   auf dich, Deine nächsten Spiele), and the game says what to do: the
   proposer may have booked it already ("Gebucht") or finds another time
-  (Andere Zeit suchen, the group's fits); everyone else is told the
+  (Spiel verschieben, the move sheet); everyone else is told the
   proposer may have booked it and to ask. It never says someone else
   took it. The hourly run tells the proposer once by push (`notify.md`).
-- **What happened** (`Service.Changed`): proposed, full, moved up, booked
-  and cancelled, once per write; Mitteilungen tell people (`notify.md`).
+- **What happened** (`Service.Changed`): proposed, full, moved up, booked,
+  cancelled, code, moved, court changed, removed and declined, once per
+  write; Mitteilungen tell people (`notify.md`).
 
 ## Deliberately not
 
@@ -156,7 +193,12 @@
   is a game of four with places taken away, and more places come from
   the reserves.
 - **The access code is not cleared by itself**: it stays when the game is
-  cancelled, and nobody but the proposer changes it.
+  cancelled, and nobody but the proposer changes it; only a move to a new
+  time or venue drops it, since that booking is gone.
+- **No change history**: a game remembers only where it was before its
+  last move. The proposer cannot add people (they answer themselves) or
+  enter anyone's times, and a move never happens by itself when the court
+  is taken.
 - **Fewer places never push anyone out.** Someone must say Kann doch
   nicht first.
 

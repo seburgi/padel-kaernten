@@ -239,6 +239,15 @@ export const CHAPTERS: Chapter[] = [
           {b("Spiel absagen")} kann auch nur, wer vorgeschlagen hat.
         </p>
         <p>
+          Kommt etwas dazwischen, tippt, wer vorgeschlagen hat, oben auf {b("Ändern")}.{" "}
+          {b("Zeit oder Ort ändern")} zeigt die freien Plätze der nächsten Tage und wer da Zeit
+          hätte. Nur ein anderer Platz zur selben Zeit, und alle bleiben dabei. Bei einer neuen Zeit
+          oder Anlage sagen alle neu zu: ihr Platz bleibt ihnen, bis sie antworten, und alle
+          bekommen eine Mitteilung. Unter {b("Spieler")} nimmst du jemanden heraus, der dir gesagt
+          hat, dass er nicht kann; der Ersatz rückt dann nach. Beim Absagen kannst du einen Grund
+          dazuschreiben.
+        </p>
+        <p>
           Bei {b("Alle")} steht unter Spielen ganz oben {b("Wartet auf dich")}: Spiele, auf die du
           noch nicht geantwortet hast, mit {b("Bin dabei")} und {b("Kann nicht")} gleich auf der
           Karte, und Einladungen in Gruppen. Darunter {b("Deine nächsten Spiele")}, bei denen du
@@ -265,6 +274,10 @@ export const CHAPTERS: Chapter[] = [
       {
         name: "spiel",
         alt: "Ein vorgeschlagenes Spiel: drei Kreise besetzt, einer frei, darunter So geht es weiter mit Vorgeschlagen, Vier sagen zu und Du buchst, und für wer vorgeschlagen hat Zur Buchung, Gebucht und Spiel absagen.",
+      },
+      {
+        name: "spiel-aendern",
+        alt: "Zeit oder Ort ändern: Dauer 60, 90 oder 120 Minuten, die Tage als Knöpfe, darunter freie Plätze mit Uhrzeit, Anlage und Preis, und wer da Zeit hätte.",
       },
       {
         name: "spielen",

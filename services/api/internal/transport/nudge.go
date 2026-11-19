@@ -138,6 +138,8 @@ func (n *nudger) games(ahead []games.Game) error {
 			continue
 		}
 		in := lineup(g, games.In)
+		// Those asked again after a move hold their places: not missing.
+		held := games.Held(g)
 		when := whenText(g.Day, g.Start)
 		url := fmt.Sprintf("/games/%d", g.ID)
 		if err := n.taken(g, when, url); err != nil {
@@ -154,8 +156,8 @@ func (n *nudger) games(ahead []games.Game) error {
 					return err
 				}
 			}
-		case g.State == games.Proposed && len(in) < g.Players:
-			missing := g.Players - len(in)
+		case g.State == games.Proposed && len(held) < g.Players:
+			missing := g.Players - len(held)
 			if until <= 24*60 {
 				err := n.send(notify.KindStale, fmt.Sprintf("stale-%d", g.ID), notify.Message{
 					To: []string{g.ProposedBy}, Title: fmt.Sprintf("Noch %d gesucht", missing),
@@ -326,7 +328,7 @@ func played(ahead []games.Game, group int64, fits []games.Fit, need int) []games
 		if g.GroupID == group {
 			planned[g.Day] = true
 		}
-		for _, e := range lineup(g, games.In) {
+		for _, e := range games.Held(g) {
 			busy[g.Day+"/"+e] = true
 		}
 	}

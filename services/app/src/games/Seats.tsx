@@ -22,14 +22,28 @@ export function Seats({ g, big = false }: { g: Game; big?: boolean }) {
           {shown(p).slice(0, 2).toUpperCase()}
         </span>
       ))}
-      {Array.from({ length: free }, (_, i) => (
-        <span
-          key={`free-${i}`}
-          className={`${size} inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-ink-faint text-ink-faint`}
-        >
-          ?
-        </span>
-      ))}
+      {g.lineup
+        .filter((p) => p.state === "asked")
+        .map((p) => (
+          <span
+            key={p.email}
+            title={`${shown(p)}: neu gefragt`}
+            className={`${size} inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-accent font-semibold text-accent-text`}
+          >
+            {shown(p).slice(0, 2).toUpperCase()}
+          </span>
+        ))}
+      {Array.from(
+        { length: Math.max(free - g.lineup.filter((p) => p.state === "asked").length, 0) },
+        (_, i) => (
+          <span
+            key={`free-${i}`}
+            className={`${size} inline-flex shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-ink-faint text-ink-faint`}
+          >
+            ?
+          </span>
+        ),
+      )}
     </div>
   );
 }
